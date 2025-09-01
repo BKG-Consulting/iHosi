@@ -16,9 +16,10 @@ interface CardProps {
   link: string;
 }
 
-const CardIcon = ({ icon: Icon }: { icon: LucideIcon }) => {
-  return <Icon />;
+const CardIcon = ({ icon: Icon, className }: { icon: LucideIcon; className?: string }) => {
+  return <Icon className={cn("w-5 h-5", className)} />;
 };
+
 export const StatCard = ({
   title,
   icon,
@@ -29,38 +30,47 @@ export const StatCard = ({
   link,
 }: CardProps) => {
   return (
-    <Card className={cn("w-full md:w-[330px] 2xl:w-[250px]", className)}>
-      <CardHeader className="flex flex-row items-center justify-between py-3 capitalize">
-        <h3>{title}</h3>
+    <Card className={cn(
+      "group hover:shadow-lg transition-all duration-300 border-0 overflow-hidden",
+      className
+    )}>
+      <CardHeader className="flex flex-row items-center justify-between py-4 px-6 pb-2">
+        <h3 className="text-sm font-medium text-gray-600 uppercase tracking-wide">{title}</h3>
         <Button
           asChild
           size="sm"
-          variant="outline"
-          className="font-normal text-xs bg-transparent p-2 h-0 hover:underline"
+          variant="ghost"
+          className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 hover:bg-gray-100"
         >
-          <Link href={link}>See details</Link>
+          <Link href={link}>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+          </Link>
         </Button>
       </CardHeader>
 
-      <CardContent>
+      <CardContent className="px-6 py-2">
         <div className="flex items-center gap-4">
           <div
             className={cn(
-              "w-10 h-10 bg-violet-50-500/15 rounded-full flex items-center justify-center text-violet-600",
+              "w-12 h-12 rounded-xl flex items-center justify-center shadow-sm",
               iconClassName
             )}
           >
-            <CardIcon icon={icon} />
+            <CardIcon icon={icon} className="text-white" />
           </div>
 
-          <h2 className="text-2xl 2xl:text-3xl font-semibold">
-            {formatNumber(value)}
-          </h2>
+          <div>
+            <h2 className="text-3xl font-bold text-gray-900">
+              {formatNumber(value)}
+            </h2>
+          </div>
         </div>
       </CardContent>
 
-      <CardFooter className="pb-3">
-        <p className="text-sm text-gray-500">{note}</p>
+      <CardFooter className="px-6 py-3 pt-0">
+        <p className="text-sm text-gray-500 font-medium">{note}</p>
       </CardFooter>
     </Card>
   );

@@ -54,6 +54,27 @@ enum PaymentStatus {
   PART
 }
 
+enum ConsentType {
+  HIPAA_PRIVACY
+  TREATMENT
+  PAYMENT
+  OPERATIONS
+  MARKETING
+  RESEARCH
+  DIRECTORY_LISTING
+  EMERGENCY_CONTACT
+  TELEMEDICINE
+  DATA_SHARING
+}
+
+enum ConsentStatus {
+  GRANTED
+  DENIED
+  REVOKED
+  EXPIRED
+  PENDING
+}
+
 
 model Patient {
   id                       String   @id //clerk userId
@@ -84,6 +105,7 @@ model Patient {
   medical                  MedicalRecords[]
   payments                 Payment[]
   ratings                  Rating[]
+  consents                 PatientConsent[]
 
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
@@ -313,4 +335,83 @@ model Services {
 
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+}
+
+model PatientConsent {
+  id                Int           @id @default(autoincrement())
+  patient_id        String
+  consent_type      ConsentType
+  status            ConsentStatus
+  consent_text      String
+  version           String
+  granted_at        DateTime?
+  revoked_at        DateTime?
+  expires_at        DateTime?
+  granted_by        String
+  ip_address        String
+  user_agent        String
+  digital_signature String?
+  witness_id        String?
+  legal_basis       String
+  purpose_of_use    String        @default("[]")
+  data_categories   String        @default("[]")
+  restrictions      String        @default("[]")
+  metadata          String        @default("{}")
+
+  patient           Patient       @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+
+  created_at        DateTime      @default(now())
+  updated_at        DateTime      @updatedAt
+
+  @@index([patient_id])
+  @@index([consent_type])
+  @@index([status])
+  @@index([expires_at])
+}
+
+model UserSession {
+  id             Int      @id @default(autoincrement())
+  user_id        String
+  session_token  String   @unique
+  ip_address     String
+  user_agent     String
+  created_at     DateTime @default(now())
+  last_activity  DateTime @default(now())
+  expires_at     DateTime
+  is_active      Boolean  @default(true)
+  logout_reason  String?
+
+  @@index([user_id])
+  @@index([last_activity])
+}
+
+model LoginAttempt {
+  id             Int      @id @default(autoincrement())
+  email          String?
+  user_id        String?
+  ip_address     String
+  user_agent     String
+  success        Boolean
+  failure_reason String?
+  attempted_at   DateTime @default(now())
+
+  @@index([email])
+  @@index([ip_address])
+  @@index([attempted_at])
+}
+
+model UserLockout {
+  id              Int      @id @default(autoincrement())
+  user_id         String?
+  email           String?
+  ip_address      String
+  locked_at       DateTime @default(now())
+  unlock_at       DateTime
+  reason          String
+  failed_attempts Int      @default(0)
+
+  @@index([user_id])
+  @@index([email])
+  @@index([ip_address])
+  @@index([unlock_at])
 }

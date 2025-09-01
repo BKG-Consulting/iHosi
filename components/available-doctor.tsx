@@ -7,6 +7,7 @@ import { Card } from "./ui/card";
 import { ProfileImage } from "./profile-image";
 import { daysOfWeek } from "@/utils";
 import { cn } from "@/lib/utils";
+import { Clock, MapPin } from "lucide-react";
 
 const getToday = () => {
   const today = new Date().getDay();
@@ -34,51 +35,74 @@ export const availableDays = ({ data }: { data: Days[] }) => {
     ? `${isTodayWorkingDay?.start_time} - ${isTodayWorkingDay?.close_time}`
     : "Not Available";
 };
+
 export const AvailableDoctors = async ({ data }: DataProps) => {
   return (
-    <div className="bg-white rounded-xl p-4">
+    <div className="h-full">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-lg font-semibold">Available Doctors</h1>
+        <div>
+          <h2 className="text-xl font-semibold text-gray-900 mb-1">Available Doctors</h2>
+          <p className="text-sm text-gray-600">Doctors available for appointments today</p>
+        </div>
 
         {(await checkRole("ADMIN")) && (
           <Button
             asChild
-            variant={"outline"}
-            disabled={data?.length === 0}
-            className="disabled:cursor-not-allowed disabled:text-gray-200"
+            variant="outline"
+            disabled={!data || data.length === 0}
+            className="text-xs border-gray-300 hover:bg-gray-50 disabled:opacity-50"
           >
             <Link href="/record/doctors">View all</Link>
           </Button>
         )}
       </div>
 
-      <div className="w-full space-y-5 md:space-y-0 md:gap-6 flex flex-col md:flex-row md:flex-wrap">
-        {data?.map((doc, id) => (
-          <Card
-            key={id}
-            className=" border-none  w-full md:w-[300px] min-h-28 xl:w-full p-4 flex  gap-4 odd:bg-emerald-600/5 even:bg-yellow-600/5"
-          >
-            <ProfileImage
-              url={doc?.img}
-              name={doc?.name}
-              className={`md:flex min-w-14 min-h-14 md:min-w-16 md:min-h-16`}
-              textClassName="text-2xl font-semibold text-black"
-              bgColor={doc?.colorCode!}
-            />
-            {/* <p>{doc.colorCode}</p> */}
-            <div>
-              <h2 className="font-semibold text-lg md:text-xl">{doc?.name}</h2>
-              <p className="text-base capitalize text-gray-600">
-                {doc?.specialization}
-              </p>
-              <p className="text-sm flex items-center">
-                <span className="hidden lg:flex">Available Time:</span>
-                {availableDays({ data: doc?.working_days })}
-              </p>
-            </div>
-          </Card>
-        ))}
-      </div>
+      {!data || data.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          <Clock className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+          <p className="text-sm">No doctors available today</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {data?.map((doc, id) => (
+            <Card
+              key={id}
+              className="group hover:shadow-md transition-all duration-300 border-gray-100 hover:border-blue-200 p-4"
+            >
+              <div className="flex gap-4">
+                <ProfileImage
+                  url={doc?.img}
+                  name={doc?.name}
+                  className="w-16 h-16 flex-shrink-0"
+                  textClassName="text-lg font-semibold text-white"
+                  bgColor={doc?.colorCode || "#3b82f6"}
+                />
+                
+                <div className="flex-1 min-w-0">
+                  <h3 className="font-semibold text-gray-900 text-lg mb-1">
+                    Dr. {doc?.name}
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-2 capitalize">
+                    {doc?.specialization}
+                  </p>
+                  
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="w-4 h-4 text-gray-400" />
+                    <span className={cn(
+                      "font-medium",
+                      availableDays({ data: doc?.working_days }) === "Not Available"
+                        ? "text-red-500"
+                        : "text-green-600"
+                    )}>
+                      {availableDays({ data: doc?.working_days })}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

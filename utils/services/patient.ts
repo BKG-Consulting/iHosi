@@ -1,6 +1,8 @@
 import db from "@/lib/db";
 import { getMonth, format, startOfYear, endOfMonth, isToday } from "date-fns";
 import { daysOfWeek } from "..";
+import { PHIEncryption } from "@/lib/encryption";
+import { logAudit } from "@/lib/audit";
 
 type AppointmentStatus = "PENDING" | "SCHEDULED" | "COMPLETED" | "CANCELLED";
 
@@ -156,9 +158,27 @@ export async function getPatientDashboardStatistics(id: string) {
       take: 4,
     });
 
+    // Decrypt PHI data before returning
+    const decryptedData = data ? PHIEncryption.decryptPatientData(data) : null;
+
+    // Audit log for patient data access
+    if (decryptedData) {
+      await logAudit({
+        action: 'READ',
+        resourceType: 'PATIENT',
+        resourceId: id,
+        patientId: id,
+        reason: 'Dashboard data access',
+        phiAccessed: ['personal_info', 'contact_info'],
+        metadata: {
+          accessType: 'dashboard_summary'
+        }
+      });
+    }
+
     return {
       success: true,
-      data,
+      data: decryptedData,
       appointmentCounts,
       last5Records,
       totalAppointments: appointments.length,
@@ -187,7 +207,23 @@ export async function getPatientById(id: string) {
       };
     }
 
-    return { success: true, data: patient, status: 200 };
+    // Decrypt PHI data before returning
+    const decryptedPatient = PHIEncryption.decryptPatientData(patient);
+
+    // Log audit trail for patient data access
+    await logAudit({
+      action: 'READ',
+      resourceType: 'PATIENT',
+      resourceId: id,
+      patientId: id,
+      reason: 'Patient data retrieval',
+      phiAccessed: ['personal_info', 'contact_info', 'medical_info'],
+      metadata: {
+        accessType: 'patient_lookup'
+      }
+    });
+
+    return { success: true, data: decryptedPatient, status: 200 };
   } catch (error) {
     console.log(error);
     return { success: false, message: "Internal Server Error", status: 500 };
@@ -232,10 +268,27 @@ export async function getPatientFullDataById(id: string) {
     }
     const lastVisit = patient.appointments[0]?.appointment_date || null;
 
+    // Decrypt PHI data before returning
+    const decryptedPatient = PHIEncryption.decryptPatientData(patient);
+
+    // Log audit trail for patient data access
+    await logAudit({
+      action: 'READ',
+      resourceType: 'PATIENT',
+      resourceId: id,
+      patientId: patient.id,
+      reason: 'Full patient data access',
+      phiAccessed: ['personal_info', 'contact_info', 'medical_info', 'appointment_history'],
+      metadata: {
+        accessType: 'full_patient_profile',
+        lastVisit: lastVisit
+      }
+    });
+
     return {
       success: true,
       data: {
-        ...patient,
+        ...decryptedPatient,
         totalAppointments: patient._count.appointments,
         lastVisit,
       },
@@ -292,11 +345,31 @@ export async function getAllPatients({
       db.patient.count(),
     ]);
 
+    // Decrypt PHI data for all patients
+    const decryptedPatients = patients.map(patient => PHIEncryption.decryptPatientData(patient));
+
     const totalPages = Math.ceil(totalRecords / LIMIT);
+
+    // Log audit trail for bulk patient access
+    await logAudit({
+      action: 'READ',
+      resourceType: 'PATIENT',
+      resourceId: 'BULK_ACCESS',
+      patientId: 'MULTIPLE',
+      reason: 'Patient list access',
+      phiAccessed: ['personal_info', 'contact_info'],
+      metadata: {
+        accessType: 'patient_list',
+        page: PAGE_NUMBER,
+        limit: LIMIT,
+        search: search || 'none',
+        totalPatients: patients.length
+      }
+    });
 
     return {
       success: true,
-      data: patients,
+      data: decryptedPatients,
       totalRecords,
       totalPages,
       currentPage: PAGE_NUMBER,

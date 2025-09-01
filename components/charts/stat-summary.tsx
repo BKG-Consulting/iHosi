@@ -3,80 +3,90 @@
 import Link from "next/link";
 import { Button } from "../ui/button";
 import { ResponsiveContainer, RadialBarChart, RadialBar } from "recharts";
-import { Users } from "lucide-react";
+import { Users, Calendar, CheckCircle } from "lucide-react";
 import { formatNumber } from "@/utils";
 
 export const StatSummary = ({ data, total }: { data: any; total: number }) => {
   const dataInfo = [
-    { name: "Total", count: total || 0, fill: "white" },
+    { name: "Total", count: total || 0, fill: "#f8fafc" },
     {
-      name: "Appointments",
-      count: data?.PENDING + data?.SCHEDULED || 0,
-      fill: "#000000",
+      name: "Scheduled",
+      count: (data?.PENDING || 0) + (data?.SCHEDULED || 0),
+      fill: "#3b82f6",
     },
-    { name: "Consultation", count: data?.COMPLETED || 0, fill: "#2563eb" },
+    { name: "Completed", count: data?.COMPLETED || 0, fill: "#10b981" },
   ];
 
-  const appointment = dataInfo[1].count;
-  const consultation = dataInfo[2].count;
+  const scheduled = dataInfo[1].count;
+  const completed = dataInfo[2].count;
+  const totalCount = scheduled + completed;
 
   return (
-    <div className="bg-white rounded-xl w-full h-full p-4">
-      <div className="flex justify-between items-center">
-        <h1 className="text-lg font-semibold">Summary</h1>
-
+    <div className="h-full">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-semibold text-gray-900">Appointment Summary</h2>
         <Button
           asChild
           size="sm"
           variant="outline"
-          className="font-normal text-xs"
+          className="text-xs border-gray-300 hover:bg-gray-50"
         >
-          <Link href="/record/appointments">See details</Link>
+          <Link href="/record/appointments">View all</Link>
         </Button>
       </div>
 
-      <div className="relative w-full h-[75%]">
+      <div className="relative w-full h-[200px] mb-6">
         <ResponsiveContainer>
           <RadialBarChart
             cx="50%"
             cy="50%"
-            innerRadius="40%"
-            outerRadius="100%"
-            barSize={32}
+            innerRadius="45%"
+            outerRadius="85%"
+            barSize={20}
             data={dataInfo}
+            startAngle={180}
+            endAngle={0}
           >
-            <RadialBar background dataKey={"count"} />
+            <RadialBar 
+              background 
+              dataKey="count"
+              cornerRadius={10}
+            />
           </RadialBarChart>
         </ResponsiveContainer>
 
-        <Users
-          size={30}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-gray-400"
-        />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+          <Users className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+          <div className="text-2xl font-bold text-gray-900">{formatNumber(totalCount)}</div>
+          <div className="text-xs text-gray-500">Total</div>
+        </div>
       </div>
 
-      <div className="flex justify-center gap-16">
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-[#000000] rounded-xl" />
-            <h1 className="font-bold">{formatNumber(appointment)}</h1>
+      <div className="space-y-4">
+        <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 bg-blue-500 rounded-full" />
+            <span className="text-sm font-medium text-gray-700">Scheduled</span>
           </div>
-          <h2 className="text-xs text-gray-400">
-            {dataInfo[1].name}(
-            {((appointment / (appointment + consultation)) * 100).toFixed(0)})
-          </h2>
+          <div className="text-right">
+            <div className="font-bold text-gray-900">{formatNumber(scheduled)}</div>
+            <div className="text-xs text-gray-500">
+              {totalCount > 0 ? ((scheduled / totalCount) * 100).toFixed(0) : 0}%
+            </div>
+          </div>
         </div>
 
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center gap-2">
-            <div className="w-5 h-5 bg-[#2563eb] rounded-xl" />
-            <h1 className="font-bold">{formatNumber(consultation)}</h1>
+        <div className="flex items-center justify-between p-3 bg-emerald-50 rounded-lg">
+          <div className="flex items-center gap-3">
+            <div className="w-3 h-3 bg-emerald-500 rounded-full" />
+            <span className="text-sm font-medium text-gray-700">Completed</span>
           </div>
-
-          <h2 className="text-xs text-gray-400">
-            {dataInfo[2].name}(
-            {((consultation / (appointment + consultation)) * 100).toFixed(0)})
-          </h2>
+          <div className="text-right">
+            <div className="font-bold text-gray-900">{formatNumber(completed)}</div>
+            <div className="text-xs text-gray-500">
+              {totalCount > 0 ? ((completed / totalCount) * 100).toFixed(0) : 0}%
+            </div>
+          </div>
         </div>
       </div>
     </div>

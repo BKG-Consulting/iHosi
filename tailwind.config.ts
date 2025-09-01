@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import colors from "tailwindcss/colors";
 
 export default {
     darkMode: ["class"],
@@ -10,6 +11,11 @@ export default {
   theme: {
   	extend: {
   		colors: {
+  			// Brand aliases mapped to patient dashboard stat card palette
+  			brand: colors.blue,
+  			success: colors.emerald,
+  			warning: colors.amber,
+  			danger: colors.red,
   			background: 'hsl(var(--background))',
   			foreground: 'hsl(var(--foreground))',
   			card: {
