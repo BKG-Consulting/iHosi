@@ -75,6 +75,39 @@ enum ConsentStatus {
   PENDING
 }
 
+enum AvailabilityStatus {
+  AVAILABLE
+  UNAVAILABLE
+  BUSY
+  ON_BREAK
+  ON_LEAVE
+  EMERGENCY_ONLY
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  MATERNITY
+  PATERNITY
+  UNPAID
+  OTHER
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum AvailabilityUpdateType {
+  SCHEDULE_CHANGE
+  EMERGENCY_UNAVAILABLE
+  TEMPORARY_UNAVAILABLE
+  CAPACITY_UPDATE
+  BREAK_TIME_UPDATE
+}
+
 
 model Patient {
   id                       String   @id //clerk userId
@@ -106,6 +139,7 @@ model Patient {
   payments                 Payment[]
   ratings                  Rating[]
   consents                 PatientConsent[]
+  beds                     Bed[]  // New: Bed assignments
 
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
@@ -120,6 +154,15 @@ model Doctor {
   phone                 String
   address               String
   department            String?
+  department_id         String?  // New: Reference to Department model
+  emergency_contact     String
+  emergency_phone       String
+  qualifications        String
+  experience_years      Int
+  languages             String[] // Array of languages
+  consultation_fee      Float
+  max_patients_per_day  Int
+  preferred_appointment_duration Int // in minutes
   img                   String?
   colorCode             String?
   availability_status   String?
@@ -129,6 +172,11 @@ model Doctor {
   appointments          Appointment[]
   ratings               Rating[]
   diagnosis             Diagnosis[] 
+  leave_requests        LeaveRequest[]
+  availability_updates  AvailabilityUpdate[]
+  
+  // New: Department relationship
+  department_ref        Department? @relation("DepartmentDoctors", fields: [department_id], references: [id])
 
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
@@ -141,6 +189,43 @@ model WorkingDays {
   day             String
   start_time      String
   close_time      String
+  is_working      Boolean @default(true)
+  break_start     String?
+  break_end       String?
+  max_appointments Int?
+
+  doctor          Doctor  @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model LeaveRequest {
+  id              String   @id @default(cuid())
+  doctor_id       String
+  leave_type      LeaveType
+  start_date      DateTime
+  end_date        DateTime
+  reason          String
+  status          LeaveStatus @default(PENDING)
+  approved_by     String?
+  approved_at     DateTime?
+  notes           String?
+
+  doctor          Doctor  @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model AvailabilityUpdate {
+  id              String   @id @default(cuid())
+  doctor_id       String
+  update_type     AvailabilityUpdateType
+  effective_date  DateTime
+  end_date        DateTime?
+  reason          String?
+  is_temporary    Boolean @default(false)
 
   doctor          Doctor  @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
 
@@ -156,12 +241,16 @@ model Staff {
   phone         String
   address       String
   department    String?
+  department_id String?  // New: Reference to Department model
   img           String?
   license_number String?
   colorCode      String?
 
   role          Role
   status        Status @default(ACTIVE)
+  
+  // New: Department relationship
+  department_ref        Department? @relation("DepartmentStaff", fields: [department_id], references: [id])
 
   created_at    DateTime @default(now())
   updated_at    DateTime @updatedAt
@@ -307,6 +396,9 @@ model AuditLog {
   details     String?
   model       String
 
+  // Remove problematic foreign key constraints
+  // Audit logs should be independent and not enforce strict relationships
+
   created_at  DateTime @default(now())
   updated_at  DateTime @updatedAt
 }
@@ -414,4 +506,176 @@ model UserLockout {
   @@index([email])
   @@index([ip_address])
   @@index([unlock_at])
+}
+
+// New models for enterprise HIMS
+model Department {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  code        String   @unique // Department code like "CARD", "NEURO"
+  description String?
+  location    String?  // Building, floor, wing
+  contact_number String?
+  email       String?
+  head_doctor_id String? // Department head
+  status      DepartmentStatus @default(ACTIVE)
+  capacity    Int      @default(100) // Maximum capacity
+  current_load Int     @default(0)   // Current patient load
+  
+  // Relations
+  doctors    Doctor[] @relation("DepartmentDoctors")
+  staff      Staff[]  @relation("DepartmentStaff")
+  wards      Ward[]
+  equipment  Equipment[]
+  
+  // Metadata
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  created_by String?  // User ID who created
+  updated_by String?  // User ID who last updated
+  
+  @@map("departments")
+}
+
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  CLOSED
+}
+
+model Ward {
+  id          String   @id @default(cuid())
+  name        String   // Ward name like "ICU", "General Ward A"
+  department_id String
+  floor       Int?
+  wing        String?
+  capacity    Int      @default(20)
+  current_occupancy Int @default(0)
+  ward_type   WardType
+  status      WardStatus @default(ACTIVE)
+  
+  // Relations
+  department Department @relation(fields: [department_id], references: [id], onDelete: Cascade)
+  beds       Bed[]
+  equipment  Equipment[]
+  
+  // Metadata
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+  
+  @@map("wards")
+}
+
+enum WardType {
+  INTENSIVE_CARE
+  GENERAL
+  EMERGENCY
+  OPERATING_ROOM
+  RECOVERY
+  PEDIATRIC
+  MATERNITY
+  PSYCHIATRIC
+  ISOLATION
+  STEP_DOWN
+}
+
+enum WardStatus {
+  ACTIVE
+  INACTIVE
+  MAINTENANCE
+  QUARANTINE
+  CLOSED
+}
+
+model Bed {
+  id          String   @id @default(cuid())
+  bed_number  String   // Bed identifier like "A1", "B3"
+  ward_id     String
+  bed_type    BedType
+  status      BedStatus @default(AVAILABLE)
+  current_patient_id String?
+  last_cleaned DateTime?
+  infection_status InfectionStatus @default(CLEAN)
+  
+  // Relations
+  ward        Ward     @relation(fields: [ward_id], references: [id], onDelete: Cascade)
+  patient     Patient? @relation(fields: [current_patient_id], references: [id])
+  
+  // Metadata
+  created_at  DateTime @default(now())
+  updated_at  DateTime @updatedAt
+  
+  @@map("beds")
+}
+
+enum BedType {
+  STANDARD
+  ICU
+  ISOLATION
+  BARIATRIC
+  PEDIATRIC
+  MATERNITY
+}
+
+enum BedStatus {
+  AVAILABLE
+  OCCUPIED
+  MAINTENANCE
+  CLEANING
+  RESERVED
+  OUT_OF_SERVICE
+}
+
+enum InfectionStatus {
+  CLEAN
+  CONTAMINATED
+  ISOLATION_REQUIRED
+  UNDER_CLEANING
+}
+
+model Equipment {
+  id              String   @id @default(cuid())
+  name            String
+  model           String?
+  serial_number   String   @unique
+  department_id   String?
+  ward_id         String?
+  equipment_type  EquipmentType
+  status          EquipmentStatus @default(OPERATIONAL)
+  manufacturer    String?
+  purchase_date   DateTime?
+  warranty_expiry DateTime?
+  last_maintenance DateTime?
+  next_maintenance DateTime?
+  maintenance_cycle Int? // Days between maintenance
+  
+  // Relations
+  department      Department? @relation(fields: [department_id], references: [id])
+  ward            Ward?       @relation(fields: [ward_id], references: [id])
+  
+  // Metadata
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  
+  @@map("equipment")
+}
+
+enum EquipmentType {
+  DIAGNOSTIC
+  MONITORING
+  SURGICAL
+  IMAGING
+  LABORATORY
+  THERAPEUTIC
+  SUPPORT
+  TRANSPORT
+}
+
+enum EquipmentStatus {
+  OPERATIONAL
+  MAINTENANCE
+  OUT_OF_SERVICE
+  RETIRED
+  QUARANTINED
 }

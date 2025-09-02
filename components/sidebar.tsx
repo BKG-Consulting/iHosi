@@ -18,6 +18,10 @@ import {
   FileText,
   CreditCard,
   Activity,
+  Building2,
+  Bed,
+  Microscope,
+  Database,
 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -166,6 +170,13 @@ export const Sidebar = async () => {
           description: "System alerts",
         },
         {
+          name: "Debug Info",
+          href: "/debug",
+          access: ACCESS_LEVELS_ALL,
+          icon: Activity,
+          description: "Debug authentication",
+        },
+        {
           name: "Audit Logs",
           href: "/admin/audit-logs",
           access: ["admin"],
@@ -182,6 +193,64 @@ export const Sidebar = async () => {
       ],
     },
   ];
+
+  // Add admin-specific links to the existing structure
+  if (role.toLowerCase() === "admin") {
+    SIDEBAR_LINKS.push({
+      label: "Hospital Administration",
+      links: [
+        {
+          name: "Admin Dashboard",
+          href: "/admin",
+          access: ["admin"],
+          icon: LayoutDashboard,
+          description: "Hospital administration overview",
+        },
+        {
+          name: "Staff Management",
+          href: "/admin/staff",
+          access: ["admin"],
+          icon: Users,
+          description: "Manage hospital staff",
+        },
+        {
+          name: "Department Management",
+          href: "/admin/hospital/departments",
+          access: ["admin"],
+          icon: Building2,
+          description: "Manage departments",
+        },
+        {
+          name: "Ward & Bed Management",
+          href: "/admin/wards",
+          access: ["admin"],
+          icon: Bed,
+          description: "Manage wards and beds",
+        },
+        {
+          name: "Equipment Management",
+          href: "/admin/equipment",
+          access: ["admin"],
+          icon: Microscope,
+          description: "Track medical equipment",
+        },
+        {
+          name: "Financial Operations",
+          href: "/admin/finance",
+          access: ["admin"],
+          icon: CreditCard,
+          description: "Financial management",
+        },
+        {
+          name: "Bulk Import System",
+          href: "/admin/bulk-import",
+          access: ["admin"],
+          icon: Database,
+          description: "Import existing records",
+        },
+      ],
+    });
+  }
 
   return (
     <div className="w-full h-full bg-gradient-to-b from-white to-gray-50 border-r border-gray-200 flex flex-col">

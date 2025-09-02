@@ -1,6 +1,7 @@
 import { Appointment, Doctor, Patient } from '@prisma/client';
 import { notificationService } from './notifications';
 import { logAudit } from './audit';
+import { SchedulingStrategy } from './email-scheduler';
 import db from './db';
 
 // Reminder timing configuration
@@ -192,7 +193,7 @@ export class ReminderScheduler {
       
       await logAudit({
         action: 'UPDATE',
-        resourceType: 'REMINDER',
+        resourceType: 'APPOINTMENT',
         resourceId: appointmentId.toString(),
         reason: 'Appointment cancelled - reminders cancelled',
         metadata: {
@@ -307,7 +308,7 @@ export class ReminderScheduler {
       
       await logAudit({
         action: 'CREATE',
-        resourceType: 'REMINDER',
+        resourceType: 'APPOINTMENT',
         resourceId: appointment.id.toString(),
         patientId: appointment.patient_id,
         reason: '24-hour appointment reminder sent',
@@ -330,7 +331,7 @@ export class ReminderScheduler {
       
       await logAudit({
         action: 'CREATE',
-        resourceType: 'REMINDER',
+        resourceType: 'APPOINTMENT',
         resourceId: appointment.id.toString(),
         patientId: appointment.patient_id,
         reason: '2-hour appointment reminder sent',
@@ -349,29 +350,16 @@ export class ReminderScheduler {
   private async sendDoctorReminder(appointment: Appointment & { patient: Patient; doctor: Doctor }): Promise<void> {
     try {
       // Send in-app notification to doctor
-      await notificationService.sendNotification({
-        type: 'DOCTOR_REMINDER',
-        channel: 'IN_APP',
-        priority: 'HIGH',
-        recipientId: appointment.doctor_id,
-        recipientType: 'DOCTOR',
-        appointmentId: appointment.id,
-        patientId: appointment.patient_id,
-        doctorId: appointment.doctor_id,
-        scheduledFor: appointment.appointment_date,
-        metadata: {
-          patientName: `${appointment.patient.first_name} ${appointment.patient.last_name}`,
-          appointmentTime: appointment.time,
-          appointmentType: appointment.type,
-          minutesUntil: '60 minutes'
-        }
-      });
+      await notificationService.sendAppointmentReminderTemplate(
+        appointment,
+        SchedulingStrategy.IMMEDIATE
+      );
       
       console.log(`👨‍⚕️ Sent doctor reminder for appointment ${appointment.id}`);
       
       await logAudit({
         action: 'CREATE',
-        resourceType: 'REMINDER',
+        resourceType: 'APPOINTMENT',
         resourceId: appointment.id.toString(),
         patientId: appointment.patient_id,
         reason: 'Doctor reminder sent',
@@ -390,29 +378,16 @@ export class ReminderScheduler {
   private async sendFollowUpReminder(appointment: Appointment & { patient: Patient; doctor: Doctor }): Promise<void> {
     try {
       // Send follow-up email to patient
-      await notificationService.sendNotification({
-        type: 'FOLLOW_UP',
-        channel: 'EMAIL',
-        priority: 'LOW',
-        recipientId: appointment.patient_id,
-        recipientType: 'PATIENT',
-        appointmentId: appointment.id,
-        patientId: appointment.patient_id,
-        doctorId: appointment.doctor_id,
-        scheduledFor: appointment.appointment_date,
-        metadata: {
-          patientName: `${appointment.patient.first_name} ${appointment.patient.last_name}`,
-          doctorName: appointment.doctor.name,
-          appointmentDate: appointment.appointment_date.toISOString(),
-          appointmentType: appointment.type
-        }
-      });
+      await notificationService.sendAppointmentReminderTemplate(
+        appointment,
+        SchedulingStrategy.DELAYED
+      );
       
       console.log(`📧 Sent follow-up reminder for appointment ${appointment.id}`);
       
       await logAudit({
         action: 'CREATE',
-        resourceType: 'REMINDER',
+        resourceType: 'APPOINTMENT',
         resourceId: appointment.id.toString(),
         patientId: appointment.patient_id,
         reason: 'Follow-up reminder sent',

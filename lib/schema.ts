@@ -86,6 +86,14 @@ export const DoctorSchema = z.object({
   license_number: z.string().min(2, "License number is required"),
   type: z.enum(["FULL", "PART"], { message: "Type is required." }),
   department: z.string().min(2, "Department is required."),
+  emergency_contact: z.string().min(2, "Emergency contact is required."),
+  emergency_phone: z.string().min(10, "Emergency phone is required.").max(10, "Emergency phone must be 10 digits"),
+  qualifications: z.string().min(2, "Qualifications are required."),
+  experience_years: z.coerce.number().min(0, "Experience years must be 0 or more"),
+  languages: z.array(z.string()).min(1, "At least one language is required"),
+  consultation_fee: z.coerce.number().min(0, "Consultation fee must be 0 or more"),
+  max_patients_per_day: z.coerce.number().min(1, "Max patients per day must be at least 1"),
+  preferred_appointment_duration: z.coerce.number().min(15, "Appointment duration must be at least 15 minutes"),
   img: z.string().optional(),
   password: z
     .string()
@@ -106,6 +114,10 @@ export const workingDaySchema = z.object({
   ]),
   start_time: z.string(),
   close_time: z.string(),
+  is_working: z.boolean().default(true),
+  break_start: z.string().optional(),
+  break_end: z.string().optional(),
+  max_appointments: z.coerce.number().optional(),
 });
 export const WorkingDaysSchema = z.array(workingDaySchema).optional();
 
@@ -190,4 +202,82 @@ export const ServicesSchema = z.object({
   service_name: z.string({ message: "Service name is required" }),
   price: z.string({ message: "Service price is required" }),
   description: z.string({ message: "Service description is required" }),
+});
+
+export const LeaveRequestSchema = z.object({
+  doctor_id: z.string().min(1, "Doctor ID is required"),
+  leave_type: z.enum(["ANNUAL", "SICK", "MATERNITY", "PATERNITY", "UNPAID", "OTHER"]),
+  start_date: z.coerce.date(),
+  end_date: z.coerce.date(),
+  reason: z.string().min(10, "Reason must be at least 10 characters"),
+  status: z.enum(["PENDING", "APPROVED", "REJECTED", "CANCELLED"]).default("PENDING"),
+  approved_by: z.string().optional(),
+  approved_at: z.coerce.date().optional(),
+  notes: z.string().optional(),
+});
+
+export const AvailabilityUpdateSchema = z.object({
+  doctor_id: z.string().min(1, "Doctor ID is required"),
+  update_type: z.enum(["SCHEDULE_CHANGE", "EMERGENCY_UNAVAILABLE", "TEMPORARY_UNAVAILABLE", "CAPACITY_UPDATE", "BREAK_TIME_UPDATE"]),
+  effective_date: z.coerce.date(),
+  end_date: z.coerce.date().optional(),
+  reason: z.string().optional(),
+  is_temporary: z.boolean().default(false),
+});
+
+// New enterprise HIMS schemas
+export const DepartmentSchema = z.object({
+  name: z.string().min(2, "Department name must be at least 2 characters").max(100, "Department name must be at most 100 characters"),
+  code: z.string().min(2, "Department code must be at least 2 characters").max(10, "Department code must be at most 10 characters"),
+  description: z.string().optional(),
+  location: z.string().optional(),
+  contact_number: z.string().optional(),
+  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  head_doctor_id: z.string().optional(),
+  status: z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE", "CLOSED"]).default("ACTIVE"),
+  capacity: z.coerce.number().min(1, "Capacity must be at least 1").max(1000, "Capacity must be at most 1000").default(100),
+  current_load: z.coerce.number().min(0, "Current load cannot be negative").default(0),
+});
+
+export const WardSchema = z.object({
+  name: z.string().min(2, "Ward name must be at least 2 characters").max(100, "Ward name must be at most 100 characters"),
+  department_id: z.string().min(1, "Department is required"),
+  floor: z.coerce.number().min(1, "Floor must be at least 1").optional(),
+  wing: z.string().optional(),
+  capacity: z.coerce.number().min(1, "Capacity must be at least 1").max(200, "Capacity must be at most 200").default(20),
+  current_occupancy: z.coerce.number().min(0, "Current occupancy cannot be negative").default(0),
+  ward_type: z.enum([
+    "INTENSIVE_CARE", "GENERAL", "EMERGENCY", "OPERATING_ROOM", "RECOVERY", 
+    "PEDIATRIC", "MATERNITY", "PSYCHIATRIC", "ISOLATION", "STEP_DOWN"
+  ]),
+  status: z.enum(["ACTIVE", "INACTIVE", "MAINTENANCE", "QUARANTINE", "CLOSED"]).default("ACTIVE"),
+});
+
+export const BedSchema = z.object({
+  bed_number: z.string().min(1, "Bed number is required").max(10, "Bed number must be at most 10 characters"),
+  ward_id: z.string().min(1, "Ward is required"),
+  bed_type: z.enum(["STANDARD", "ICU", "ISOLATION", "BARIATRIC", "PEDIATRIC", "MATERNITY"]),
+  status: z.enum(["AVAILABLE", "OCCUPIED", "MAINTENANCE", "CLEANING", "RESERVED", "OUT_OF_SERVICE"]).default("AVAILABLE"),
+  current_patient_id: z.string().optional(),
+  last_cleaned: z.coerce.date().optional(),
+  infection_status: z.enum(["CLEAN", "CONTAMINATED", "ISOLATION_REQUIRED", "UNDER_CLEANING"]).default("CLEAN"),
+});
+
+export const EquipmentSchema = z.object({
+  name: z.string().min(2, "Equipment name must be at least 2 characters").max(100, "Equipment name must be at most 100 characters"),
+  model: z.string().optional(),
+  serial_number: z.string().min(1, "Serial number is required").max(50, "Serial number must be at most 50 characters"),
+  department_id: z.string().optional(),
+  ward_id: z.string().optional(),
+  equipment_type: z.enum([
+    "DIAGNOSTIC", "MONITORING", "SURGICAL", "IMAGING", "LABORATORY", 
+    "THERAPEUTIC", "SUPPORT", "TRANSPORT"
+  ]),
+  status: z.enum(["OPERATIONAL", "MAINTENANCE", "OUT_OF_SERVICE", "RETIRED", "QUARANTINED"]).default("OPERATIONAL"),
+  manufacturer: z.string().optional(),
+  purchase_date: z.coerce.date().optional(),
+  warranty_expiry: z.coerce.date().optional(),
+  last_maintenance: z.coerce.date().optional(),
+  next_maintenance: z.coerce.date().optional(),
+  maintenance_cycle: z.coerce.number().min(1, "Maintenance cycle must be at least 1 day").optional(),
 });

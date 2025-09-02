@@ -2,12 +2,20 @@ import db from "@/lib/db";
 import { auth } from "@clerk/nextjs/server";
 import { daysOfWeek } from "..";
 import { processAppointments } from "./patient";
+import { PHIEncryption } from "@/lib/encryption";
 
 export async function getDoctors() {
   try {
-    const data = await db.doctor.findMany();
+    const data = await db.doctor.findMany({
+      include: {
+        working_days: true
+      }
+    });
 
-    return { success: true, data, status: 200 };
+    // Decrypt sensitive doctor data before returning
+    const decryptedData = data.map(doctor => PHIEncryption.decryptDoctorData(doctor));
+
+    return { success: true, data: decryptedData, status: 200 };
   } catch (error) {
     console.log(error);
     return { success: false, message: "Internal Server Error", status: 500 };
@@ -68,6 +76,9 @@ export async function getDoctorDashboardStats() {
         }),
       ]);
 
+    // Decrypt the doctor data before returning
+    const decryptedDoctors = doctors.map(doctor => PHIEncryption.decryptDoctorData(doctor));
+
     const { appointmentCounts, monthlyData } = await processAppointments(
       appointments
     );
@@ -80,7 +91,7 @@ export async function getDoctorDashboardStats() {
       totalPatient,
       appointmentCounts,
       last5Records,
-      availableDoctors: doctors,
+      availableDoctors: decryptedDoctors,
       totalAppointment: appointments?.length,
       monthlyData,
     };
@@ -128,7 +139,10 @@ export async function getDoctorById(id: string) {
       }),
     ]);
 
-    return { data: doctor, totalAppointment };
+    // Decrypt sensitive doctor data before returning
+    const decryptedDoctor = doctor ? PHIEncryption.decryptDoctorData(doctor) : null;
+    
+    return { data: decryptedDoctor, totalAppointment };
   } catch (error) {
     console.log(error);
     return { success: false, message: "Internal Server Error", status: 500 };
@@ -192,11 +206,14 @@ export async function getAllDoctors({
       db.doctor.count(),
     ]);
 
+    // Decrypt sensitive doctor data before returning
+    const decryptedDoctors = doctors.map(doctor => PHIEncryption.decryptDoctorData(doctor));
+
     const totalPages = Math.ceil(totalRecords / LIMIT);
 
     return {
       success: true,
-      data: doctors,
+      data: decryptedDoctors,
       totalRecords,
       totalPages,
       currentPage: PAGE_NUMBER,

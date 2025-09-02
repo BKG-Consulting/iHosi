@@ -1,4 +1,4 @@
-import React, { Fragment } from "react";
+import React, { Fragment, useState, useEffect } from "react";
 import { Control } from "react-hook-form";
 import {
   FormControl,
@@ -20,6 +20,7 @@ import { Textarea } from "./ui/textarea";
 import { RadioGroup, RadioGroupItem } from "./ui/radio-group";
 import { Label } from "./ui/label";
 import { Switch } from "./ui/switch";
+import { Card, CardContent } from "./ui/card";
 
 interface InputProps {
   type: "input" | "select" | "checkbox" | "switch" | "radio" | "textarea";
@@ -149,26 +150,43 @@ type Day = {
   day: string;
   start_time?: string;
   close_time?: string;
+  is_working?: boolean;
+  break_start?: string;
+  break_end?: string;
+  max_appointments?: number;
+  appointment_duration?: number;
 };
+
 interface SwitchProps {
   data: { label: string; value: string }[];
   setWorkSchedule: React.Dispatch<React.SetStateAction<Day[]>>;
 }
 
 export const SwitchInput = ({ data, setWorkSchedule }: SwitchProps) => {
-  const handleChange = (day: string, field: any, value: string) => {
-    setWorkSchedule((prevDays) => {
-      const dayExist = prevDays.find((d) => d.day === day);
+  const [workSchedule, setLocalWorkSchedule] = useState<Day[]>([]);
+
+  const handleChange = (day: string, field: any, value: any) => {
+    setLocalWorkSchedule((prevDays: Day[]) => {
+      const dayExist = prevDays.find((d: Day) => d.day === day);
 
       if (dayExist) {
-        return prevDays.map((d) =>
+        return prevDays.map((d: Day) =>
           d.day === day ? { ...d, [field]: value } : d
         );
       } else {
         if (field === true) {
           return [
             ...prevDays,
-            { day, start_time: "09:00", close_time: "17:00" },
+            { 
+              day, 
+              start_time: "09:00", 
+              close_time: "17:00",
+              is_working: true,
+              break_start: "12:00",
+              break_end: "13:00",
+              max_appointments: 20,
+              appointment_duration: 30
+            },
           ];
         } else {
           return [...prevDays, { day, [field]: value }];
@@ -177,46 +195,170 @@ export const SwitchInput = ({ data, setWorkSchedule }: SwitchProps) => {
     });
   };
 
+  const handleWorkingDayToggle = (day: string, isWorking: boolean) => {
+    setLocalWorkSchedule((prevDays: Day[]) => {
+      const dayExist = prevDays.find((d: Day) => d.day === day);
+
+      if (dayExist) {
+        return prevDays.map((d: Day) =>
+          d.day === day ? { ...d, is_working: isWorking } : d
+        );
+      } else {
+        return [
+          ...prevDays,
+          { 
+            day, 
+            start_time: "09:00", 
+              close_time: "17:00",
+            is_working: isWorking,
+            break_start: "12:00",
+            break_end: "13:00",
+            max_appointments: 20,
+            appointment_duration: 30
+          },
+        ];
+      }
+    });
+  };
+
+  // Sync with parent component
+  useEffect(() => {
+    setWorkSchedule(workSchedule);
+  }, [workSchedule, setWorkSchedule]);
+
   return (
-    <div className="">
-      {data?.map((el, id) => (
-        <div
-          key={id}
-          className="w-full  flex items-center space-y-3 border-t border-t-gray-200  py-3"
-        >
-          <Switch
-            id={el.value}
-            className="data-[state=checked]:bg-blue-600 peer"
-            onCheckedChange={(e) => handleChange(el.value, true, "09:00")}
-          />
-          <Label htmlFor={el.value} className="w-20 capitalize">
-            {el.value}
-          </Label>
+    <div className="space-y-4">
+      {data?.map((el, id) => {
+        const dayData = workSchedule.find((d: Day) => d.day === el.value);
+        const isWorking = dayData?.is_working ?? false;
+        
+        return (
+          <Card key={id} className="border-gray-200 hover:border-blue-300 transition-colors">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Switch
+                    id={el.value}
+                    className="data-[state=checked]:bg-blue-600 peer"
+                    checked={isWorking}
+                    onCheckedChange={(checked) => handleWorkingDayToggle(el.value, checked)}
+                  />
+                  <Label htmlFor={el.value} className="w-20 capitalize font-medium">
+                    {el.label}
+                  </Label>
+                </div>
+                
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+                  isWorking 
+                    ? "bg-green-100 text-green-800" 
+                    : "bg-gray-100 text-gray-600"
+                }`}>
+                  {isWorking ? "Working" : "Not Working"}
+                </span>
+              </div>
 
-          <Label className="text-gray-400 font-normal italic peer-data-[state=checked]:hidden pl-10">
-            Not working on this day
-          </Label>
+              {!isWorking && (
+                <div className="text-center py-4 text-gray-500 italic">
+                  Not working on this day
+                </div>
+              )}
 
-          <div className="hidden peer-data-[state=checked]:flex items-center gap-2 pl-6:">
-            <Input
-              name={`${el.label}.start_time`}
-              type="time"
-              defaultValue="09:00"
-              onChange={(e) =>
-                handleChange(el.value, "start_time", e.target.value)
-              }
-            />
-            <Input
-              name={`${el.label}.close_time`}
-              type="time"
-              defaultValue="17:00"
-              onChange={(e) =>
-                handleChange(el.value, "close_time", e.target.value)
-              }
-            />
-          </div>
-        </div>
-      ))}
+              {isWorking && (
+                <div className="space-y-4">
+                  {/* Working Hours */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Start Time</Label>
+                      <Input
+                        name={`${el.value}.start_time`}
+                        type="time"
+                        value={dayData?.start_time || "09:00"}
+                        onChange={(e) =>
+                          handleChange(el.value, "start_time", e.target.value)
+                        }
+                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">End Time</Label>
+                      <Input
+                        name={`${el.value}.close_time`}
+                        type="time"
+                        value={dayData?.close_time || "17:00"}
+                        onChange={(e) =>
+                          handleChange(el.value, "close_time", e.target.value)
+                        }
+                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Break Time */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Break Start</Label>
+                      <Input
+                        name={`${el.value}.break_start`}
+                        type="time"
+                        value={dayData?.break_start || "12:00"}
+                        onChange={(e) =>
+                          handleChange(el.value, "break_start", e.target.value)
+                        }
+                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Break End</Label>
+                      <Input
+                        name={`${el.value}.break_end`}
+                        type="time"
+                        value={dayData?.break_end || "13:00"}
+                        onChange={(e) =>
+                          handleChange(el.value, "break_end", e.target.value)
+                        }
+                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Capacity Management */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Max Appointments</Label>
+                      <Input
+                        name={`${el.value}.max_appointments`}
+                        type="number"
+                        min="1"
+                        max="100"
+                        value={dayData?.max_appointments || 20}
+                        onChange={(e) =>
+                          handleChange(el.value, "max_appointments", parseInt(e.target.value))
+                        }
+                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Appointment Duration (min)</Label>
+                      <Input
+                        name={`${el.value}.appointment_duration`}
+                        type="number"
+                        min="15"
+                        max="120"
+                        step="15"
+                        value={dayData?.appointment_duration || 30}
+                        onChange={(e) =>
+                          handleChange(el.value, "appointment_duration", parseInt(e.target.value))
+                        }
+                        className="border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

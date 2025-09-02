@@ -237,12 +237,12 @@ export class MFAManager {
 
       // Check email verification
       const primaryEmail = user.emailAddresses?.find(email => email.id === user.primaryEmailAddressId);
-      if (!primaryEmail?.verification?.status === 'verified') {
+      if (primaryEmail?.verification?.status !== 'verified') {
         issues.push('Primary email address must be verified for MFA');
       }
 
       // Role-specific recommendations
-      if (userRole === 'DOCTOR' || userRole === 'doctor' || userRole === 'ADMIN' || userRole === 'admin') {
+      if (userRole === 'DOCTOR' || userRole === 'ADMIN') {
         recommendations.push('Use authenticator app (TOTP) for enhanced security');
         recommendations.push('Generate and securely store backup codes');
       }

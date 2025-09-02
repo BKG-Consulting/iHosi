@@ -4,7 +4,7 @@ import db from "./db";
 
 export interface AuditLogParams {
   action: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'PAGE_ACCESS' | 'EXPORT' | 'PRINT';
-  resourceType: 'PATIENT' | 'MEDICAL_RECORD' | 'APPOINTMENT' | 'PAYMENT' | 'PAGE' | 'SYSTEM' | 'AUTH';
+  resourceType: 'PATIENT' | 'MEDICAL_RECORD' | 'APPOINTMENT' | 'PAYMENT' | 'PAGE' | 'SYSTEM' | 'AUTH' | 'DOCTOR' | 'STAFF' | 'DEPARTMENT' | 'WARD' | 'BED' | 'EQUIPMENT';
   resourceId: string;
   patientId?: string;
   phiAccessed?: string[];
@@ -80,13 +80,13 @@ export async function logAudit(params: AuditLogParams) {
   } catch (error) {
     // Even audit logging failures should be logged
     console.error('CRITICAL: Audit logging failed', {
-      error: error.message,
+      error: error instanceof Error ? error.message : String(error),
       params,
       timestamp: new Date().toISOString()
     });
     
     // Try to log to a backup system or file
-    await logToBackupSystem('AUDIT_FAILURE', { error: error.message, params });
+    await logToBackupSystem('AUDIT_FAILURE', { error: error instanceof Error ? error.message : String(error), params });
   }
 }
 
@@ -218,10 +218,7 @@ export async function detectSuspiciousActivity() {
       created_at: { gte: twentyFourHoursAgo },
       action: { contains: 'READ_PATIENT' }
     },
-    _count: true,
-    having: {
-      _count: { gt: 20 } // More than 20 patient records in 24h
-    }
+    _count: true
   });
 
   // Failed access attempts

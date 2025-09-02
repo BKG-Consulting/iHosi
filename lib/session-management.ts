@@ -28,7 +28,7 @@ export class SessionManager {
    */
   static async createSession(userId: string, userRole: string): Promise<string> {
     try {
-      const headersList = headers();
+      const headersList = await headers();
       const userAgent = headersList.get('user-agent') || 'Unknown';
       const forwardedFor = headersList.get('x-forwarded-for');
       const realIp = headersList.get('x-real-ip');
@@ -264,7 +264,7 @@ export class SessionManager {
   ): Promise<{ locked: boolean; attemptsRemaining?: number; unlockAt?: Date }> {
     
     try {
-      const headersList = headers();
+      const headersList = await headers();
       const userAgent = headersList.get('user-agent') || 'Unknown';
       const forwardedFor = headersList.get('x-forwarded-for');
       const realIp = headersList.get('x-real-ip');

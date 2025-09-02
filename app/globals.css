@@ -2,6 +2,20 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Suppress hydration warnings for browser extension attributes */
+body[data-new-gr-c-s-check-loaded],
+body[data-gr-ext-installed] {
+  /* These attributes are added by browser extensions and cause hydration mismatches */
+  /* We suppress them to prevent hydration warnings */
+}
+
+/* Additional hydration mismatch prevention */
+body {
+  /* Ensure consistent rendering between server and client */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
 body {
   font-family: Arial, Helvetica, sans-serif;
 }

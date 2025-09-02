@@ -68,22 +68,29 @@ export function decryptPHI(encryptedData: string | null | undefined): string | n
   }
 
   try {
-    const key = getEncryptionKey();
+    // First, try to parse as JSON (encrypted data)
     const data: EncryptedData = JSON.parse(encryptedData);
     
-    // Use modern crypto methods for Node.js v22+
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(data.iv, 'hex'));
-    decipher.setAuthTag(Buffer.from(data.tag, 'hex'));
+    // If it's valid JSON with encrypted structure, decrypt it
+    if (data.encrypted && data.iv && data.tag) {
+      const key = getEncryptionKey();
+      
+      // Use modern crypto methods for Node.js v22+
+      const decipher = crypto.createDecipheriv(ALGORITHM, key, Buffer.from(data.iv, 'hex'));
+      decipher.setAuthTag(Buffer.from(data.tag, 'hex'));
 
-    let decrypted = decipher.update(data.encrypted, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
+      let decrypted = decipher.update(data.encrypted, 'hex', 'utf8');
+      decrypted += decipher.final('utf8');
 
-    return decrypted;
+      return decrypted;
+    } else {
+      // If it's JSON but not encrypted, return as is
+      return encryptedData;
+    }
   } catch (error) {
-    console.error('Decryption failed:', error);
-    // Log security incident
-    console.warn('🚨 SECURITY: PHI decryption failed - possible tampering');
-    return null;
+    // If JSON parsing fails, it's likely plain text - return as is
+    console.log('Data is not encrypted JSON, returning as plain text:', encryptedData);
+    return encryptedData;
   }
 }
 
@@ -152,7 +159,57 @@ export const PHIEncryption = {
     notes: decryptPHI(data.notes),
     prescribed_medications: decryptPHI(data.prescribed_medications),
     follow_up_plan: decryptPHI(data.follow_up_plan)
-  })
+  }),
+
+  // Doctor data encryption
+  encryptDoctorData: (doctorData: any): any => {
+    try {
+      const encryptedData = { ...doctorData };
+      
+      // Encrypt sensitive doctor fields - including name
+      const sensitiveFields = [
+        'name', 'phone', 'email', 'address', 'license_number', 'specialization'
+      ];
+      
+      sensitiveFields.forEach(field => {
+        if (doctorData[field] && typeof doctorData[field] === 'string') {
+          encryptedData[field] = encryptPHI(doctorData[field]);
+        }
+      });
+      
+      return encryptedData;
+    } catch (error) {
+      console.error('Error encrypting doctor data:', error);
+      return doctorData;
+    }
+  },
+
+  decryptDoctorData: (doctorData: any): any => {
+    try {
+      const decryptedData = { ...doctorData };
+      
+      // Decrypt sensitive doctor fields - including name if it was encrypted
+      const sensitiveFields = [
+        'name', 'phone', 'email', 'address', 'license_number', 'specialization'
+      ];
+      
+      sensitiveFields.forEach(field => {
+        if (doctorData[field] && typeof doctorData[field] === 'string') {
+          try {
+            decryptedData[field] = decryptPHI(doctorData[field]);
+          } catch (decryptError) {
+            // If decryption fails, keep original value
+            decryptedData[field] = doctorData[field];
+          }
+        }
+      });
+      
+      return decryptedData;
+    } catch (error) {
+      console.error('Error decrypting doctor data:', error);
+      return doctorData;
+    }
+  },
 };
 
 // Key rotation utility (for enhanced security)

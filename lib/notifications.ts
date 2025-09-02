@@ -36,7 +36,11 @@ export enum NotificationStatus {
   READ = 'READ',
 }
 
-// Notification template interface
+// Import template system
+import { TemplateRegistry, TemplateContext } from './template-engine';
+import { EmailScheduler, EmailSchedulingPatterns, SchedulingStrategy } from './email-scheduler';
+
+// Legacy template interface (deprecated - use TemplateRegistry instead)
 export interface NotificationTemplate {
   subject: string;
   body: string;
@@ -217,11 +221,19 @@ const NOTIFICATION_TEMPLATES: Record<NotificationType, NotificationTemplate> = {
 export class NotificationService {
   private emailService: EmailService;
   private smsService: SMSService;
+  private templateRegistry: TemplateRegistry;
+  private emailScheduler: EmailScheduler;
   
   constructor() {
     // Try to use real email service if configured, otherwise fall back to mock
     this.emailService = this.initializeEmailService();
     this.smsService = new MockSMSService();
+    
+    // Initialize template system
+    this.templateRegistry = TemplateRegistry.getInstance();
+    this.emailScheduler = EmailScheduler.getInstance();
+    
+    console.log('✅ Template system and email scheduler initialized');
   }
 
   // Initialize email service based on environment
@@ -664,6 +676,141 @@ export class NotificationService {
     }
     
     return `${years} years${months > 0 ? ` ${months} months` : ''}`;
+  }
+
+  // ===== NEW TEMPLATE-BASED METHODS =====
+
+  // Send notification using template system
+  async sendTemplateNotification(
+    templateId: string,
+    context: TemplateContext,
+    strategy: SchedulingStrategy = SchedulingStrategy.IMMEDIATE,
+    priority: NotificationPriority = NotificationPriority.MEDIUM
+  ): Promise<string> {
+    try {
+      console.log(`📧 Sending template notification: ${templateId}`);
+      
+      // Validate template exists
+      const template = this.templateRegistry.getTemplate(templateId);
+      if (!template) {
+        throw new Error(`Template not found: ${templateId}`);
+      }
+
+      // Schedule email using the scheduler
+      const jobId = await this.emailScheduler.scheduleEmail(templateId, context, {
+        strategy,
+        priority,
+        retryAttempts: 3,
+        retryDelay: 5 * 60 * 1000 // 5 minutes
+      });
+
+      console.log(`✅ Template notification scheduled: ${jobId}`);
+      return jobId;
+
+    } catch (error) {
+      console.error('Failed to send template notification:', error);
+      throw error;
+    }
+  }
+
+  // Send appointment confirmation using template
+  async sendAppointmentConfirmationTemplate(
+    appointment: Appointment & { patient: Patient; doctor: Doctor },
+    strategy: SchedulingStrategy = SchedulingStrategy.IMMEDIATE
+  ): Promise<string> {
+    try {
+      const patientData = await this.getPatientData(appointment.patient_id);
+      const doctorData = await this.getDoctorData(appointment.doctor_id);
+      
+      if (!patientData || !doctorData) {
+        throw new Error('Failed to retrieve patient or doctor data');
+      }
+
+      // Create template context
+      const context: TemplateContext = {
+        recipientName: `${patientData.first_name} ${patientData.last_name}`,
+        recipientEmail: await this.getRecipientEmail(appointment.patient_id, 'PATIENT') || '',
+        recipientPhone: await this.getRecipientPhone(appointment.patient_id, 'PATIENT') || undefined,
+        appointmentId: appointment.id.toString(),
+        appointmentType: appointment.type,
+        appointmentDate: this.formatDate(appointment.appointment_date),
+        appointmentTime: appointment.time,
+        doctorName: doctorData.name,
+        doctorSpecialization: doctorData.specialization,
+        facilityName: 'Healthcare System',
+        systemName: 'Healthcare Management System',
+        supportEmail: 'support@healthcare.com',
+        supportPhone: '+1-800-HEALTH',
+        websiteUrl: 'https://healthcare.com'
+      };
+
+      // Send using template
+      return await this.sendTemplateNotification(
+        'appointment-booked-email',
+        context,
+        strategy,
+        NotificationPriority.MEDIUM
+      );
+
+    } catch (error) {
+      console.error('Failed to send appointment confirmation template:', error);
+      throw error;
+    }
+  }
+
+  // Send appointment reminder using template
+  async sendAppointmentReminderTemplate(
+    appointment: Appointment & { patient: Patient; doctor: Doctor },
+    strategy: SchedulingStrategy = SchedulingStrategy.DELAYED
+  ): Promise<string> {
+    try {
+      const patientData = await this.getPatientData(appointment.patient_id);
+      const doctorData = await this.getDoctorData(appointment.doctor_id);
+      
+      if (!patientData || !doctorData) {
+        throw new Error('Failed to retrieve patient or doctor data');
+      }
+
+      // Create template context
+      const context: TemplateContext = {
+        recipientName: `${patientData.first_name} ${patientData.last_name}`,
+        recipientEmail: await this.getRecipientEmail(appointment.patient_id, 'PATIENT') || '',
+        recipientPhone: await this.getRecipientPhone(appointment.patient_id, 'PATIENT') || undefined,
+        appointmentId: appointment.id.toString(),
+        appointmentType: appointment.type,
+        appointmentDate: this.formatDate(appointment.appointment_date),
+        appointmentTime: appointment.time,
+        doctorName: doctorData.name,
+        doctorSpecialization: doctorData.specialization,
+        facilityName: 'Healthcare System',
+        systemName: 'Healthcare Management System',
+        supportEmail: 'support@healthcare.com',
+        supportPhone: '+1-800-HEALTH',
+        websiteUrl: 'https://healthcare.com'
+      };
+
+      // Send using template
+      return await this.sendTemplateNotification(
+        'appointment-reminder-email',
+        context,
+        strategy,
+        NotificationPriority.MEDIUM
+      );
+
+    } catch (error) {
+      console.error('Failed to send appointment reminder template:', error);
+      throw error;
+    }
+  }
+
+  // Get template registry for external access
+  getTemplateRegistry(): TemplateRegistry {
+    return this.templateRegistry;
+  }
+
+  // Get email scheduler for external access
+  getEmailScheduler(): EmailScheduler {
+    return this.emailScheduler;
   }
 }
 

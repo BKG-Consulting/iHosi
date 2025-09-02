@@ -8,6 +8,7 @@ import { AppointmentStatus } from "@prisma/client";
 import { notificationService } from "@/lib/notifications";
 import { reminderScheduler } from "@/lib/reminder-scheduler";
 import { logAudit } from "@/lib/audit";
+import { SchedulingStrategy } from "@/lib/email-scheduler";
 
 export async function createNewAppointment(data: any) {
   try {
@@ -34,16 +35,20 @@ export async function createNewAppointment(data: any) {
       },
     });
 
-    // Send notifications
+    // Send notifications using dynamic templates
     try {
-      await notificationService.sendAppointmentBookedNotification(appointment);
-      console.log(`✅ Notifications sent for appointment ${appointment.id}`);
+      // Send immediate confirmation email using template
+      const confirmationJobId = await notificationService.sendAppointmentConfirmationTemplate(
+        appointment,
+        SchedulingStrategy.IMMEDIATE
+      );
+      console.log(`✅ Appointment confirmation scheduled: ${confirmationJobId}`);
     } catch (notificationError) {
       console.error(`Failed to send notifications for appointment ${appointment.id}:`, notificationError);
       // Don't fail the appointment creation if notifications fail
     }
 
-    // Schedule reminders
+    // Schedule reminders using the smart scheduler
     try {
       await reminderScheduler.scheduleAppointmentReminders(appointment);
       console.log(`✅ Reminders scheduled for appointment ${appointment.id}`);
@@ -116,19 +121,62 @@ export async function appointmentAction(
       },
     });
 
-    // Handle notifications based on status change
+    // Handle notifications based on status change using dynamic templates
     try {
       if (status === 'CANCELLED') {
         // Cancel all scheduled reminders
         await reminderScheduler.cancelAppointmentReminders(appointment.id);
         
-        // Send cancellation notification
-        await notificationService.sendAppointmentCancellationNotification(updatedAppointment);
+        // Send cancellation notification using template
+        await notificationService.sendTemplateNotification(
+          'appointment-cancelled-email',
+          {
+            recipientName: `${appointment.patient.first_name} ${appointment.patient.last_name}`,
+            recipientEmail: `${appointment.patient.first_name.toLowerCase()}.${appointment.patient.last_name.toLowerCase()}@example.com`,
+            recipientPhone: appointment.patient.phone || undefined,
+            appointmentId: appointment.id.toString(),
+            appointmentType: appointment.type,
+            appointmentDate: appointment.appointment_date.toLocaleDateString(),
+            appointmentTime: appointment.time,
+            doctorName: appointment.doctor.name,
+            doctorSpecialization: appointment.doctor.specialization || '',
+            facilityName: 'Healthcare System',
+            systemName: 'Healthcare Management System',
+            supportEmail: 'support@healthcare.com',
+            supportPhone: '+1-800-HEALTH',
+            websiteUrl: 'https://healthcare.com'
+          },
+          SchedulingStrategy.IMMEDIATE
+        );
+        
         console.log(`✅ Cancellation notifications sent for appointment ${appointment.id}`);
+      } else if (status === 'SCHEDULED') {
+        // Send confirmation notification using template
+        await notificationService.sendTemplateNotification(
+          'appointment-confirmed-email',
+          {
+            recipientName: `${appointment.patient.first_name} ${appointment.patient.last_name}`,
+            recipientEmail: `${appointment.patient.first_name.toLowerCase()}.${appointment.patient.last_name.toLowerCase()}@example.com`,
+            recipientPhone: appointment.patient.phone || undefined,
+            appointmentId: appointment.id.toString(),
+            appointmentType: appointment.type,
+            appointmentDate: appointment.appointment_date.toLocaleDateString(),
+            appointmentTime: appointment.time,
+            doctorName: appointment.doctor.name,
+            doctorSpecialization: appointment.doctor.specialization || '',
+            facilityName: 'Healthcare System',
+            systemName: 'Healthcare Management System',
+            supportEmail: 'support@healthcare.com',
+            supportPhone: '+1-800-HEALTH',
+            websiteUrl: 'https://healthcare.com'
+          },
+          SchedulingStrategy.IMMEDIATE
+        );
+        console.log(`✅ Confirmation notifications sent for appointment ${appointment.id}`);
       }
       
       // For other status changes, you might want to send different notifications
-      // e.g., when appointment is confirmed, rescheduled, etc.
+      // e.g., when appointment is completed, rescheduled, etc.
       
     } catch (notificationError) {
       console.error(`Failed to send status change notifications for appointment ${appointment.id}:`, notificationError);
@@ -206,7 +254,7 @@ export async function addVitalSigns(
     try {
       await logAudit({
         action: 'CREATE',
-        resourceType: 'VITAL_SIGNS',
+        resourceType: 'MEDICAL_RECORD',
         resourceId: med_id?.toString() || 'unknown',
         patientId: validatedData.patient_id,
         reason: 'Vital signs recorded during appointment',
@@ -343,37 +391,41 @@ export async function rescheduleAppointment(
       },
     });
 
-    // Send rescheduling notification
+    // Send rescheduling notification using dynamic templates
     try {
-      await notificationService.sendNotification({
-        type: 'APPOINTMENT_RESCHEDULED',
-        channel: 'EMAIL',
-        priority: 'MEDIUM',
-        recipientId: updatedAppointment.patient_id,
-        recipientType: 'PATIENT',
-        appointmentId: updatedAppointment.id,
-        patientId: updatedAppointment.patient_id,
-        doctorId: updatedAppointment.doctor_id,
-        scheduledFor: updatedAppointment.appointment_date,
-        metadata: {
-          patientName: `${updatedAppointment.patient.first_name} ${updatedAppointment.patient.last_name}`,
+      // Send email notification using template
+      await notificationService.sendTemplateNotification(
+        'appointment-rescheduled-email',
+        {
+          recipientName: `${updatedAppointment.patient.first_name} ${updatedAppointment.patient.last_name}`,
+          recipientEmail: `${updatedAppointment.patient.first_name.toLowerCase()}.${updatedAppointment.patient.last_name.toLowerCase()}@example.com`,
+          recipientPhone: updatedAppointment.patient.phone || undefined,
+          appointmentId: updatedAppointment.id.toString(),
           appointmentType: updatedAppointment.type,
           appointmentDate: newDate,
           appointmentTime: newTime,
           doctorName: updatedAppointment.doctor.name,
-          location: 'Main Clinic',
-          clinicName: 'Healthcare System',
-          previousDate: currentAppointment.appointment_date.toDateString(),
+          doctorSpecialization: updatedAppointment.doctor.specialization || '',
+          facilityName: 'Healthcare System',
+          systemName: 'Healthcare Management System',
+          supportEmail: 'support@healthcare.com',
+          supportPhone: '+1-800-HEALTH',
+          websiteUrl: 'https://healthcare.com',
+          previousDate: currentAppointment.appointment_date.toLocaleDateString(),
           previousTime: currentAppointment.time
-        }
-      });
+        },
+        SchedulingStrategy.IMMEDIATE
+      );
+
+      console.log(`✅ Rescheduling notifications sent for appointment ${updatedAppointment.id}`);
     } catch (notificationError) {
       console.error(`Failed to send rescheduling notification:`, notificationError);
     }
 
-    // Schedule new reminders
+    // Schedule new reminders using the smart scheduler
     try {
       await reminderScheduler.scheduleAppointmentReminders(updatedAppointment);
+      console.log(`✅ New reminders scheduled for rescheduled appointment ${updatedAppointment.id}`);
     } catch (reminderError) {
       console.error(`Failed to schedule new reminders:`, reminderError);
     }
