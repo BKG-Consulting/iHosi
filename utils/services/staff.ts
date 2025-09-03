@@ -1,4 +1,5 @@
 import db from "@/lib/db";
+import { PHIEncryption } from "@/lib/encryption";
 
 export async function getAllStaff({
   page,
@@ -33,9 +34,22 @@ export async function getAllStaff({
 
     const totalPages = Math.ceil(totalRecords / LIMIT);
 
+    // Decrypt staff data
+    const decryptedStaff = staff.map((member: any) => {
+      const decryptedData = PHIEncryption.decryptDoctorData(member);
+      return {
+        ...member,
+        name: decryptedData.name,
+        email: decryptedData.email,
+        phone: decryptedData.phone,
+        address: decryptedData.address,
+        license_number: decryptedData.license_number,
+      };
+    });
+
     return {
       success: true,
-      data: staff,
+      data: decryptedStaff,
       totalRecords,
       totalPages,
       currentPage: PAGE_NUMBER,

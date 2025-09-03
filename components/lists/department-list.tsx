@@ -41,9 +41,11 @@ interface Department {
 
 interface DepartmentListProps {
   departments: Department[];
+  onDepartmentSelect?: (department: Department) => void;
+  selectedDepartment?: Department | null;
 }
 
-export const DepartmentList = ({ departments }: DepartmentListProps) => {
+export const DepartmentList = ({ departments, onDepartmentSelect, selectedDepartment }: DepartmentListProps) => {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const router = useRouter();
 
@@ -106,7 +108,12 @@ export const DepartmentList = ({ departments }: DepartmentListProps) => {
       {departments.map((department) => (
         <div
           key={department.id}
-          className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow"
+          className={`border rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer ${
+            selectedDepartment?.id === department.id 
+              ? 'border-blue-500 bg-blue-50' 
+              : 'border-gray-200'
+          }`}
+          onClick={() => onDepartmentSelect?.(department)}
         >
           {/* Header */}
           <div className="flex items-start justify-between mb-4">
@@ -121,6 +128,11 @@ export const DepartmentList = ({ departments }: DepartmentListProps) => {
                 <span className="text-sm text-gray-500 font-mono">
                   {department.code}
                 </span>
+                {selectedDepartment?.id === department.id && (
+                  <Badge className="bg-blue-100 text-blue-800">
+                    Selected
+                  </Badge>
+                )}
               </div>
               
               {department.description && (

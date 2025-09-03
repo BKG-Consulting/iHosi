@@ -137,12 +137,51 @@ const statusColors = {
 };
 
 export const StaffManagement = () => {
-  const [staff, setStaff] = useState<Staff[]>(mockStaff);
+  const [staff, setStaff] = useState<Staff[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [selectedStaff, setSelectedStaff] = useState<Staff | null>(null);
+
+  // Fetch staff data from API
+  const fetchStaff = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/staff');
+      const data = await response.json();
+      
+      if (data.success) {
+        // Transform API data to match component interface
+        const transformedStaff = data.staff.map((member: any) => ({
+          id: member.id,
+          name: member.name,
+          role: member.role,
+          email: member.email,
+          phone: member.phone,
+          department: member.department || 'General',
+          status: member.status || 'ACTIVE',
+          hireDate: member.created_at ? new Date(member.created_at).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+          licenseNumber: member.license_number,
+          specialization: member.specialization
+        }));
+        setStaff(transformedStaff);
+      } else {
+        toast.error('Failed to fetch staff data');
+      }
+    } catch (error) {
+      console.error('Error fetching staff:', error);
+      toast.error('Failed to fetch staff data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Fetch staff data on component mount
+  useEffect(() => {
+    fetchStaff();
+  }, []);
 
   const filteredStaff = staff.filter(staffMember => {
     const matchesSearch = staffMember.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -153,13 +192,11 @@ export const StaffManagement = () => {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const handleAddStaff = (newStaff: Omit<Staff, 'id'>) => {
-    const staffWithId = {
-      ...newStaff,
-      id: Date.now().toString()
-    };
-    setStaff([...staff, staffWithId]);
+  const handleAddStaff = async (newStaff: Omit<Staff, 'id'>) => {
+    // The StaffForm component will handle the API call
+    // We just need to refresh the data after successful creation
     setIsAddDialogOpen(false);
+    await fetchStaff(); // Refresh the staff list
     toast.success("Staff member added successfully!");
   };
 
@@ -190,6 +227,21 @@ export const StaffManagement = () => {
         return <AlertCircle className="w-4 h-4" />;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-8 px-4">
+        <div className="max-w-7xl mx-auto">
+          <div className="flex items-center justify-center h-64">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <p className="mt-2 text-gray-600">Loading staff data...</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-8 px-4">
@@ -325,7 +377,28 @@ export const StaffManagement = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="p-0">
-            <Table>
+            {filteredStaff.length === 0 ? (
+              <div className="text-center py-12">
+                <Users className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No staff members found</h3>
+                <p className="text-gray-500 mb-4">
+                  {staff.length === 0 
+                    ? "Get started by adding your first staff member."
+                    : "Try adjusting your search or filter criteria."
+                  }
+                </p>
+                {staff.length === 0 && (
+                  <Button 
+                    onClick={() => setIsAddDialogOpen(true)}
+                    className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Add First Staff Member
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <Table>
               <TableHeader>
                 <TableRow className="bg-gray-50">
                   <TableHead className="font-semibold">Staff Member</TableHead>
@@ -419,6 +492,7 @@ export const StaffManagement = () => {
                 ))}
               </TableBody>
             </Table>
+            )}
           </CardContent>
         </Card>
 

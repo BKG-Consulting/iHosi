@@ -9,12 +9,14 @@ export const checkRole = async (role: Roles) => {
 export const getRole = async () => {
   const { sessionClaims } = await auth();
 
-  // Debug: Log what we're getting from Clerk
-  console.log("=== ROLE DEBUGGING ===");
-  console.log("Session claims:", sessionClaims);
-  console.log("Metadata:", sessionClaims?.metadata);
-  console.log("Raw role:", sessionClaims?.metadata?.role);
-  console.log("Role type:", typeof sessionClaims?.metadata?.role);
+  // Debug: Log what we're getting from Clerk (only in development)
+  if (process.env.NODE_ENV === 'development') {
+    console.log("=== ROLE DEBUGGING ===");
+    console.log("Session claims:", sessionClaims);
+    console.log("Metadata:", sessionClaims?.metadata);
+    console.log("Raw role:", sessionClaims?.metadata?.role);
+    console.log("Role type:", typeof sessionClaims?.metadata?.role);
+  }
 
   const rawRole = sessionClaims?.metadata?.role;
 

@@ -3,15 +3,16 @@ import { DepartmentDetails } from "@/components/admin/department-details";
 import { getDepartmentWithDetails } from "@/utils/services/department";
 
 interface DepartmentPageProps {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 export default async function DepartmentPage({ params }: DepartmentPageProps) {
   await requirePermission('DEPARTMENT_READ', '/unauthorized');
   
-  const departmentData = await getDepartmentWithDetails(params.id);
+  const { id } = await params;
+  const departmentData = await getDepartmentWithDetails(id);
   
   if (!departmentData.success) {
     return (

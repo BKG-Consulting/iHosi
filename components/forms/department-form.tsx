@@ -16,7 +16,11 @@ import { Form } from "@/components/ui/form";
 
 type DepartmentFormData = z.infer<typeof DepartmentSchema>;
 
-export const DepartmentForm = () => {
+interface DepartmentFormProps {
+  onSuccess?: () => void;
+}
+
+export const DepartmentForm = ({ onSuccess }: DepartmentFormProps) => {
   const [loading, setLoading] = useState(false);
   const [doctors, setDoctors] = useState<Array<{ id: string; name: string; specialization: string }>>([]);
   const [fetchingDoctors, setFetchingDoctors] = useState(false);
@@ -80,14 +84,18 @@ export const DepartmentForm = () => {
       
       const result = await createDepartment(submissionData);
       
-              if (result.success) {
-          setCreatedDepartment(result.data);
-          setShowSuccess(true);
-          toast.success(`Department "${data.name}" created successfully!`);
-          form.reset();
-          // Trigger a page refresh to update the department list
-          router.refresh();
-        } else {
+                    if (result.success) {
+        setCreatedDepartment(result.data);
+        setShowSuccess(true);
+        toast.success(`Department "${data.name}" created successfully!`);
+        form.reset();
+        // Trigger a page refresh to update the department list
+        router.refresh();
+        // Call onSuccess callback if provided (e.g., to close dialog)
+        if (onSuccess) {
+          onSuccess();
+        }
+      } else {
         toast.error(result.msg || "Failed to create department");
       }
     } catch (error) {
