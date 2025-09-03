@@ -48,20 +48,8 @@ export async function GET(request: NextRequest) {
           service_name: true,
           description: true,
           price: true,
-          category: true,
-          department_id: true,
-          is_active: true,
-          duration_minutes: true,
-          requirements: true,
           created_at: true,
-          updated_at: true,
-          department: {
-            select: {
-              id: true,
-              name: true,
-              code: true
-            }
-          }
+          updated_at: true
         }
       }),
       db.services.count({ where: whereClause })

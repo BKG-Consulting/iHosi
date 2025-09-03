@@ -970,6 +970,7 @@ model InsuranceClaim {
   id              String @id @default(cuid())
   patient_id      String
   insurance_id    String
+  provider_id     String
   bill_id         Int
   claim_number    String @unique
   service_date    DateTime
@@ -986,6 +987,7 @@ model InsuranceClaim {
   patient         Patient @relation(fields: [patient_id], references: [id])
   insurance       PatientInsurance @relation(fields: [insurance_id], references: [id])
   bill            Payment @relation(fields: [bill_id], references: [id])
+  provider        InsuranceProvider @relation(fields: [provider_id], references: [id])
   
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
