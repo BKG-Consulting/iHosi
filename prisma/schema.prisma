@@ -140,6 +140,12 @@ model Patient {
   ratings                  Rating[]
   consents                 PatientConsent[]
   beds                     Bed[]  // New: Bed assignments
+  
+  // Financial relations
+  invoices                 Invoice[]
+  payment_plans            PaymentPlan[]
+  insurances               PatientInsurance[]
+  insurance_claims         InsuranceClaim[]
 
   created_at               DateTime @default(now())
   updated_at               DateTime @updatedAt
@@ -266,8 +272,10 @@ model Appointment {
   status            AppointmentStatus @default(PENDING)
   type              String
   note              String?
+  service_id        Int?   // Optional service for the appointment
   patient           Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   doctor            Doctor   @relation(fields: [doctor_id], references: [id],  onDelete:  Cascade)
+  service           Services? @relation(fields: [service_id], references: [id])
 
   bills             Payment[]
   medical           MedicalRecords[]
@@ -292,9 +300,22 @@ model Payment {
   status          PaymentStatus @default(UNPAID)
   receipt_number  Int @default(autoincrement())
 
+  // Enhanced payment fields
+  transaction_id  String?       @unique
+  payment_gateway String?
+  processing_fee  Decimal?      @db.Decimal(10, 2)
+  refund_amount   Decimal?      @db.Decimal(10, 2)
+  refund_date     DateTime?
+  payment_notes   String?
+
   appointment     Appointment @relation(fields: [appointment_id], references: [id], onDelete: Cascade)
   patient         Patient  @relation(fields: [patient_id], references: [id], onDelete: Cascade)
   bills           PatientBills[]
+  
+  // Financial relations
+  invoices        Invoice[]
+  payment_plans   PaymentPlan[]
+  insurance_claims InsuranceClaim[]
 
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
@@ -303,12 +324,14 @@ model Payment {
 model PatientBills {
   id              Int   @id @default(autoincrement())
   bill_id         Int
-  service_id      Int
+  service_id      Int?
+  bundle_id       String? // Optional service bundle
   service_date    DateTime
   quantity        Int
   unit_cost       Float
   total_cost      Float
-  service         Services @relation(fields: [service_id], references: [id])
+  service         Services? @relation(fields: [service_id], references: [id])
+  bundle          ServiceBundle? @relation(fields: [bundle_id], references: [id])
   payment         Payment @relation(fields: [bill_id], references: [id], onDelete: Cascade)
 
   created_at      DateTime @default(now())
@@ -422,11 +445,98 @@ model Services {
   service_name    String
   description     String
   price           Float
+  category        String? // e.g., "Cardiology", "Neurology", "General"
+  department_id   String? // Reference to Department
+  is_active       Boolean @default(true)
+  duration_minutes Int?   // Estimated duration in minutes
+  requirements    String? // Special requirements or prerequisites
   labtest         LabTest?
   bills           PatientBills[]
-
+  appointments    Appointment[] // Services can be linked to appointments
+  
+  // Department relationship
+  department      Department? @relation(fields: [department_id], references: [id])
+  
+  // Service bundle relationships
+  bundle_items    ServiceBundleItem[]
+  
+  // Service template relationships
+  template_items  ServiceTemplateItem[]
+  
+  // Financial relationships
+  invoice_line_items InvoiceLineItem[]
+  
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+}
+
+// Service Bundles/Packages
+model ServiceBundle {
+  id              String @id @default(cuid())
+  name            String
+  description     String?
+  total_price     Float
+  discount_percent Float? // Optional discount percentage
+  is_active       Boolean @default(true)
+  bundle_items    ServiceBundleItem[]
+  bills           PatientBills[] // Bundles can be billed
+  
+  // Financial relationships
+  invoice_line_items InvoiceLineItem[]
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+// Individual items within a service bundle
+model ServiceBundleItem {
+  id              String @id @default(cuid())
+  bundle_id       String
+  service_id      Int
+  quantity        Int @default(1)
+  is_required     Boolean @default(true) // Whether this service is mandatory in the bundle
+  
+  bundle          ServiceBundle @relation(fields: [bundle_id], references: [id], onDelete: Cascade)
+  service         Services @relation(fields: [service_id], references: [id])
+  
+  created_at      DateTime @default(now())
+  
+  @@unique([bundle_id, service_id])
+}
+
+// Service Templates for common procedures
+model ServiceTemplate {
+  id              String @id @default(cuid())
+  name            String
+  description     String?
+  category        String // e.g., "Emergency", "Routine", "Specialized"
+  department_id   String? // Optional department-specific template
+  is_active       Boolean @default(true)
+  template_items  ServiceTemplateItem[]
+  
+  // Department relationship
+  department      Department? @relation(fields: [department_id], references: [id])
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  created_by      String? // User ID who created the template
+}
+
+// Individual services within a template
+model ServiceTemplateItem {
+  id              String @id @default(cuid())
+  template_id     String
+  service_id      Int
+  quantity        Int @default(1)
+  is_required     Boolean @default(true)
+  order_index     Int @default(0) // Order of services in the template
+  
+  template        ServiceTemplate @relation(fields: [template_id], references: [id], onDelete: Cascade)
+  service         Services @relation(fields: [service_id], references: [id])
+  
+  created_at      DateTime @default(now())
+  
+  @@unique([template_id, service_id])
 }
 
 model PatientConsent {
@@ -527,6 +637,8 @@ model Department {
   staff      Staff[]  @relation("DepartmentStaff")
   wards      Ward[]
   equipment  Equipment[]
+  services   Services[] // Department-specific services
+  service_templates ServiceTemplate[] // Department-specific service templates
   
   // Metadata
   created_at DateTime @default(now())
@@ -679,3 +791,205 @@ enum EquipmentStatus {
   RETIRED
   QUARANTINED
 }
+
+// Financial Management Enums
+enum BillStatus {
+  DRAFT
+  PENDING
+  SENT
+  PAID
+  PARTIAL
+  OVERDUE
+  CANCELLED
+  REFUNDED
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum PaymentPlanStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  OVERDUE
+  SUSPENDED
+}
+
+enum InsuranceStatus {
+  ACTIVE
+  INACTIVE
+  PENDING_VERIFICATION
+  EXPIRED
+  SUSPENDED
+}
+
+enum ClaimStatus {
+  DRAFT
+  SUBMITTED
+  PROCESSING
+  APPROVED
+  DENIED
+  PAID
+  APPEALED
+}
+
+// Financial Management Models
+model Invoice {
+  id              String @id @default(cuid())
+  invoice_number  String @unique
+  patient_id      String
+  bill_id         Int?
+  total_amount    Decimal @db.Decimal(10, 2)
+  tax_amount      Decimal @db.Decimal(10, 2)
+  discount_amount Decimal @db.Decimal(10, 2)
+  net_amount      Decimal @db.Decimal(10, 2)
+  status          InvoiceStatus @default(DRAFT)
+  due_date        DateTime
+  sent_date       DateTime?
+  paid_date       DateTime?
+  notes           String?
+  
+  // Relations
+  patient         Patient @relation(fields: [patient_id], references: [id])
+  bill            Payment? @relation(fields: [bill_id], references: [id])
+  line_items      InvoiceLineItem[]
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model InvoiceLineItem {
+  id              String @id @default(cuid())
+  invoice_id      String
+  service_id      Int?
+  bundle_id       String?
+  description     String
+  quantity        Int @default(1)
+  unit_price      Decimal @db.Decimal(10, 2)
+  total_price     Decimal @db.Decimal(10, 2)
+  
+  // Relations
+  invoice         Invoice @relation(fields: [invoice_id], references: [id], onDelete: Cascade)
+  service         Services? @relation(fields: [service_id], references: [id])
+  bundle          ServiceBundle? @relation(fields: [bundle_id], references: [id])
+  
+  created_at      DateTime @default(now())
+}
+
+model PaymentPlan {
+  id              String @id @default(cuid())
+  patient_id      String
+  bill_id         Int
+  total_amount    Decimal @db.Decimal(10, 2)
+  down_payment    Decimal @db.Decimal(10, 2)
+  monthly_amount  Decimal @db.Decimal(10, 2)
+  installments    Int
+  start_date      DateTime
+  end_date        DateTime
+  status          PaymentPlanStatus @default(ACTIVE)
+  notes           String?
+  
+  // Relations
+  patient         Patient @relation(fields: [patient_id], references: [id])
+  bill            Payment @relation(fields: [bill_id], references: [id])
+  payments        PaymentPlanPayment[]
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model PaymentPlanPayment {
+  id              String @id @default(cuid())
+  payment_plan_id String
+  installment_number Int
+  due_date        DateTime
+  amount          Decimal @db.Decimal(10, 2)
+  paid_date       DateTime?
+  amount_paid     Decimal? @db.Decimal(10, 2)
+  status          PaymentStatus @default(UNPAID)
+  payment_method  PaymentMethod?
+  transaction_id  String?
+  notes           String?
+  
+  // Relations
+  payment_plan    PaymentPlan @relation(fields: [payment_plan_id], references: [id], onDelete: Cascade)
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model InsuranceProvider {
+  id              String @id @default(cuid())
+  name            String
+  code            String @unique
+  contact_person  String?
+  phone           String?
+  email           String?
+  address         String?
+  website         String?
+  is_active       Boolean @default(true)
+  
+  // Relations
+  patient_insurances PatientInsurance[]
+  claims           InsuranceClaim[]
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model PatientInsurance {
+  id              String @id @default(cuid())
+  patient_id      String
+  provider_id     String
+  policy_number   String
+  group_number    String?
+  effective_date  DateTime
+  expiry_date     DateTime
+  status          InsuranceStatus @default(ACTIVE)
+  copay_amount    Decimal? @db.Decimal(10, 2)
+  deductible      Decimal? @db.Decimal(10, 2)
+  coverage_percentage Decimal? @db.Decimal(5, 2)
+  notes           String?
+  
+  // Relations
+  patient         Patient @relation(fields: [patient_id], references: [id])
+  provider        InsuranceProvider @relation(fields: [provider_id], references: [id])
+  claims          InsuranceClaim[]
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+model InsuranceClaim {
+  id              String @id @default(cuid())
+  patient_id      String
+  insurance_id    String
+  bill_id         Int
+  claim_number    String @unique
+  service_date    DateTime
+  amount_billed   Decimal @db.Decimal(10, 2)
+  amount_covered  Decimal? @db.Decimal(10, 2)
+  patient_responsibility Decimal? @db.Decimal(10, 2)
+  status          ClaimStatus @default(DRAFT)
+  submitted_date  DateTime?
+  processed_date  DateTime?
+  denial_reason   String?
+  notes           String?
+  
+  // Relations
+  patient         Patient @relation(fields: [patient_id], references: [id])
+  insurance       PatientInsurance @relation(fields: [insurance_id], references: [id])
+  bill            Payment @relation(fields: [bill_id], references: [id])
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+}
+
+
+

@@ -6,7 +6,7 @@ import {
   BriefcaseBusiness, BriefcaseMedical, User, Users, Building2,
   Shield, Activity, TrendingUp, AlertTriangle, Calendar, Settings,
   Database, FileText, CreditCard, BarChart3, Users2, Stethoscope,
-  Pill, Microscope, Bed, Truck
+  Pill, Microscope, Bed, Truck, UserPlus, Package
 } from "lucide-react";
 import React, { useState } from "react";
 import Link from "next/link";
@@ -173,6 +173,105 @@ export const AdminDashboard = ({ initialStats }: AdminDashboardProps) => {
                   <div>
                     <h3 className="font-semibold text-gray-900">Wards & Beds</h3>
                     <p className="text-sm text-gray-600">Manage patient accommodations</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+        </div>
+
+        {/* Second Row - Additional Management */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          <Link href="/admin/services">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <Stethoscope className="h-6 w-6 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Services</h3>
+                    <p className="text-sm text-gray-600">Manage medical services</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/service-bundles">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-amber-100 rounded-lg">
+                    <Package className="h-6 w-6 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Service Bundles</h3>
+                    <p className="text-sm text-gray-600">Create service packages</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/service-analytics">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-green-100 rounded-lg">
+                    <BarChart3 className="h-6 w-6 text-green-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Service Analytics</h3>
+                    <p className="text-sm text-gray-600">Performance insights</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/equipment">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-teal-100 rounded-lg">
+                    <Microscope className="h-6 w-6 text-teal-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Equipment</h3>
+                    <p className="text-sm text-gray-600">Track medical equipment</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/admin/admissions">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-pink-100 rounded-lg">
+                    <UserPlus className="h-6 w-6 text-pink-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Admissions</h3>
+                    <p className="text-sm text-gray-600">Manage patient admissions</p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </Link>
+
+          <Link href="/record/billing">
+            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+              <CardContent className="p-6">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <CreditCard className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Billing</h3>
+                    <p className="text-sm text-gray-600">Financial management</p>
                   </div>
                 </div>
               </CardContent>

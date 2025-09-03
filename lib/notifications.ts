@@ -233,7 +233,10 @@ export class NotificationService {
     this.templateRegistry = TemplateRegistry.getInstance();
     this.emailScheduler = EmailScheduler.getInstance();
     
-    console.log('✅ Template system and email scheduler initialized');
+    // Start the email scheduler to process queued emails
+    this.emailScheduler.start();
+    
+    console.log('✅ Template system and email scheduler initialized and started');
   }
 
   // Initialize email service based on environment
@@ -622,9 +625,15 @@ export class NotificationService {
   // Get patient data for notifications
   private async getPatientData(patientId: string): Promise<Patient | null> {
     try {
-      return await db.patient.findUnique({
+      const patient = await db.patient.findUnique({
         where: { id: patientId }
       });
+      
+      if (!patient) return null;
+      
+      // Decrypt patient data before returning
+      const { decryptSinglePatient } = require('./data-utils');
+      return decryptSinglePatient(patient);
     } catch (error) {
       console.error(`Failed to get patient data for ${patientId}:`, error);
       return null;
@@ -634,9 +643,15 @@ export class NotificationService {
   // Get doctor data for notifications
   private async getDoctorData(doctorId: string): Promise<Doctor | null> {
     try {
-      return await db.doctor.findUnique({
+      const doctor = await db.doctor.findUnique({
         where: { id: doctorId }
       });
+      
+      if (!doctor) return null;
+      
+      // Decrypt doctor data before returning
+      const { decryptSingleDoctor } = require('./data-utils');
+      return decryptSingleDoctor(doctor);
     } catch (error) {
       console.error(`Failed to get doctor data for ${doctorId}:`, error);
       return null;

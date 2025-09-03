@@ -166,49 +166,49 @@ export const DoctorForm = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <CustomInput
-                    type="radio"
-                    selectList={TYPES}
-                    control={form.control}
-                    name="type"
+              <CustomInput
+                type="radio"
+                selectList={TYPES}
+                control={form.control}
+                name="type"
                     label="Employment Type"
-                    placeholder=""
-                    defaultValue="FULL"
-                  />
+                placeholder=""
+                defaultValue="FULL"
+              />
 
-                  <CustomInput
-                    type="input"
-                    control={form.control}
-                    name="name"
+              <CustomInput
+                type="input"
+                control={form.control}
+                name="name"
                     placeholder="Doctor's full name"
-                    label="Full Name"
-                  />
+                label="Full Name"
+              />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <CustomInput
-                      type="select"
-                      control={form.control}
-                      name="specialization"
-                      placeholder="Select specialization"
-                      label="Specialization"
-                      selectList={SPECIALIZATION}
-                    />
-                    <CustomInput
-                      type="input"
-                      control={form.control}
-                      name="department"
+                <CustomInput
+                  type="select"
+                  control={form.control}
+                  name="specialization"
+                  placeholder="Select specialization"
+                  label="Specialization"
+                  selectList={SPECIALIZATION}
+                />
+                <CustomInput
+                  type="input"
+                  control={form.control}
+                  name="department"
                       placeholder="Department"
-                      label="Department"
-                    />
-                  </div>
+                  label="Department"
+                />
+              </div>
 
-                  <CustomInput
-                    type="input"
-                    control={form.control}
-                    name="license_number"
+              <CustomInput
+                type="input"
+                control={form.control}
+                name="license_number"
                     placeholder="Medical License Number"
-                    label="License Number"
-                  />
+                label="License Number"
+              />
                 </CardContent>
               </Card>
 
@@ -222,29 +222,29 @@ export const DoctorForm = () => {
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <CustomInput
-                      type="input"
-                      control={form.control}
-                      name="email"
-                      placeholder="john@example.com"
-                      label="Email Address"
-                    />
-                    <CustomInput
-                      type="input"
-                      control={form.control}
-                      name="phone"
+                <CustomInput
+                  type="input"
+                  control={form.control}
+                  name="email"
+                  placeholder="john@example.com"
+                  label="Email Address"
+                />
+                <CustomInput
+                  type="input"
+                  control={form.control}
+                  name="phone"
                       placeholder="Contact number"
-                      label="Contact Number"
-                    />
-                  </div>
+                  label="Contact Number"
+                />
+              </div>
 
-                  <CustomInput
-                    type="input"
-                    control={form.control}
-                    name="address"
+              <CustomInput
+                type="input"
+                control={form.control}
+                name="address"
                     placeholder="Full address"
-                    label="Address"
-                  />
+                label="Address"
+              />
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <CustomInput
@@ -274,9 +274,9 @@ export const DoctorForm = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                  <CustomInput
-                    type="input"
-                    control={form.control}
+              <CustomInput
+                type="input"
+                control={form.control}
                     name="qualifications"
                     placeholder="Medical degrees and certifications"
                     label="Qualifications"
@@ -348,11 +348,11 @@ export const DoctorForm = () => {
 
                   <div className="space-y-3">
                     <Label className="text-sm font-medium">Working Days & Schedule</Label>
-                    <SwitchInput
-                      data={WORKING_DAYS}
-                      setWorkSchedule={setWorkSchedule}
-                    />
-                  </div>
+                <SwitchInput
+                  data={WORKING_DAYS}
+                  setWorkSchedule={setWorkSchedule}
+                />
+              </div>
                 </CardContent>
               </Card>
 

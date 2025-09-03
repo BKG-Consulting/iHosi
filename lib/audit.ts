@@ -4,7 +4,7 @@ import db from "./db";
 
 export interface AuditLogParams {
   action: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'PAGE_ACCESS' | 'EXPORT' | 'PRINT';
-  resourceType: 'PATIENT' | 'MEDICAL_RECORD' | 'APPOINTMENT' | 'PAYMENT' | 'PAGE' | 'SYSTEM' | 'AUTH' | 'DOCTOR' | 'STAFF' | 'DEPARTMENT' | 'WARD' | 'BED' | 'EQUIPMENT';
+  resourceType: 'PATIENT' | 'MEDICAL_RECORD' | 'APPOINTMENT' | 'PAYMENT' | 'PAGE' | 'SYSTEM' | 'AUTH' | 'DOCTOR' | 'STAFF' | 'DEPARTMENT' | 'WARD' | 'BED' | 'EQUIPMENT' | 'SERVICE' | 'ADMISSION';
   resourceId: string;
   patientId?: string;
   phiAccessed?: string[];
@@ -16,17 +16,26 @@ export interface AuditLogParams {
 
 export async function logAudit(params: AuditLogParams) {
   try {
-    const { userId, sessionClaims } = await auth();
-    const headersList = await headers();
+    let userId = 'SYSTEM';
+    let userRole = 'SYSTEM';
+    let userAgent = 'Unknown';
+    let ipAddress = 'Unknown';
     
-    // Get request details
-    const userAgent = headersList.get('user-agent') || 'Unknown';
-    const forwardedFor = headersList.get('x-forwarded-for');
-    const realIp = headersList.get('x-real-ip');
-    const ipAddress = forwardedFor?.split(',')[0] || realIp || 'Unknown';
-    
-    // Get user role
-    const userRole = sessionClaims?.metadata?.role || 'UNKNOWN';
+    try {
+      const { userId: authUserId, sessionClaims } = await auth();
+      const headersList = await headers();
+      
+      userId = authUserId || 'SYSTEM';
+      userRole = sessionClaims?.metadata?.role || 'SYSTEM';
+      userAgent = headersList.get('user-agent') || 'Unknown';
+      
+      const forwardedFor = headersList.get('x-forwarded-for');
+      const realIp = headersList.get('x-real-ip');
+      ipAddress = forwardedFor?.split(',')[0] || realIp || 'Unknown';
+    } catch (authError) {
+      // If auth fails (e.g., outside request scope), use system defaults
+      console.warn('Auth context not available for audit logging, using system defaults:', authError instanceof Error ? authError.message : String(authError));
+    }
     
     // Create audit log entry
     await db.auditLog.create({

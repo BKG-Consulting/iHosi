@@ -51,13 +51,77 @@ const DoctorsList = async (props: SearchParamsProps) => {
   const page = (searchParams?.p || "1") as string;
   const searchQuery = (searchParams?.q || "") as string;
 
-  const { data, totalPages, totalRecords, currentPage } = await getAllDoctors({
+  const result = await getAllDoctors({
     page,
     search: searchQuery,
   });
 
-  if (!data) return null;
+  // Handle error cases gracefully
+  if (!result.success) {
+    return (
+      <div className="bg-white rounded-xl py-6 px-3 2xl:px-6">
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Users size={48} className="text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Unable to Load Doctors
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {result.message || "There was an error loading the doctors list."}
+            </p>
+            <Button 
+              onClick={() => window.location.reload()} 
+              variant="outline"
+            >
+              Try Again
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const { data, totalPages, totalRecords, currentPage } = result;
   const isAdmin = await checkRole("ADMIN");
+
+  // Handle empty state
+  if (!data || data.length === 0) {
+    return (
+      <div className="bg-white rounded-xl py-6 px-3 2xl:px-6">
+        <div className="flex items-center justify-between mb-6">
+          <div className="hidden lg:flex items-center gap-1">
+            <Users size={20} className="text-gray-500" />
+            <p className="text-2xl font-semibold">0</p>
+            <span className="text-gray-600 text-sm xl:text-base">
+              total doctors
+            </span>
+          </div>
+          <div className="w-full lg:w-fit flex items-center justify-between lg:justify-start gap-2">
+            <SearchInput />
+            {isAdmin && <DoctorForm />}
+          </div>
+        </div>
+
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <Users size={48} className="text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No Doctors Found
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {searchQuery 
+                ? `No doctors match your search for "${searchQuery}"`
+                : "No doctors have been added to the system yet."
+              }
+            </p>
+            {isAdmin && (
+              <DoctorForm />
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const renderRow = (item: Doctor) => (
     <tr

@@ -1,5 +1,6 @@
 import db from "@/lib/db";
 import { Prisma } from "@prisma/client";
+import { decryptSingleDoctor, decryptSinglePatient } from "@/lib/data-utils";
 
 export async function getAppointmentById(id: number) {
   try {
@@ -41,7 +42,14 @@ export async function getAppointmentById(id: number) {
       };
     }
 
-    return { success: true, data, status: 200 };
+    // Decrypt sensitive data before returning
+    const decryptedData = {
+      ...data,
+      doctor: data.doctor ? decryptSingleDoctor(data.doctor) : null,
+      patient: data.patient ? decryptSinglePatient(data.patient) : null,
+    };
+
+    return { success: true, data: decryptedData, status: 200 };
   } catch (error) {
     console.log(error);
     return { success: false, message: "Internal Server Error", status: 500 };
@@ -167,9 +175,16 @@ export async function getPatientAppointments({
 
     const totalPages = Math.ceil(totalRecord / LIMIT);
 
+    // Decrypt sensitive data before returning
+    const decryptedData = data.map(appointment => ({
+      ...appointment,
+      doctor: appointment.doctor ? decryptSingleDoctor(appointment.doctor) : null,
+      patient: appointment.patient ? decryptSinglePatient(appointment.patient) : null,
+    }));
+
     return {
       success: true,
-      data,
+      data: decryptedData,
       totalPages,
       currentPage: PAGE_NUMBER,
       totalRecord,
@@ -215,7 +230,14 @@ export async function getAppointmentWithMedicalRecordsById(id: number) {
       };
     }
 
-    return { success: true, data, status: 200 };
+    // Decrypt sensitive data before returning
+    const decryptedData = {
+      ...data,
+      doctor: data.doctor ? decryptSingleDoctor(data.doctor) : null,
+      patient: data.patient ? decryptSinglePatient(data.patient) : null,
+    };
+
+    return { success: true, data: decryptedData, status: 200 };
   } catch (error) {
     console.log(error);
     return { success: false, message: "Internal Server Error", status: 500 };

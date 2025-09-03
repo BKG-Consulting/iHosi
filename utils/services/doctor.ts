@@ -190,20 +190,28 @@ export async function getAllDoctors({
 
     const SKIP = (PAGE_NUMBER - 1) * LIMIT;
 
+    // Build search conditions
+    const searchConditions = search ? {
+      OR: [
+        { name: { contains: search, mode: "insensitive" as const } },
+        { specialization: { contains: search, mode: "insensitive" as const } },
+        { email: { contains: search, mode: "insensitive" as const } },
+      ],
+    } : {};
+
     const [doctors, totalRecords] = await Promise.all([
       db.doctor.findMany({
-        where: {
-          OR: [
-            { name: { contains: search, mode: "insensitive" } },
-            { specialization: { contains: search, mode: "insensitive" } },
-            { email: { contains: search, mode: "insensitive" } },
-          ],
+        where: searchConditions,
+        include: { 
+          working_days: true
         },
-        include: { working_days: true },
         skip: SKIP,
         take: LIMIT,
+        orderBy: { created_at: 'desc' }
       }),
-      db.doctor.count(),
+      db.doctor.count({
+        where: searchConditions
+      }),
     ]);
 
     // Decrypt sensitive doctor data before returning
@@ -220,7 +228,17 @@ export async function getAllDoctors({
       status: 200,
     };
   } catch (error) {
-    console.log(error);
-    return { success: false, message: "Internal Server Error", status: 500 };
+    console.error('Error in getAllDoctors:', error);
+    return { 
+      success: false, 
+      message: "Failed to fetch doctors", 
+      data: [],
+      totalRecords: 0,
+      totalPages: 0,
+      currentPage: 1,
+      status: 500 
+    };
   }
 }
+
+

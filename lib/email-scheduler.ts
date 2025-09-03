@@ -392,22 +392,34 @@ export class EmailScheduler {
     }
   }
 
-  // Send email (placeholder - integrate with your email service)
+  // Send email using the real email service
   private async sendEmail(job: EmailJob): Promise<boolean> {
     try {
       // Render template
       const body = this.templateRegistry.renderTemplate(job.templateId, job.context);
       const subject = this.templateRegistry.getTemplateSubject(job.templateId, job.context);
 
-      // TODO: Integrate with your email service here
       console.log(`📧 Sending email to ${job.context.recipientEmail}`);
       console.log(`📧 Subject: ${subject}`);
       console.log(`📧 Body length: ${body.length} characters`);
 
-      // Simulate email sending
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use the real email service
+      const { SendGridEmailService } = require('./email-service');
+      const emailService = new SendGridEmailService();
+      
+      const success = await emailService.sendEmail(
+        job.context.recipientEmail,
+        subject,
+        body
+      );
 
-      return true;
+      if (success) {
+        console.log(`✅ Email sent successfully to ${job.context.recipientEmail}`);
+      } else {
+        console.error(`❌ Failed to send email to ${job.context.recipientEmail}`);
+      }
+
+      return success;
     } catch (error) {
       console.error('Email sending error:', error);
       return false;

@@ -1,4 +1,4 @@
-import { PHIEncryption } from "@/lib/encryption";
+import { PHIEncryption, decryptPHI } from "@/lib/encryption";
 
 /**
  * Utility functions for handling encrypted data consistently across the application
@@ -35,6 +35,21 @@ export interface DecryptedDoctor {
   consultation_fee: number;
   max_patients_per_day: number;
   preferred_appointment_duration: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface DecryptedPatient {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  address: string;
+  emergency_contact: string;
+  emergency_phone: string;
+  date_of_birth: Date;
+  gender: string;
   created_at: Date;
   updated_at: Date;
 }
@@ -109,6 +124,37 @@ export function decryptSingleDoctor(doctor: any): DecryptedDoctor {
     emergency_phone: decryptedData.emergency_phone,
     qualifications: decryptedData.qualifications,
   };
+}
+
+/**
+ * Decrypts a single patient record
+ */
+export function decryptSinglePatient(patient: any): DecryptedPatient {
+  try {
+    const decryptedData = { ...patient };
+    
+    // Decrypt sensitive patient fields
+    const sensitiveFields = [
+      'first_name', 'last_name', 'email', 'phone', 'address', 
+      'emergency_contact', 'emergency_phone'
+    ];
+    
+    sensitiveFields.forEach(field => {
+      if (patient[field] && typeof patient[field] === 'string') {
+        try {
+          decryptedData[field] = decryptPHI(patient[field]);
+        } catch (decryptError) {
+          // If decryption fails, keep original value
+          decryptedData[field] = patient[field];
+        }
+      }
+    });
+    
+    return decryptedData;
+  } catch (error) {
+    console.error('Error decrypting patient data:', error);
+    return patient;
+  }
 }
 
 /**
