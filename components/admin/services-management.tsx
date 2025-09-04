@@ -104,7 +104,14 @@ export function ServicesManagement() {
 
       if (analyticsRes.ok) {
         const analyticsData = await analyticsRes.json();
-        setAnalytics(analyticsData);
+        setAnalytics({
+          totalServices: analyticsData.totalServices || 0,
+          totalBundles: analyticsData.totalBundles || 0,
+          totalTemplates: analyticsData.totalTemplates || 0,
+          totalRevenue: analyticsData.totalRevenue || 0,
+          topServices: analyticsData.topServices || [],
+          monthlyRevenue: analyticsData.monthlyRevenue || []
+        });
       }
     } catch (error) {
       console.error('Error fetching services data:', error);
@@ -156,7 +163,7 @@ export function ServicesManagement() {
       </div>
 
       {/* Analytics Cards */}
-      {analytics && (
+      {(analytics || loading) && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -164,7 +171,7 @@ export function ServicesManagement() {
               <Stethoscope className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analytics.totalServices}</div>
+              <div className="text-2xl font-bold">{analytics?.totalServices || 0}</div>
               <p className="text-xs text-muted-foreground">
                 Active medical services
               </p>
@@ -177,7 +184,7 @@ export function ServicesManagement() {
               <Package className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analytics.totalBundles}</div>
+              <div className="text-2xl font-bold">{analytics?.totalBundles || 0}</div>
               <p className="text-xs text-muted-foreground">
                 Pre-configured packages
               </p>
@@ -190,7 +197,7 @@ export function ServicesManagement() {
               <FileText className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{analytics.totalTemplates}</div>
+              <div className="text-2xl font-bold">{analytics?.totalTemplates || 0}</div>
               <p className="text-xs text-muted-foreground">
                 Service protocols
               </p>
@@ -203,7 +210,7 @@ export function ServicesManagement() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${analytics.totalRevenue.toLocaleString()}</div>
+              <div className="text-2xl font-bold">${(analytics.totalRevenue || 0).toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
                 From all services
               </p>
