@@ -5,16 +5,17 @@ import { logAudit } from "@/lib/audit";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const { id } = await params;
+if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const service = await db.services.findUnique({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt(id) }
     });
 
     if (!service) {
@@ -39,11 +40,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const { id } = await params;
+if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -64,7 +66,7 @@ export async function PUT(
 
     // Check if service exists
     const existingService = await db.services.findUnique({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt(id) }
     });
 
     if (!existingService) {
@@ -76,7 +78,7 @@ export async function PUT(
 
     // Update service
     const updatedService = await db.services.update({
-      where: { id: parseInt(params.id) },
+      where: { id: parseInt(id) },
       data: {
         service_name,
         description,
@@ -88,13 +90,12 @@ export async function PUT(
     await logAudit({
       action: 'UPDATE',
       resourceType: 'SERVICE',
-      resourceId: params.id,
+      resourceId: id,
       metadata: {
         service_name: updatedService.service_name,
         price: updatedService.price,
         previous_price: existingService.price
-      },
-    });
+      } });
 
     return NextResponse.json({
       success: true,
@@ -117,17 +118,18 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const { id } = await params;
+if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if service exists
     const existingService = await db.services.findUnique({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt(id) }
     });
 
     if (!existingService) {
@@ -139,7 +141,7 @@ export async function DELETE(
 
     // Check if service is being used in any bills
     const serviceUsage = await db.patientBills.findFirst({
-      where: { service_id: parseInt(params.id) }
+      where: { service_id: parseInt(id) }
     });
 
     if (serviceUsage) {
@@ -155,19 +157,18 @@ export async function DELETE(
 
     // Delete service
     await db.services.delete({
-      where: { id: parseInt(params.id) }
+      where: { id: parseInt(id) }
     });
 
     // Log audit trail
     await logAudit({
       action: 'DELETE',
       resourceType: 'SERVICE',
-      resourceId: params.id,
+      resourceId: id,
       metadata: {
         service_name: existingService.service_name,
         price: existingService.price
-      },
-    });
+      } });
 
     return NextResponse.json({
       success: true,

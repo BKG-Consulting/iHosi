@@ -108,6 +108,29 @@ enum AvailabilityUpdateType {
   BREAK_TIME_UPDATE
 }
 
+enum AdmissionType {
+  EMERGENCY
+  ELECTIVE
+  OBSERVATION
+  DAY_CARE
+  TRANSFER
+}
+
+enum AdmissionStatus {
+  PENDING
+  ADMITTED
+  DISCHARGED
+  TRANSFERRED
+  CANCELLED
+}
+
+enum PriorityLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 
 model Patient {
   id                       String   @id //clerk userId
@@ -140,6 +163,7 @@ model Patient {
   ratings                  Rating[]
   consents                 PatientConsent[]
   beds                     Bed[]  // New: Bed assignments
+  admissions               Admission[]  // Patient admissions
   
   // Financial relations
   invoices                 Invoice[]
@@ -180,6 +204,7 @@ model Doctor {
   diagnosis             Diagnosis[] 
   leave_requests        LeaveRequest[]
   availability_updates  AvailabilityUpdate[]
+  admissions            Admission[]
   
   // New: Department relationship
   department_ref        Department? @relation("DepartmentDoctors", fields: [department_id], references: [id])
@@ -283,6 +308,51 @@ model Appointment {
   reason            String?
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
+}
+
+model Admission {
+  id                    String          @id @default(cuid())
+  admission_number      String          @unique
+  patient_id            String
+  doctor_id             String
+  department_id         String
+  ward_id               String?
+  bed_id                String?
+  admission_type        AdmissionType
+  admission_status      AdmissionStatus @default(PENDING)
+  priority_level        PriorityLevel   @default(MEDIUM)
+  admission_date        DateTime
+  admission_time        String
+  admission_reason      String
+  chief_complaint       String
+  presenting_symptoms   String?
+  medical_history       String?
+  allergies             String?
+  current_medications   String?
+  insurance_verified    Boolean         @default(false)
+  insurance_provider    String?
+  insurance_number      String?
+  estimated_stay_days   Int?
+  estimated_cost        Decimal?        @db.Decimal(10, 2)
+  initial_vital_signs   String?
+  triage_score          Int?
+  risk_assessment       String?
+  discharge_date        DateTime?
+  discharge_time        String?
+  discharge_summary     String?
+  discharge_instructions String?
+  created_by            String
+  updated_by            String?
+  
+  // Relations
+  patient               Patient         @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  doctor                Doctor          @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+  department            Department      @relation(fields: [department_id], references: [id])
+  ward                  Ward?           @relation(fields: [ward_id], references: [id])
+  bed                   Bed?            @relation(fields: [bed_id], references: [id])
+  
+  created_at            DateTime        @default(now())
+  updated_at            DateTime        @updatedAt
 }
 
 model Payment {
@@ -639,6 +709,7 @@ model Department {
   equipment  Equipment[]
   services   Services[] // Department-specific services
   service_templates ServiceTemplate[] // Department-specific service templates
+  admissions Admission[] // Department admissions
   
   // Metadata
   created_at DateTime @default(now())
@@ -671,6 +742,7 @@ model Ward {
   department Department @relation(fields: [department_id], references: [id], onDelete: Cascade)
   beds       Bed[]
   equipment  Equipment[]
+  admissions Admission[] // Ward admissions
   
   // Metadata
   created_at DateTime @default(now())
@@ -713,6 +785,7 @@ model Bed {
   // Relations
   ward        Ward     @relation(fields: [ward_id], references: [id], onDelete: Cascade)
   patient     Patient? @relation(fields: [current_patient_id], references: [id])
+  admissions  Admission[] // Bed admissions
   
   // Metadata
   created_at  DateTime @default(now())

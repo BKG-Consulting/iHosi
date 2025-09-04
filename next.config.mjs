@@ -1,5 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Production optimizations
+  output: 'standalone',
+  
   // Suppress hydration warnings for browser extensions
   onDemandEntries: {
     // Period (in ms) where the server will keep pages in the buffer
@@ -10,9 +13,12 @@ const nextConfig = {
   
   experimental: {
     serverActions: {
-      allowedOrigins: ['localhost:3000', '127.0.0.1:3000'],
-    },
+      allowedOrigins: process.env.NODE_ENV === 'production' 
+        ? [process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.railway.app']
+        : ['localhost:3000', 'localhost:3001', '127.0.0.1:3000'],
+    }
   },
+  serverExternalPackages: ['@prisma/client'],
   images: {
     remotePatterns: [
       { hostname: "images.pexels.com" },

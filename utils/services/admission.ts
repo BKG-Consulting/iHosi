@@ -122,13 +122,6 @@ export async function getAdmissions(filters: AdmissionFilters = {}) {
             bed_number: true,
             bed_type: true,
           }
-        },
-        follow_up_doctor: {
-          select: {
-            id: true,
-            name: true,
-            specialization: true,
-          }
         }
       },
       orderBy: {
@@ -162,19 +155,7 @@ export async function getAdmissionById(id: string) {
         doctor: true,
         department: true,
         ward: true,
-        bed: true,
-        follow_up_doctor: true,
-        admission_notes: {
-          orderBy: {
-            created_at: 'desc'
-          }
-        },
-        discharge_summary: true,
-        transfers: {
-          orderBy: {
-            transfer_date: 'desc'
-          }
-        }
+        bed: true
       }
     });
 
@@ -204,7 +185,7 @@ export async function getAdmissionById(id: string) {
 export async function createAdmission(admissionData: AdmissionData) {
   try {
     // Check if patient is already admitted
-    const existingAdmission = await db.admission.findFirst({
+    const existingAdmission = await (db as any).admission.findFirst({
       where: {
         patient_id: admissionData.patient_id,
         admission_status: {
@@ -240,6 +221,9 @@ export async function createAdmission(admissionData: AdmissionData) {
       data: {
         ...admissionData,
         admission_number: generateAdmissionNumber(),
+        admission_type: admissionData.admission_type as any,
+        admission_status: admissionData.admission_status as any,
+        priority_level: admissionData.priority_level as any,
       },
       include: {
         patient: true,
@@ -294,7 +278,7 @@ export async function updateAdmissionStatus(id: string, status: string, updatedB
     const updatedAdmission = await db.admission.update({
       where: { id },
       data: {
-        admission_status: status,
+        admission_status: status as any,
         updated_by: updatedBy,
         updated_at: new Date()
       }

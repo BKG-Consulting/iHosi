@@ -4,13 +4,14 @@ import { requirePermission } from "@/lib/permission-guards";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check permissions
     await requirePermission('DEPARTMENT_READ', '/unauthorized');
     
-    const departmentId = params.id;
+    const { id } = await params;
+    const departmentId = id;
 
     // Get department with all related data
     const department = await (db as any).department.findUnique({

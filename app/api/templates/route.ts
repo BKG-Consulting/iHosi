@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     // Log audit
     await logAudit({
       action: 'CREATE',
-      resourceType: 'TEMPLATE',
+      resourceType: 'SYSTEM',
       resourceId: body.id,
       reason: 'New email template created via API',
       metadata: {
@@ -125,7 +125,7 @@ export async function PUT(request: NextRequest) {
     // Log audit
     await logAudit({
       action: 'UPDATE',
-      resourceType: 'TEMPLATE',
+      resourceType: 'SYSTEM',
       resourceId: body.id,
       reason: 'Email template updated via API',
       metadata: {
@@ -185,7 +185,7 @@ export async function DELETE(request: NextRequest) {
       // Log audit
       await logAudit({
         action: 'DELETE',
-        resourceType: 'TEMPLATE',
+        resourceType: 'SYSTEM',
         resourceId: id,
         reason: 'Email template deleted via API',
         metadata: {

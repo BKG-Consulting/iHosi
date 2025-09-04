@@ -43,16 +43,16 @@ export default async function DebugPage() {
           <CardContent>
             <div className="space-y-2">
               <div>
-                <strong>Is Admin?</strong> {sessionClaims?.metadata?.role === 'admin' ? '✅ Yes' : '❌ No'}
+                <strong>Is Admin?</strong> {(sessionClaims?.metadata?.role as string) === 'admin' ? '✅ Yes' : '❌ No'}
               </div>
               <div>
-                <strong>Is Doctor?</strong> {sessionClaims?.metadata?.role === 'doctor' ? '✅ Yes' : '❌ No'}
+                <strong>Is Doctor?</strong> {(sessionClaims?.metadata?.role as string) === 'doctor' ? '✅ Yes' : '❌ No'}
               </div>
               <div>
-                <strong>Is Nurse?</strong> {sessionClaims?.metadata?.role === 'nurse' ? '✅ Yes' : '❌ No'}
+                <strong>Is Nurse?</strong> {(sessionClaims?.metadata?.role as string) === 'nurse' ? '✅ Yes' : '❌ No'}
               </div>
               <div>
-                <strong>Is Patient?</strong> {sessionClaims?.metadata?.role === 'patient' ? '✅ Yes' : '❌ No'}
+                <strong>Is Patient?</strong> {(sessionClaims?.metadata?.role as string) === 'patient' ? '✅ Yes' : '❌ No'}
               </div>
             </div>
           </CardContent>

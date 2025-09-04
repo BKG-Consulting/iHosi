@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Stethoscope, Microscope, Pill, Activity, Heart, Brain, 
-  Eye, Tooth, Baby, Emergency, DollarSign, ArrowRight
+  Eye, Smile, Baby, AlertTriangle, DollarSign, ArrowRight
 } from "lucide-react";
 
 interface Service {
@@ -29,9 +29,9 @@ const categoryIcons: Record<string, any> = {
   Pharmacy: Pill,
   General: Activity,
   Ophthalmology: Eye,
-  Dentistry: Tooth,
+  Dentistry: Smile,
   Pediatrics: Baby,
-  Emergency: Emergency
+  Emergency: AlertTriangle
 };
 
 const categoryColors: Record<string, string> = {

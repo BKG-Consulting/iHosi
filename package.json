@@ -12,7 +12,17 @@
     "test:coverage": "jest --coverage",
     "build:lib": "tsc --project tsconfig.build.json",
     "test:lib": "npm run build:lib && node scripts/test-templates.js",
-    "demo:appointment": "npm run build:lib && node scripts/demo-appointment-flow.js"
+    "demo:appointment": "npm run build:lib && node scripts/demo-appointment-flow.js",
+    "db:generate": "npx prisma generate",
+    "db:push": "npx prisma db push",
+    "db:studio": "npx prisma studio",
+    "db:seed": "npx prisma db seed",
+    "db:reset": "npx prisma migrate reset",
+    "db:migrate": "npx prisma migrate dev",
+    "db:deploy": "npx prisma migrate deploy",
+    "db:setup": "node scripts/setup-deployed-db.js",
+    "deploy:railway": "node scripts/deploy-to-railway.js",
+    "fix:api-routes": "node scripts/fix-api-routes.js"
   },
   "prisma": {
     "seed": "node prisma/seed.ts"

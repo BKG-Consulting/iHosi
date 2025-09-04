@@ -5,16 +5,17 @@ import { logAudit } from "@/lib/audit";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const { id } = await params;
+if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const bundle = await db.serviceBundle.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         bundle_items: {
           include: {
@@ -55,11 +56,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const { id } = await params;
+if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -68,7 +70,7 @@ export async function PUT(
 
     // Check if bundle exists
     const existingBundle = await db.serviceBundle.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     if (!existingBundle) {
@@ -105,20 +107,19 @@ export async function PUT(
     const result = await db.$transaction(async (tx) => {
       // Update the bundle
       const updatedBundle = await tx.serviceBundle.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           name: name || existingBundle.name,
           description: description !== undefined ? description : existingBundle.description,
           total_price: totalPrice,
-          discount_percent: discount_percent !== undefined ? discount_percent : existingBundle.discount_percent,
-        }
+          discount_percent: discount_percent !== undefined ? discount_percent : existingBundle.discount_percent }
       });
 
       // Update bundle items if services are provided
       if (services && Array.isArray(services)) {
         // Delete existing items
         await tx.serviceBundleItem.deleteMany({
-          where: { bundle_id: params.id }
+          where: { bundle_id: id }
         });
 
         // Create new items
@@ -126,7 +127,7 @@ export async function PUT(
           services.map((serviceItem: any) =>
             tx.serviceBundleItem.create({
               data: {
-                bundle_id: params.id,
+                bundle_id: id,
                 service_id: serviceItem.service_id,
                 quantity: serviceItem.quantity || 1,
                 is_required: serviceItem.is_required !== false
@@ -143,13 +144,12 @@ export async function PUT(
     await logAudit({
       action: 'UPDATE',
       resourceType: 'SERVICE',
-      resourceId: params.id,
+      resourceId: id,
       metadata: {
         bundle_name: result.name,
         total_price: result.total_price,
         service_count: services ? services.length : 'unchanged'
-      },
-    });
+      } });
 
     return NextResponse.json({
       success: true,
@@ -172,17 +172,18 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const { id } = await params;
+if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if bundle exists
     const existingBundle = await db.serviceBundle.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     if (!existingBundle) {
@@ -194,7 +195,7 @@ export async function DELETE(
 
     // Check if bundle is being used in any bills
     const bundleUsage = await db.patientBills.findFirst({
-      where: { bundle_id: params.id }
+      where: { bundle_id: id }
     });
 
     if (bundleUsage) {
@@ -210,7 +211,7 @@ export async function DELETE(
 
     // Soft delete by setting is_active to false
     await db.serviceBundle.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { is_active: false }
     });
 
@@ -218,12 +219,11 @@ export async function DELETE(
     await logAudit({
       action: 'DELETE',
       resourceType: 'SERVICE',
-      resourceId: params.id,
+      resourceId: id,
       metadata: {
         bundle_name: existingBundle.name,
         total_price: existingBundle.total_price
-      },
-    });
+      } });
 
     return NextResponse.json({
       success: true,

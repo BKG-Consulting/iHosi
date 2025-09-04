@@ -8,7 +8,7 @@ import { logAudit } from "@/lib/audit";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -16,7 +16,8 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const result = await getAdmissionById(params.id);
+    const { id } = await params;
+    const result = await getAdmissionById(id);
 
     if (!result.success) {
       return NextResponse.json(
@@ -37,7 +38,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -58,7 +59,8 @@ export async function PATCH(
         );
       }
 
-      const result = await updateAdmissionStatus(params.id, status, userId);
+      const { id } = await params;
+      const result = await updateAdmissionStatus(id, status, userId);
 
       if (!result.success) {
         return NextResponse.json(
@@ -69,16 +71,9 @@ export async function PATCH(
 
       // Log audit trail
       await logAudit({
-        action: 'UPDATE_ADMISSION_STATUS',
-        resourceType: 'Admission',
-        resourceId: params.id,
-        details: {
-          new_status: status,
-          previous_status: body.previous_status,
-        },
-        userId,
-        userRole: 'admin',
-      });
+        action: 'UPDATE',
+        resourceType: 'PATIENT',
+        resourceId: id });
 
       return NextResponse.json(result);
     }

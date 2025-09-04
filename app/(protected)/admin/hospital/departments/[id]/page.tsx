@@ -25,5 +25,5 @@ export default async function DepartmentPage({ params }: DepartmentPageProps) {
     );
   }
 
-  return <DepartmentDetails department={departmentData.department} />;
+  return <DepartmentDetails department={departmentData.department!} />;
 }

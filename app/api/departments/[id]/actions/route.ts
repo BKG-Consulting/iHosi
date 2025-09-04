@@ -4,13 +4,14 @@ import { requirePermission } from "@/lib/permission-guards";
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     // Check permissions
-    await requirePermission('DEPARTMENT_WRITE', '/unauthorized');
+    await requirePermission('DEPARTMENT_UPDATE', '/unauthorized');
     
-    const departmentId = params.id;
+    const { id } = await params;
+    const departmentId = id;
     const body = await request.json();
     const { action, data } = body;
 

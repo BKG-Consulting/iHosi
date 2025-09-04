@@ -8,9 +8,9 @@ export default async function DepartmentsPage() {
   await requirePermission('DEPARTMENT_READ', '/unauthorized');
   
   const departmentsResponse = await getDepartments();
-  const departments = departmentsResponse.success ? departmentsResponse.data : [];
+  const departments = departmentsResponse.success ? departmentsResponse.data || [] : [];
 
   return (
-    <DepartmentManagement departments={departments} />
+    <DepartmentManagement departments={departments as any} />
   );
 }

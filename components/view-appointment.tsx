@@ -65,7 +65,7 @@ export const ViewAppointment = async ({ id }: { id: string | undefined }) => {
             <div className="flex flex-col md:flex-row gap-6 mb-16">
               <div className="flex gap-1 w-full md:w-1/2">
                 <ProfileImage
-                  url={data?.patient?.img!}
+                  url={(data?.patient as any)?.img || undefined}
                   name={
                     data?.patient?.first_name + " " + data?.patient?.last_name
                   }
@@ -80,7 +80,7 @@ export const ViewAppointment = async ({ id }: { id: string | undefined }) => {
 
                   <p className="flex items-center gap-2 text-gray-600">
                     <Calendar size={20} className="text-gray-500" />
-                    {calculateAge(data?.patient?.date_of_birth)}
+                    {data?.patient?.date_of_birth ? calculateAge(data.patient.date_of_birth) : 'N/A'}
                   </p>
 
                   <span className="flex items-center text-sm gap-2">
@@ -132,8 +132,8 @@ export const ViewAppointment = async ({ id }: { id: string | undefined }) => {
             <div className="w-full flex flex-col md:flex-row gap-8 mb-8">
               <div className="flex gap-3">
                 <ProfileImage
-                  url={data?.doctor?.img!}
-                  name={data?.doctor?.name}
+                  url={(data?.doctor as any)?.img || undefined}
+                  name={data?.doctor?.name || 'Unknown Doctor'}
                   className="xl:size-20 bg-emerald-600"
                   textClassName="xl:text-2xl"
                 />

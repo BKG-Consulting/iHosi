@@ -398,8 +398,8 @@ export async function updateEquipmentStatus(equipmentId: string, status: string)
   try {
     const updatedEquipment = await db.equipment.update({
       where: { id: equipmentId },
-      data: { 
-        status,
+            data: {
+        status: status as any,
         updated_at: new Date()
       },
       include: {

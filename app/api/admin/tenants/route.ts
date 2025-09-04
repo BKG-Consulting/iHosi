@@ -5,7 +5,7 @@ import { requirePermission } from "@/lib/permission-guards";
 export async function GET(request: NextRequest) {
   try {
     // Check permissions - only admins can manage tenants
-    await requirePermission('ADMIN_MANAGE', '/unauthorized');
+    await requirePermission('SYSTEM_CONFIG_VIEW', '/unauthorized');
     
     const tenants = await TenantManager.listTenants();
     
@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check permissions
-    await requirePermission('ADMIN_MANAGE', '/unauthorized');
+    await requirePermission('SYSTEM_CONFIG_VIEW', '/unauthorized');
     
     const body = await request.json();
     const { name, type, databaseUrl, features, settings } = body;

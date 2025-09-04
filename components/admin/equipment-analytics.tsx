@@ -36,7 +36,7 @@ interface EquipmentAnalytics {
     daysUntil: number;
     priority: 'HIGH' | 'MEDIUM' | 'LOW';
   }>;
-  warrantyExpiring: Array<{
+  warrantyExpiringItems: Array<{
     id: string;
     name: string;
     warrantyExpiry: string;
@@ -83,7 +83,7 @@ export default function EquipmentAnalytics() {
           { id: '3', name: 'X-Ray Machine - Radiology', nextMaintenance: '2024-01-22', daysUntil: 12, priority: 'MEDIUM' },
           { id: '4', name: 'Patient Monitor - Ward A', nextMaintenance: '2024-01-25', daysUntil: 15, priority: 'LOW' }
         ],
-        warrantyExpiring: [
+        warrantyExpiringItems: [
           { id: '1', name: 'CT Scanner - Room 102', warrantyExpiry: '2024-02-01', daysUntil: 17 },
           { id: '2', name: 'Ultrasound Machine - OB/GYN', warrantyExpiry: '2024-02-15', daysUntil: 31 },
           { id: '3', name: 'Dialysis Machine - Nephrology', warrantyExpiry: '2024-03-01', daysUntil: 45 }
@@ -329,7 +329,7 @@ export default function EquipmentAnalytics() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {analytics.warrantyExpiring.map((item) => (
+                {analytics.warrantyExpiringItems.map((item) => (
                   <div key={item.id} className="flex items-center justify-between p-3 border rounded-lg">
                     <div>
                       <p className="font-medium">{item.name}</p>

@@ -200,10 +200,13 @@ export const StaffManagement = () => {
     toast.success("Staff member added successfully!");
   };
 
-  const handleUpdateStaff = (updatedStaff: Staff) => {
-    setStaff(staff.map(s => s.id === updatedStaff.id ? updatedStaff : s));
-    setSelectedStaff(null);
-    toast.success("Staff member updated successfully!");
+  const handleUpdateStaff = (data: any) => {
+    if (selectedStaff) {
+      const updatedStaff = { ...selectedStaff, ...data };
+      setStaff(staff.map(s => s.id === selectedStaff.id ? updatedStaff : s));
+      setSelectedStaff(null);
+      toast.success("Staff member updated successfully!");
+    }
   };
 
   const handleDeleteStaff = (staffId: string) => {

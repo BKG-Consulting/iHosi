@@ -28,20 +28,10 @@ export async function createNewAppointment(data: any) {
         type: validated.type,
         appointment_date: new Date(validated.appointment_date),
         note: validated.note,
-        service_id: data.service_id || null, // Optional service selection
       },
       include: {
         patient: true,
         doctor: true,
-        service: data.service_id ? {
-          select: {
-            id: true,
-            service_name: true,
-            price: true,
-            duration_minutes: true,
-            category: true
-          }
-        } : false,
       },
     });
 

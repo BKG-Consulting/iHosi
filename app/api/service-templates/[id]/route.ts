@@ -5,16 +5,17 @@ import { logAudit } from "@/lib/audit";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const { id } = await params;
+if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const template = await db.serviceTemplate.findUnique({
-      where: { id: params.id },
+      where: { id: id },
       include: {
         template_items: {
           include: {
@@ -63,11 +64,12 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const { id } = await params;
+if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -76,7 +78,7 @@ export async function PUT(
 
     // Check if template exists
     const existingTemplate = await db.serviceTemplate.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     if (!existingTemplate) {
@@ -90,20 +92,19 @@ export async function PUT(
     const result = await db.$transaction(async (tx) => {
       // Update the template
       const updatedTemplate = await tx.serviceTemplate.update({
-        where: { id: params.id },
+        where: { id: id },
         data: {
           name: name || existingTemplate.name,
           description: description !== undefined ? description : existingTemplate.description,
           category: category || existingTemplate.category,
-          department_id: department_id !== undefined ? department_id : existingTemplate.department_id,
-        }
+          department_id: department_id !== undefined ? department_id : existingTemplate.department_id }
       });
 
       // Update template items if services are provided
       if (services && Array.isArray(services)) {
         // Delete existing items
         await tx.serviceTemplateItem.deleteMany({
-          where: { template_id: params.id }
+          where: { template_id: id }
         });
 
         // Create new items
@@ -111,7 +112,7 @@ export async function PUT(
           services.map((serviceItem: any, index: number) =>
             tx.serviceTemplateItem.create({
               data: {
-                template_id: params.id,
+                template_id: id,
                 service_id: serviceItem.service_id,
                 quantity: serviceItem.quantity || 1,
                 is_required: serviceItem.is_required !== false,
@@ -129,13 +130,12 @@ export async function PUT(
     await logAudit({
       action: 'UPDATE',
       resourceType: 'SERVICE',
-      resourceId: params.id,
+      resourceId: id,
       metadata: {
         template_name: result.name,
         category: result.category,
         service_count: services ? services.length : 'unchanged'
-      },
-    });
+      } });
 
     return NextResponse.json({
       success: true,
@@ -158,17 +158,18 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { userId } = await auth();
-    if (!userId) {
+    const { id } = await params;
+if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if template exists
     const existingTemplate = await db.serviceTemplate.findUnique({
-      where: { id: params.id }
+      where: { id: id }
     });
 
     if (!existingTemplate) {
@@ -180,7 +181,7 @@ export async function DELETE(
 
     // Soft delete by setting is_active to false
     await db.serviceTemplate.update({
-      where: { id: params.id },
+      where: { id: id },
       data: { is_active: false }
     });
 
@@ -188,12 +189,11 @@ export async function DELETE(
     await logAudit({
       action: 'DELETE',
       resourceType: 'SERVICE',
-      resourceId: params.id,
+      resourceId: id,
       metadata: {
         template_name: existingTemplate.name,
         category: existingTemplate.category
-      },
-    });
+      } });
 
     return NextResponse.json({
       success: true,

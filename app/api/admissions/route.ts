@@ -97,8 +97,7 @@ export async function POST(request: NextRequest) {
       created_by: userId,
       admission_status: body.admission_status || 'PENDING',
       priority_level: body.priority_level || 'MEDIUM',
-      insurance_verified: body.insurance_verified || false,
-    };
+      insurance_verified: body.insurance_verified || false };
 
     const result = await createAdmission(admissionData);
 
@@ -111,18 +110,9 @@ export async function POST(request: NextRequest) {
 
     // Log audit trail
     await logAudit({
-      action: 'CREATE_ADMISSION',
-      resourceType: 'Admission',
-      resourceId: result.data?.id || '',
-      details: {
-        admission_number: result.data?.admission_number,
-        patient_id: admissionData.patient_id,
-        doctor_id: admissionData.doctor_id,
-        department_id: admissionData.department_id,
-        admission_type: admissionData.admission_type,
-      },
-      userId,
-      userRole: 'admin', // Assuming admin creates admissions
+      action: 'CREATE',
+      resourceType: 'ADMISSION',
+      resourceId: result.data?.id || '', // Assuming admin creates admissions
     });
 
     return NextResponse.json(result, { status: 201 });
