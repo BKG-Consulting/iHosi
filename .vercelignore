@@ -1,0 +1,36 @@
+# Ignore development files
+.env.local
+.env.development
+.env.test
+
+# Ignore test files
+__tests__
+*.test.ts
+*.test.js
+jest.config.js
+jest.setup.js
+
+# Ignore development scripts
+scripts/
+docker/
+docker-compose.yml
+start-docker.bat
+
+# Ignore documentation
+*.md
+!README.md
+
+# Ignore build artifacts
+.next/
+dist/
+node_modules/.cache/
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
