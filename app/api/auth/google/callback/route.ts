@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { google } from 'googleapis';
 import { auth } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
 
 export async function GET(request: NextRequest) {
   try {
@@ -38,10 +38,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Store the tokens in the database
-    await prisma.calendarIntegration.upsert({
+    await db.calendarIntegration.upsert({
       where: {
-        doctor_id: userId,
-        provider: 'GOOGLE_CALENDAR'
+        doctor_provider_unique: {
+          doctor_id: userId,
+          provider: 'GOOGLE_CALENDAR'
+        }
       },
       update: {
         access_token: tokens.access_token,

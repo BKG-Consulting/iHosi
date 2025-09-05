@@ -9,4 +9,3 @@ export { NextAppointment } from './NextAppointment';
 
 // Tab Components
 export { OverviewTab } from './tabs/OverviewTab';
-export { ScheduleTab } from './tabs/ScheduleTab';

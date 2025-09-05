@@ -210,7 +210,7 @@ export function ServicesManagement() {
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">${(analytics.totalRevenue || 0).toLocaleString()}</div>
+              <div className="text-2xl font-bold">${(analytics?.totalRevenue || 0).toLocaleString()}</div>
               <p className="text-xs text-muted-foreground">
                 From all services
               </p>

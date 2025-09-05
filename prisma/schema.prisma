@@ -210,6 +210,10 @@ model Doctor {
   
   // New: Department relationship
   department_ref        Department? @relation("DepartmentDoctors", fields: [department_id], references: [id])
+  
+  // Calendar integrations
+  calendar_integrations CalendarIntegration[]
+  schedule_notifications ScheduleNotification[]
 
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
@@ -308,6 +312,13 @@ model Appointment {
   medical           MedicalRecords[]
 
   reason            String?
+  calendar_event_id String?
+  calendar_synced_at DateTime?
+  
+  // Calendar events relation
+  calendar_events   CalendarEvent[]
+  schedule_notifications ScheduleNotification[]
+  
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 }
@@ -1066,6 +1077,69 @@ model InsuranceClaim {
   
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+}
+
+model CalendarIntegration {
+  id                String @id @default(cuid())
+  doctor_id         String
+  provider          String // 'GOOGLE_CALENDAR', 'OUTLOOK', etc.
+  access_token      String
+  refresh_token     String?
+  token_expires_at  DateTime?
+  is_active         Boolean @default(true)
+  last_sync_at      DateTime?
+  
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+  
+  // Relations
+  doctor            Doctor @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+  calendar_events   CalendarEvent[]
+  
+  @@unique([doctor_id, provider], name: "doctor_provider_unique")
+}
+
+model CalendarEvent {
+  id                String   @id @default(cuid())
+  integration_id    String
+  provider_event_id String   // External calendar event ID
+  appointment_id    Int?     // Link to our appointment if exists
+  title             String
+  description       String?
+  start_time        DateTime
+  end_time          DateTime
+  is_all_day        Boolean  @default(false)
+  location          String?
+  attendees         Json?    // Array of attendee emails
+  status            String   @default("CONFIRMED") // "CONFIRMED", "TENTATIVE", "CANCELLED"
+  event_type        String   @default("APPOINTMENT") // "APPOINTMENT", "BREAK", "BLOCKED", "PERSONAL"
+  last_synced_at    DateTime @default(now())
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  // Relations
+  integration       CalendarIntegration @relation(fields: [integration_id], references: [id], onDelete: Cascade)
+  appointment       Appointment? @relation(fields: [appointment_id], references: [id], onDelete: SetNull)
+}
+
+model ScheduleNotification {
+  id                String   @id @default(cuid())
+  doctor_id         String
+  appointment_id    Int?
+  type              String   // "REMINDER", "CONFIRMATION", "CANCELLATION"
+  recipient_type    String   // "PATIENT", "DOCTOR", "BOTH"
+  send_time         DateTime
+  is_sent           Boolean  @default(false)
+  sent_at           DateTime?
+  delivery_status   String   @default("PENDING") // "PENDING", "SENT", "FAILED", "CANCELLED"
+  template_id       String?
+  custom_message    String?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  // Relations
+  doctor            Doctor @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+  appointment       Appointment? @relation(fields: [appointment_id], references: [id], onDelete: SetNull)
 }
 
 

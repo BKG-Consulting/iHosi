@@ -26,6 +26,7 @@ export interface CalendarEvent {
       minutes: number;
     }>;
   };
+  event_type?: string;
 }
 
 export interface CalendarListEntry {
@@ -292,7 +293,7 @@ export class GoogleCalendarService {
       const { credentials } = await this.oauth2Client.refreshAccessToken();
       return {
         access_token: credentials.access_token!,
-        refresh_token: credentials.refresh_token,
+        refresh_token: credentials.refresh_token || undefined,
       };
     } catch (error) {
       console.error('Error refreshing access token:', error);

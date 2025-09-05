@@ -7,7 +7,6 @@ import { Settings, Plus } from 'lucide-react';
 import { useDoctorDashboard } from '@/hooks/useDoctorDashboard';
 import { doctorDashboardService } from '@/services/doctor-dashboard-service';
 import { OverviewTab } from './tabs/OverviewTab';
-import { ScheduleTab } from './tabs/ScheduleTab';
 import { DashboardProps } from '@/types/doctor-dashboard';
 
 export const DoctorDashboardContainer: React.FC<Omit<DashboardProps, 'onTabChange' | 'onAlertAction' | 'onAppointmentAction'>> = ({
@@ -169,9 +168,8 @@ export const DoctorDashboardContainer: React.FC<Omit<DashboardProps, 'onTabChang
 
       {/* Main Dashboard Tabs */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-6">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="schedule">Schedule</TabsTrigger>
           <TabsTrigger value="patients">Patients</TabsTrigger>
           <TabsTrigger value="clinical">Clinical</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
@@ -198,13 +196,6 @@ export const DoctorDashboardContainer: React.FC<Omit<DashboardProps, 'onTabChang
           />
         </TabsContent>
 
-        <TabsContent value="schedule" className="space-y-6">
-          <ScheduleTab
-            doctor={doctor}
-            appointments={appointments}
-            onScheduleUpdate={refreshDashboard}
-          />
-        </TabsContent>
 
         <TabsContent value="patients" className="space-y-6">
           <div className="text-center py-12">

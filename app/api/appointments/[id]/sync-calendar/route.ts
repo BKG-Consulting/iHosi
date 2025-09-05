@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { DoctorSchedulingService } from '@/utils/services/doctor-scheduling';
 
 export async function POST(
   request: NextRequest,
@@ -23,13 +22,10 @@ export async function POST(
       );
     }
 
-    // Sync appointment to calendar
-    const calendarEvent = await DoctorSchedulingService.syncAppointmentToCalendar(id, calendar_id);
-    
+    // Calendar sync temporarily disabled
     return NextResponse.json({
-      success: true,
-      calendarEvent,
-      message: 'Appointment synced to calendar successfully'
+      success: false,
+      message: 'Calendar sync temporarily disabled - please use the main calendar sync feature'
     });
   } catch (error) {
     console.error('Error syncing appointment to calendar:', error);

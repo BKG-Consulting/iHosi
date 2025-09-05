@@ -4,12 +4,12 @@ export interface Doctor {
   name: string;
   email: string;
   specialization: string;
-  department?: string;
+  department?: string | null;
   phone: string;
   address: string;
-  img?: string;
-  colorCode?: string;
-  availability_status?: string;
+  img?: string | null;
+  colorCode?: string | null;
+  availability_status?: string | null;
   working_days?: WorkingDay[];
   created_at: Date;
   updated_at: Date;
@@ -35,9 +35,9 @@ export interface Patient {
   phone: string;
   date_of_birth: Date;
   gender: 'MALE' | 'FEMALE';
-  img?: string;
-  colorCode?: string;
-  last_visit?: Date;
+  img?: string | null;
+  colorCode?: string | null;
+  last_visit?: Date | null;
   status?: 'ACTIVE' | 'INACTIVE';
 }
 
@@ -49,7 +49,10 @@ export interface Appointment {
   time: string;
   status: 'PENDING' | 'SCHEDULED' | 'CANCELLED' | 'COMPLETED';
   type: string;
-  note?: string;
+  note?: string | null;
+  reason?: string | null;
+  calendar_event_id?: string | null;
+  calendar_synced_at?: Date | null;
   patient: Patient;
   doctor: Doctor;
   created_at: Date;

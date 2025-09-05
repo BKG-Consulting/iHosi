@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { DoctorSchedulingService } from '@/utils/services/doctor-scheduling';
 
 export async function GET(
   request: NextRequest,
@@ -19,11 +18,10 @@ export async function GET(
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
-    const integrations = await DoctorSchedulingService.getCalendarIntegrations(id);
-    
+    // Calendar integrations temporarily disabled
     return NextResponse.json({
-      integrations,
-      message: integrations.length === 0 ? 'Calendar integrations not yet implemented' : 'Calendar integrations retrieved successfully'
+      integrations: [],
+      message: 'Calendar integrations temporarily disabled'
     });
   } catch (error) {
     console.error('Error fetching calendar integrations:', error);
@@ -71,17 +69,11 @@ export async function POST(
       );
     }
 
-    const integration = await DoctorSchedulingService.createCalendarIntegration(id, {
-      provider,
-      provider_calendar_id,
-      calendar_name,
-      access_token,
-      refresh_token,
-      expires_at: expires_at ? new Date(expires_at) : undefined,
-      sync_direction,
-    });
-
-    return NextResponse.json(integration, { status: 201 });
+    // Calendar integration creation temporarily disabled
+    return NextResponse.json({
+      success: false,
+      message: 'Calendar integration creation temporarily disabled'
+    }, { status: 201 });
   } catch (error) {
     console.error('Error creating calendar integration:', error);
     return NextResponse.json(

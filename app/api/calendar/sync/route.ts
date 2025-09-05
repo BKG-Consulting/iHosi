@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { prisma } from '@/lib/db';
+import { db } from '@/lib/db';
 import { GoogleCalendarService } from '@/lib/google-calendar-service';
 
 export async function POST(request: NextRequest) {
@@ -18,7 +18,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the appointment with related data
-    const appointment = await prisma.appointment.findUnique({
+    const appointment = await db.appointment.findUnique({
       where: { id: appointmentId },
       include: {
         patient: true,
@@ -31,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get the doctor's Google Calendar integration
-    const integration = await prisma.calendarIntegration.findFirst({
+    const integration = await db.calendarIntegration.findFirst({
       where: {
         doctor_id: userId,
         provider: 'GOOGLE_CALENDAR',
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
 
     // Sync appointment to calendar
     const calendarEvent = await calendarService.syncAppointmentToCalendar(calendarId, {
-      id: appointment.id,
+      id: appointment.id.toString(),
       patient: {
         first_name: appointment.patient.first_name,
         last_name: appointment.patient.last_name,
@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Update appointment with calendar event ID
-    await prisma.appointment.update({
+    await db.appointment.update({
       where: { id: appointmentId },
       data: {
         calendar_event_id: calendarEvent.id,
