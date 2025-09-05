@@ -75,15 +75,15 @@ export const DepartmentList = ({ departments, onDepartmentSelect, selectedDepart
   const getStatusColor = (status: string) => {
     switch (status) {
       case "ACTIVE":
-        return "bg-green-100 text-green-800";
+        return "bg-[#D1F1F2] text-[#046658] border-[#5AC5C8]";
       case "INACTIVE":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 border-gray-300";
       case "MAINTENANCE":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-[#2EB6B0]/10 text-[#2EB6B0] border-[#2EB6B0]";
       case "CLOSED":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 border-red-300";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 border-gray-300";
     }
   };
 
@@ -94,9 +94,11 @@ export const DepartmentList = ({ departments, onDepartmentSelect, selectedDepart
   if (departments.length === 0) {
     return (
       <div className="text-center py-12">
-        <Building2 className="mx-auto h-12 w-12 text-gray-400" />
-        <h3 className="mt-2 text-sm font-medium text-gray-900">No departments</h3>
-        <p className="mt-1 text-sm text-gray-500">
+        <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#046658]/10 to-[#2EB6B0]/10 rounded-full flex items-center justify-center mb-4">
+          <Building2 className="h-8 w-8 text-[#5AC5C8]" />
+        </div>
+        <h3 className="mt-2 text-lg font-medium text-[#3E4C4B]">No departments</h3>
+        <p className="mt-1 text-sm text-[#3E4C4B]/70">
           Get started by creating your first department.
         </p>
       </div>
@@ -108,10 +110,10 @@ export const DepartmentList = ({ departments, onDepartmentSelect, selectedDepart
       {departments.map((department) => (
         <div
           key={department.id}
-          className={`border rounded-lg p-6 hover:shadow-md transition-shadow cursor-pointer ${
+          className={`border rounded-xl p-6 hover:shadow-lg transition-all duration-300 cursor-pointer bg-white/80 backdrop-blur-sm ${
             selectedDepartment?.id === department.id 
-              ? 'border-blue-500 bg-blue-50' 
-              : 'border-gray-200'
+              ? 'border-[#2EB6B0] bg-gradient-to-br from-[#D1F1F2]/50 to-[#2EB6B0]/10 shadow-lg' 
+              : 'border-[#D1F1F2] hover:border-[#5AC5C8]'
           }`}
           onClick={() => onDepartmentSelect?.(department)}
         >
@@ -119,24 +121,24 @@ export const DepartmentList = ({ departments, onDepartmentSelect, selectedDepart
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <div className="flex items-center space-x-3 mb-2">
-                <h3 className="text-lg font-semibold text-gray-900">
+                <h3 className="text-lg font-semibold text-[#3E4C4B]">
                   {department.name}
                 </h3>
-                <Badge className={getStatusColor(department.status)}>
+                <Badge className={`${getStatusColor(department.status)} border`}>
                   {getStatusLabel(department.status)}
                 </Badge>
-                <span className="text-sm text-gray-500 font-mono">
+                <span className="text-sm text-[#3E4C4B]/70 font-mono bg-[#D1F1F2]/50 px-2 py-1 rounded">
                   {department.code}
                 </span>
                 {selectedDepartment?.id === department.id && (
-                  <Badge className="bg-blue-100 text-blue-800">
+                  <Badge className="bg-[#2EB6B0]/10 text-[#2EB6B0] border-[#2EB6B0]">
                     Selected
                   </Badge>
                 )}
               </div>
               
               {department.description && (
-                <p className="text-gray-600 text-sm mb-3">
+                <p className="text-[#3E4C4B]/80 text-sm mb-3">
                   {department.description}
                 </p>
               )}
@@ -147,31 +149,31 @@ export const DepartmentList = ({ departments, onDepartmentSelect, selectedDepart
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             {/* Location */}
             {department.location && (
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <MapPin className="w-4 h-4" />
+              <div className="flex items-center space-x-2 text-sm text-[#3E4C4B]/80">
+                <MapPin className="w-4 h-4 text-[#5AC5C8]" />
                 <span>{department.location}</span>
               </div>
             )}
 
             {/* Contact */}
             {department.contact_number && (
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Phone className="w-4 h-4" />
+              <div className="flex items-center space-x-2 text-sm text-[#3E4C4B]/80">
+                <Phone className="w-4 h-4 text-[#5AC5C8]" />
                 <span>{department.contact_number}</span>
               </div>
             )}
 
             {/* Email */}
             {department.email && (
-              <div className="flex items-center space-x-2 text-sm text-gray-600">
-                <Mail className="w-4 h-4" />
+              <div className="flex items-center space-x-2 text-sm text-[#3E4C4B]/80">
+                <Mail className="w-4 h-4 text-[#5AC5C8]" />
                 <span>{department.email}</span>
               </div>
             )}
 
             {/* Capacity */}
-            <div className="flex items-center space-x-2 text-sm text-gray-600">
-              <Building2 className="w-4 h-4" />
+            <div className="flex items-center space-x-2 text-sm text-[#3E4C4B]/80">
+              <Building2 className="w-4 h-4 text-[#5AC5C8]" />
               <span>
                 {department.current_load} / {department.capacity} capacity
               </span>
@@ -180,50 +182,50 @@ export const DepartmentList = ({ departments, onDepartmentSelect, selectedDepart
 
           {/* Statistics */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
-            <div className="text-center p-3 bg-blue-50 rounded-lg">
+            <div className="text-center p-3 bg-gradient-to-br from-[#046658]/10 to-[#2EB6B0]/10 rounded-xl border border-[#D1F1F2]">
               <div className="flex items-center justify-center space-x-2 mb-1">
-                <Users className="w-4 h-4 text-blue-600" />
-                <span className="text-sm font-medium text-blue-900">Staff</span>
+                <Users className="w-4 h-4 text-[#046658]" />
+                <span className="text-sm font-medium text-[#3E4C4B]">Staff</span>
               </div>
-              <div className="text-lg font-bold text-blue-600">
+              <div className="text-lg font-bold text-[#046658]">
                 {department._count.doctors + department._count.staff}
               </div>
             </div>
 
-            <div className="text-center p-3 bg-purple-50 rounded-lg">
+            <div className="text-center p-3 bg-gradient-to-br from-[#5AC5C8]/10 to-[#2EB6B0]/10 rounded-xl border border-[#D1F1F2]">
               <div className="flex items-center justify-center space-x-2 mb-1">
-                <Bed className="w-4 h-4 text-purple-600" />
-                <span className="text-sm font-medium text-purple-900">Wards</span>
+                <Bed className="w-4 h-4 text-[#2EB6B0]" />
+                <span className="text-sm font-medium text-[#3E4C4B]">Wards</span>
               </div>
-              <div className="text-lg font-bold text-purple-600">
+              <div className="text-lg font-bold text-[#2EB6B0]">
                 {department._count.wards}
               </div>
             </div>
 
-            <div className="text-center p-3 bg-orange-50 rounded-lg">
+            <div className="text-center p-3 bg-gradient-to-br from-[#2EB6B0]/10 to-[#5AC5C8]/10 rounded-xl border border-[#D1F1F2]">
               <div className="flex items-center justify-center space-x-2 mb-1">
-                <Truck className="w-4 h-4 text-orange-600" />
-                <span className="text-sm font-medium text-orange-900">Equipment</span>
+                <Truck className="w-4 h-4 text-[#5AC5C8]" />
+                <span className="text-sm font-medium text-[#3E4C4B]">Equipment</span>
               </div>
-              <div className="text-lg font-bold text-orange-600">
+              <div className="text-lg font-bold text-[#5AC5C8]">
                 {department._count.equipment}
               </div>
             </div>
 
-            <div className="text-center p-3 bg-green-50 rounded-lg">
+            <div className="text-center p-3 bg-gradient-to-br from-[#046658]/5 to-[#5AC5C8]/10 rounded-xl border border-[#D1F1F2]">
               <div className="flex items-center justify-center space-x-2 mb-1">
-                <Building2 className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-medium text-green-900">Utilization</span>
+                <Building2 className="w-4 h-4 text-[#046658]" />
+                <span className="text-sm font-medium text-[#3E4C4B]">Utilization</span>
               </div>
-              <div className="text-lg font-bold text-green-600">
+              <div className="text-lg font-bold text-[#046658]">
                 {Math.round((department.current_load / department.capacity) * 100)}%
               </div>
             </div>
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-            <div className="text-sm text-gray-500">
+          <div className="flex items-center justify-between pt-4 border-t border-[#D1F1F2]">
+            <div className="text-sm text-[#3E4C4B]/70">
               Created {new Date(department.created_at).toLocaleDateString()}
             </div>
             
@@ -232,6 +234,7 @@ export const DepartmentList = ({ departments, onDepartmentSelect, selectedDepart
                 size="sm"
                 variant="outline"
                 onClick={() => router.push(`/admin/hospital/departments/${department.id}`)}
+                className="border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#D1F1F2] hover:text-[#046658]"
               >
                 <Eye className="w-4 h-4 mr-1" />
                 View
@@ -241,6 +244,7 @@ export const DepartmentList = ({ departments, onDepartmentSelect, selectedDepart
                 size="sm"
                 variant="outline"
                 onClick={() => router.push(`/admin/hospital/departments/${department.id}/edit`)}
+                className="border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#D1F1F2] hover:text-[#046658]"
               >
                 <Edit className="w-4 h-4 mr-1" />
                 Edit

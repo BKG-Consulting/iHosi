@@ -89,15 +89,15 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
   const getStatusColor = (status: string) => {
     switch (status) {
       case "ACTIVE":
-        return "bg-green-100 text-green-800";
+        return "bg-[#D1F1F2] text-[#046658] border-[#5AC5C8]";
       case "INACTIVE":
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 border-gray-300";
       case "MAINTENANCE":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-[#2EB6B0]/10 text-[#2EB6B0] border-[#2EB6B0]";
       case "CLOSED":
-        return "bg-red-100 text-red-800";
+        return "bg-red-100 text-red-800 border-red-300";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-gray-100 text-gray-800 border-gray-300";
     }
   };
 
@@ -106,19 +106,27 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#F5F7FA] py-6 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Department Management</h1>
-              <p className="text-gray-600">Manage hospital departments, wards, and resources</p>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-lg flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-bold text-[#3E4C4B]">Department Management</h1>
+                  <p className="text-[#3E4C4B]/70 text-sm">Ihosi Healthcare Management System</p>
+                </div>
+              </div>
+              <p className="text-[#3E4C4B]/80">Manage hospital departments, wards, and resources with precision</p>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="text-right">
-                <div className="text-2xl font-bold text-blue-600">{departments.length}</div>
-                <div className="text-sm text-gray-500">Total Departments</div>
+              <div className="text-right bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-[#D1F1F2] shadow-sm">
+                <div className="text-2xl font-bold text-[#046658]">{departments.length}</div>
+                <div className="text-sm text-[#3E4C4B]/70">Total Departments</div>
               </div>
             </div>
           </div>
@@ -126,76 +134,76 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
 
         {/* Statistics Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-          <Card className="bg-gradient-to-r from-blue-50 to-blue-100 border-blue-200">
+          <Card className="bg-gradient-to-br from-[#046658]/10 to-[#2EB6B0]/10 border-[#D1F1F2] shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-blue-500 text-white">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-[#046658] to-[#2EB6B0] text-white shadow-lg">
                   <Building2 className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-blue-700">Departments</p>
-                  <p className="text-2xl font-bold text-blue-900">{departments.length}</p>
-                  <p className="text-xs text-blue-600">{activeDepartments} active</p>
+                  <p className="text-sm font-medium text-[#3E4C4B]">Departments</p>
+                  <p className="text-2xl font-bold text-[#046658]">{departments.length}</p>
+                  <p className="text-xs text-[#5AC5C8]">{activeDepartments} active</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-green-50 to-green-100 border-green-200">
+          <Card className="bg-gradient-to-br from-[#5AC5C8]/10 to-[#2EB6B0]/10 border-[#D1F1F2] shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-green-500 text-white">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-[#5AC5C8] to-[#2EB6B0] text-white shadow-lg">
                   <Users className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-green-700">Total Staff</p>
-                  <p className="text-2xl font-bold text-green-900">{totalStaff}</p>
-                  <p className="text-xs text-green-600">Doctors & Staff</p>
+                  <p className="text-sm font-medium text-[#3E4C4B]">Total Staff</p>
+                  <p className="text-2xl font-bold text-[#046658]">{totalStaff}</p>
+                  <p className="text-xs text-[#5AC5C8]">Doctors & Staff</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-purple-50 to-purple-100 border-purple-200">
+          <Card className="bg-gradient-to-br from-[#2EB6B0]/10 to-[#5AC5C8]/10 border-[#D1F1F2] shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-purple-500 text-white">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-[#2EB6B0] to-[#5AC5C8] text-white shadow-lg">
                   <Bed className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-purple-700">Total Wards</p>
-                  <p className="text-2xl font-bold text-purple-900">{totalWards}</p>
-                  <p className="text-xs text-purple-600">Patient areas</p>
+                  <p className="text-sm font-medium text-[#3E4C4B]">Total Wards</p>
+                  <p className="text-2xl font-bold text-[#046658]">{totalWards}</p>
+                  <p className="text-xs text-[#5AC5C8]">Patient areas</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-orange-50 to-orange-100 border-orange-200">
+          <Card className="bg-gradient-to-br from-[#046658]/5 to-[#5AC5C8]/10 border-[#D1F1F2] shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-orange-500 text-white">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-[#046658] to-[#5AC5C8] text-white shadow-lg">
                   <Truck className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-orange-700">Equipment</p>
-                  <p className="text-2xl font-bold text-orange-900">{totalEquipment}</p>
-                  <p className="text-xs text-orange-600">Medical devices</p>
+                  <p className="text-sm font-medium text-[#3E4C4B]">Equipment</p>
+                  <p className="text-2xl font-bold text-[#046658]">{totalEquipment}</p>
+                  <p className="text-xs text-[#5AC5C8]">Medical devices</p>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-r from-indigo-50 to-indigo-100 border-indigo-200">
+          <Card className="bg-gradient-to-br from-[#5AC5C8]/5 to-[#2EB6B0]/10 border-[#D1F1F2] shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
               <div className="flex items-center space-x-4">
-                <div className="p-3 rounded-lg bg-indigo-500 text-white">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-[#5AC5C8] to-[#2EB6B0] text-white shadow-lg">
                   <TrendingUp className="w-6 h-6" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-indigo-700">Avg Utilization</p>
-                  <p className="text-2xl font-bold text-indigo-900">{averageUtilization}%</p>
-                  <p className="text-xs text-indigo-600">Capacity usage</p>
+                  <p className="text-sm font-medium text-[#3E4C4B]">Avg Utilization</p>
+                  <p className="text-2xl font-bold text-[#046658]">{averageUtilization}%</p>
+                  <p className="text-xs text-[#5AC5C8]">Capacity usage</p>
                 </div>
               </div>
             </CardContent>
@@ -204,24 +212,24 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
 
         {/* Quick Actions & Filters */}
         <div className="mb-6">
-          <Card>
+          <Card className="bg-white/80 backdrop-blur-sm border-[#D1F1F2] shadow-lg">
             <CardContent className="p-6">
               <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
                 {/* Search and Filters */}
                 <div className="flex flex-col sm:flex-row gap-4 flex-1">
                   <div className="relative flex-1 max-w-md">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#5AC5C8] w-4 h-4" />
                     <Input
                       placeholder="Search departments..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10"
+                      className="pl-10 border-[#D1F1F2] focus:border-[#2EB6B0] focus:ring-[#2EB6B0]/20"
                     />
                   </div>
                   
                   <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-full sm:w-48">
-                      <Filter className="w-4 h-4 mr-2" />
+                    <SelectTrigger className="w-full sm:w-48 border-[#D1F1F2] focus:border-[#2EB6B0] focus:ring-[#2EB6B0]/20">
+                      <Filter className="w-4 h-4 mr-2 text-[#5AC5C8]" />
                       <SelectValue placeholder="Filter by status" />
                     </SelectTrigger>
                     <SelectContent>
@@ -237,15 +245,15 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
                 {/* Add Department Button */}
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
-                    <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                    <Button className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#046658]/90 hover:to-[#2EB6B0]/90 text-white shadow-lg hover:shadow-xl transition-all duration-300">
                       <Plus className="w-4 h-4 mr-2" />
                       Add Department
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                      <DialogTitle>Create New Department</DialogTitle>
-                      <DialogDescription>
+                      <DialogTitle className="text-[#3E4C4B]">Create New Department</DialogTitle>
+                      <DialogDescription className="text-[#3E4C4B]/70">
                         Add a new department to your hospital system. Fill in the required information below.
                       </DialogDescription>
                     </DialogHeader>
@@ -259,20 +267,20 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
 
         {/* Department Management Tabs */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
+          <TabsList className="grid w-full grid-cols-4 bg-white/60 backdrop-blur-sm border border-[#D1F1F2] shadow-lg">
+            <TabsTrigger value="overview" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white text-[#3E4C4B] hover:text-[#046658]">
               <Building2 className="w-4 h-4" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
+            <TabsTrigger value="analytics" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white text-[#3E4C4B] hover:text-[#046658]">
               <BarChart3 className="w-4 h-4" />
               Analytics
             </TabsTrigger>
-            <TabsTrigger value="resources" className="flex items-center gap-2">
+            <TabsTrigger value="resources" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white text-[#3E4C4B] hover:text-[#046658]">
               <Stethoscope className="w-4 h-4" />
               Resources
             </TabsTrigger>
-            <TabsTrigger value="patient-flow" className="flex items-center gap-2">
+            <TabsTrigger value="patient-flow" className="flex items-center gap-2 data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white text-[#3E4C4B] hover:text-[#046658]">
               <UserCheck className="w-4 h-4" />
               Patient Flow
             </TabsTrigger>
@@ -280,18 +288,18 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <Card>
+            <Card className="bg-white/80 backdrop-blur-sm border-[#D1F1F2] shadow-lg">
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="flex items-center gap-2">
-                      <Building2 className="w-5 h-5" />
+                    <CardTitle className="flex items-center gap-2 text-[#3E4C4B]">
+                      <Building2 className="w-5 h-5 text-[#046658]" />
                       Departments
-                      <Badge variant="secondary" className="ml-2">
+                      <Badge variant="secondary" className="ml-2 bg-[#D1F1F2] text-[#3E4C4B] border-[#5AC5C8]">
                         {filteredDepartments.length} of {departments.length}
                       </Badge>
                     </CardTitle>
-                    <CardDescription>
+                    <CardDescription className="text-[#3E4C4B]/70">
                       View and manage all hospital departments
                     </CardDescription>
                   </div>
@@ -299,7 +307,7 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
                   {/* Status Summary */}
                   <div className="flex items-center gap-2">
                     {departments.filter(d => d.status === "ACTIVE").length > 0 && (
-                      <div className="flex items-center gap-1 text-green-600">
+                      <div className="flex items-center gap-1 text-[#046658] bg-[#D1F1F2] px-3 py-1 rounded-full">
                         <CheckCircle2 className="w-4 h-4" />
                         <span className="text-sm font-medium">
                           {departments.filter(d => d.status === "ACTIVE").length} Active
@@ -307,7 +315,7 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
                       </div>
                     )}
                     {departments.filter(d => d.status === "MAINTENANCE").length > 0 && (
-                      <div className="flex items-center gap-1 text-yellow-600">
+                      <div className="flex items-center gap-1 text-[#2EB6B0] bg-[#2EB6B0]/10 px-3 py-1 rounded-full">
                         <AlertCircle className="w-4 h-4" />
                         <span className="text-sm font-medium">
                           {departments.filter(d => d.status === "MAINTENANCE").length} Maintenance
@@ -320,11 +328,13 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
               <CardContent>
                 {filteredDepartments.length === 0 ? (
                   <div className="text-center py-12">
-                    <Building2 className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#046658]/10 to-[#2EB6B0]/10 rounded-full flex items-center justify-center mb-4">
+                      <Building2 className="h-8 w-8 text-[#5AC5C8]" />
+                    </div>
+                    <h3 className="mt-2 text-lg font-medium text-[#3E4C4B]">
                       {searchTerm || statusFilter !== "all" ? "No departments found" : "No departments"}
                     </h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <p className="mt-1 text-sm text-[#3E4C4B]/70">
                       {searchTerm || statusFilter !== "all" 
                         ? "Try adjusting your search or filter criteria."
                         : "Get started by creating your first department."
@@ -334,7 +344,7 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
                       <div className="mt-6">
                         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                           <DialogTrigger asChild>
-                            <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                            <Button className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#046658]/90 hover:to-[#2EB6B0]/90 text-white shadow-lg hover:shadow-xl transition-all duration-300">
                               <Plus className="w-4 h-4 mr-2" />
                               Create First Department
                             </Button>
@@ -362,12 +372,14 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
                 departmentName={selectedDepartment.name} 
               />
             ) : (
-              <Card>
+              <Card className="bg-white/80 backdrop-blur-sm border-[#D1F1F2] shadow-lg">
                 <CardContent className="p-6">
                   <div className="text-center py-12">
-                    <BarChart3 className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">Select a Department</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#046658]/10 to-[#2EB6B0]/10 rounded-full flex items-center justify-center mb-4">
+                      <BarChart3 className="h-8 w-8 text-[#5AC5C8]" />
+                    </div>
+                    <h3 className="mt-2 text-lg font-medium text-[#3E4C4B]">Select a Department</h3>
+                    <p className="mt-1 text-sm text-[#3E4C4B]/70">
                       Choose a department from the overview tab to view detailed analytics.
                     </p>
                   </div>
@@ -380,13 +392,13 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
           <TabsContent value="resources" className="space-y-6">
             {selectedDepartment ? (
               <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="text-lg font-semibold">Resources for {selectedDepartment.name}</h3>
+                <div className="flex justify-between items-center bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-[#D1F1F2] shadow-sm">
+                  <h3 className="text-lg font-semibold text-[#3E4C4B]">Resources for {selectedDepartment.name}</h3>
                   <Button 
                     variant="outline" 
                     size="sm"
                     onClick={triggerRefresh}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#D1F1F2] hover:text-[#046658]"
                   >
                     <Activity className="w-4 h-4" />
                     Refresh
@@ -399,12 +411,14 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
                 />
               </div>
             ) : (
-              <Card>
+              <Card className="bg-white/80 backdrop-blur-sm border-[#D1F1F2] shadow-lg">
                 <CardContent className="p-6">
                   <div className="text-center py-12">
-                    <Stethoscope className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">Select a Department</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#046658]/10 to-[#2EB6B0]/10 rounded-full flex items-center justify-center mb-4">
+                      <Stethoscope className="h-8 w-8 text-[#5AC5C8]" />
+                    </div>
+                    <h3 className="mt-2 text-lg font-medium text-[#3E4C4B]">Select a Department</h3>
+                    <p className="mt-1 text-sm text-[#3E4C4B]/70">
                       Choose a department from the overview tab to manage resources.
                     </p>
                   </div>
@@ -421,12 +435,14 @@ export const DepartmentManagement = ({ departments }: DepartmentManagementProps)
                 departmentName={selectedDepartment.name} 
               />
             ) : (
-              <Card>
+              <Card className="bg-white/80 backdrop-blur-sm border-[#D1F1F2] shadow-lg">
                 <CardContent className="p-6">
                   <div className="text-center py-12">
-                    <UserCheck className="mx-auto h-12 w-12 text-gray-400" />
-                    <h3 className="mt-2 text-sm font-medium text-gray-900">Select a Department</h3>
-                    <p className="mt-1 text-sm text-gray-500">
+                    <div className="w-16 h-16 mx-auto bg-gradient-to-br from-[#046658]/10 to-[#2EB6B0]/10 rounded-full flex items-center justify-center mb-4">
+                      <UserCheck className="h-8 w-8 text-[#5AC5C8]" />
+                    </div>
+                    <h3 className="mt-2 text-lg font-medium text-[#3E4C4B]">Select a Department</h3>
+                    <p className="mt-1 text-sm text-[#3E4C4B]/70">
                       Choose a department from the overview tab to manage patient flow.
                     </p>
                   </div>
