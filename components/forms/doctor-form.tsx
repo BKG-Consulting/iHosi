@@ -55,6 +55,7 @@ type Day = {
 
 export const DoctorForm = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
   const [workSchedule, setWorkSchedule] = useState<Day[]>([]);
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
@@ -84,31 +85,64 @@ export const DoctorForm = () => {
   });
 
   const handleSubmit = async (values: z.infer<typeof DoctorSchema>) => {
+    console.log("=== DOCTOR FORM SUBMISSION START ===");
+    console.log("Form values:", values);
+    console.log("Work schedule:", workSchedule);
+    console.log("Selected languages:", selectedLanguages);
+    
     try {
+      // Validate required fields
       if (workSchedule.length === 0) {
-        toast.error("Please select work schedule");
+        console.log("ERROR: No working days selected");
+        toast.error("Please select at least one working day");
         return;
       }
 
+      if (selectedLanguages.length === 0) {
+        console.log("ERROR: No languages selected");
+        toast.error("Please select at least one language");
+        return;
+      }
+
+      console.log("Validation passed, setting loading state...");
       setIsLoading(true);
-      const resp = await createNewDoctor({
+      
+      const payload = {
         ...values,
         languages: selectedLanguages,
         work_schedule: workSchedule,
-      });
+      };
+      
+      console.log("Calling createNewDoctor with payload:", payload);
+      const resp = await createNewDoctor(payload);
+      console.log("Response from createNewDoctor:", resp);
+      
+      if (!resp) {
+        console.error("No response received from createNewDoctor");
+        toast.error("No response from server. Please try again.");
+        return;
+      }
 
       if (resp.success) {
         toast.success("Doctor added successfully!");
         setWorkSchedule([]);
         setSelectedLanguages([]);
         form.reset();
+        setIsOpen(false); // Close the modal
         router.refresh();
-      } else if (resp.error) {
-        toast.error(resp.message);
+      } else {
+        // Handle validation errors
+        if (resp.validationErrors) {
+          resp.validationErrors.forEach((error: any) => {
+            toast.error(`${error.path.join('.')}: ${error.message}`);
+          });
+        } else {
+          toast.error(resp.message || "Failed to create doctor");
+        }
       }
     } catch (error) {
-      console.log(error);
-      toast.error("Something went wrong");
+      console.error("Error creating doctor:", error);
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -128,6 +162,11 @@ export const DoctorForm = () => {
     }
   }, [selectedSpecialization, form]);
 
+  // Sync selected languages with form state
+  useEffect(() => {
+    form.setValue("languages", selectedLanguages);
+  }, [selectedLanguages, form]);
+
   const toggleLanguage = (language: string) => {
     setSelectedLanguages(prev => 
       prev.includes(language) 
@@ -136,8 +175,20 @@ export const DoctorForm = () => {
     );
   };
 
+  // Reset form when modal is closed
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    if (!open) {
+      // Reset form when modal is closed
+      form.reset();
+      setWorkSchedule([]);
+      setSelectedLanguages([]);
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <Sheet>
+    <Sheet open={isOpen} onOpenChange={handleOpenChange}>
       <SheetTrigger asChild>
         <Button className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-lg">
           <Plus size={20} className="mr-2" />
@@ -378,11 +429,31 @@ export const DoctorForm = () => {
 
               <Button 
                 type="submit" 
-                disabled={isLoading} 
-                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 text-lg font-semibold shadow-lg"
+                disabled={isLoading || selectedLanguages.length === 0 || workSchedule.length === 0} 
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 text-lg font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isLoading ? "Creating Doctor..." : "Create Doctor Account"}
+                {isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Creating Doctor...
+                  </div>
+                ) : (
+                  "Create Doctor Account"
+                )}
               </Button>
+              
+              {/* Form Status Indicators */}
+              <div className="text-sm text-gray-600 space-y-1">
+                {selectedLanguages.length === 0 && (
+                  <p className="text-red-600">⚠️ Please select at least one language</p>
+                )}
+                {workSchedule.length === 0 && (
+                  <p className="text-red-600">⚠️ Please set up working schedule</p>
+                )}
+                {selectedLanguages.length > 0 && workSchedule.length > 0 && (
+                  <p className="text-green-600">✅ Ready to create doctor account</p>
+                )}
+              </div>
             </form>
           </Form>
         </div>

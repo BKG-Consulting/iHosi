@@ -1,5 +1,6 @@
 import Link from "next/link";
 import React from "react";
+import Image from "next/image";
 import { 
   Stethoscope, 
   Shield, 
@@ -7,42 +8,63 @@ import {
   Clock, 
   Heart,
   ArrowLeft,
-  CheckCircle
+  CheckCircle,
+  Lock,
+  Database,
+  BarChart3,
+  Smartphone,
+  Globe,
+  Award
 } from "lucide-react";
 
 const AuthLayout = ({ children }: { children: React.ReactNode }) => {
   const features = [
     {
       icon: Shield,
-      title: "Secure & Compliant",
-      description: "HIPAA-compliant platform ensuring your data is always protected"
+      title: "Enterprise Security",
+      description: "HIPAA-compliant platform with end-to-end encryption and role-based access controls"
     },
     {
-      icon: Users,
-      title: "Multi-Role Access",
-      description: "Tailored dashboards for patients, doctors, and healthcare staff"
+      icon: Database,
+      title: "Comprehensive Management",
+      description: "Complete patient journey management from registration to treatment and follow-up"
     },
     {
-      icon: Clock,
-      title: "24/7 Availability", 
-      description: "Access your healthcare information anytime, anywhere"
+      icon: BarChart3,
+      title: "Intelligent Analytics",
+      description: "Business intelligence and predictive analytics for data-driven healthcare decisions"
+    },
+    {
+      icon: Smartphone,
+      title: "Mobile-First Design",
+      description: "Responsive design ensuring seamless access across all devices and platforms"
+    },
+    {
+      icon: Globe,
+      title: "Flexible Deployment",
+      description: "On-premise, cloud, or hybrid deployment options to meet your specific needs"
+    },
+    {
+      icon: Award,
+      title: "Proven Excellence",
+      description: "Trusted by healthcare institutions with 99.9% uptime and 24/7 support"
     }
   ];
 
   const stats = [
-    "10,000+ Patients Trust Us",
+    "10,000+ Healthcare Professionals",
     "99.9% System Uptime", 
-    "HIPAA Compliant Security",
-    "24/7 Customer Support"
+    "HIPAA & SOC 2 Compliant",
+    "24/7 Technical Support"
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#F5F7FA] flex">
       {/* Left Side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col">
         {/* Header */}
         <div className="p-6 lg:p-8">
-          <Link href="/" className="inline-flex items-center space-x-2 text-gray-500 hover:text-brand-600 transition-colors text-sm">
+          <Link href="/" className="inline-flex items-center space-x-2 text-[#3E4C4B] hover:text-[#046658] transition-colors text-sm font-medium">
             <ArrowLeft className="h-4 w-4" />
             <span>Back to Home</span>
           </Link>
@@ -53,28 +75,37 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
           <div className="w-full max-w-md">
             {/* Logo */}
             <div className="text-center mb-8">
-              <Link href="/" className="inline-flex items-center space-x-2">
-                <div className="bg-brand-600 text-white p-3 rounded-xl">
-                  <Stethoscope className="h-8 w-8" />
+              <Link href="/" className="inline-flex items-center space-x-3">
+                <div className="relative w-12 h-12">
+                  <Image
+                    src="/logo.png"
+                    alt="Ihosi Logo"
+                    fill
+                    className="object-contain"
+                    priority
+                  />
                 </div>
-                <span className="text-2xl font-bold text-gray-900">Ihosi</span>
+                <div className="text-left">
+                  <span className="text-2xl font-bold text-[#3E4C4B]">Ihosi</span>
+                  <p className="text-xs text-[#5AC5C8] font-medium">Healthcare Management</p>
+                </div>
               </Link>
             </div>
 
             {/* Form Container */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8">
+            <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-8">
               {children}
             </div>
 
             {/* Footer Links */}
-            <div className="mt-6 text-center text-xs text-gray-500">
+            <div className="mt-6 text-center text-xs text-[#3E4C4B]/70">
               <p>
                 By continuing, you agree to our{" "}
-                <Link href="#" className="text-brand-600 hover:underline">
+                <Link href="#" className="text-[#046658] hover:underline font-medium">
                   Terms of Service
                 </Link>{" "}
                 and{" "}
-                <Link href="#" className="text-brand-600 hover:underline">
+                <Link href="#" className="text-[#046658] hover:underline font-medium">
                   Privacy Policy
                 </Link>
               </p>
@@ -84,13 +115,13 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
       </div>
 
       {/* Right Side - Healthcare Information */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 via-blue-700 to-blue-800 relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-[#046658] via-[#2EB6B0] to-[#5AC5C8] relative overflow-hidden">
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
+        <div className="absolute inset-0 opacity-10">
           <svg className="w-full h-full" viewBox="0 0 100 100" fill="none">
             <defs>
-              <pattern id="grid" width="10" height="10" patternUnits="userSpaceOnUse">
-                <path d="M 10 0 L 0 0 0 10" fill="none" stroke="white" strokeWidth="0.5"/>
+              <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+                <path d="M 20 0 L 0 0 0 20" fill="none" stroke="white" strokeWidth="0.5"/>
               </pattern>
             </defs>
             <rect width="100" height="100" fill="url(#grid)" />
@@ -101,30 +132,39 @@ const AuthLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="relative z-10 flex flex-col justify-center p-12 text-white">
           {/* Main Message */}
           <div className="mb-10">
-            <div className="inline-flex items-center px-3 py-1.5 rounded-full bg-white/10 backdrop-blur-sm text-blue-100 text-xs font-medium mb-4">
-              <Heart className="h-3.5 w-3.5 mr-2" />
+            <div className="inline-flex items-center px-4 py-2 rounded-full bg-white/15 backdrop-blur-sm text-white text-sm font-medium mb-6">
+              <Heart className="h-4 w-4 mr-2" />
               Trusted Healthcare Platform
             </div>
-            <h1 className="text-3xl lg:text-4xl font-semibold mb-4 leading-tight">
-              Minimal. Secure.
-              <span className="block text-brand-100">Built for Care.</span>
+            <h1 className="text-4xl lg:text-5xl font-bold mb-6 leading-tight">
+              Transforming Healthcare
+              <span className="block text-white/90">Through Technology</span>
             </h1>
-            <p className="text-base text-blue-100/90 leading-relaxed max-w-md">
-              A clean, focused experience that keeps your attention on what matters.
+            <p className="text-lg text-white/90 leading-relaxed max-w-lg">
+              Where technology meets healthcare excellence. Comprehensive, secure, and intelligent healthcare management for the modern world.
             </p>
           </div>
 
-          {/* Features */}
-          <div className="space-y-4">
+          {/* Features Grid */}
+          <div className="grid grid-cols-1 gap-4 mb-8">
             {features.slice(0, 3).map((feature, index) => (
-              <div key={index} className="flex items-start space-x-3">
-                <div className="bg-white/10 backdrop-blur-sm p-1.5 rounded-md flex-shrink-0">
-                  <feature.icon className="h-5 w-5 text-blue-100" />
+              <div key={index} className="flex items-start space-x-4 p-4 bg-white/10 backdrop-blur-sm rounded-xl">
+                <div className="bg-white/20 backdrop-blur-sm p-2 rounded-lg flex-shrink-0">
+                  <feature.icon className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-medium text-white mb-0.5">{feature.title}</h3>
-                  <p className="text-blue-100/90 text-sm">{feature.description}</p>
+                  <h3 className="font-semibold text-white mb-1 text-lg">{feature.title}</h3>
+                  <p className="text-white/90 text-sm leading-relaxed">{feature.description}</p>
                 </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 gap-4">
+            {stats.map((stat, index) => (
+              <div key={index} className="text-center p-3 bg-white/10 backdrop-blur-sm rounded-lg">
+                <p className="text-white font-medium text-sm">{stat}</p>
               </div>
             ))}
           </div>

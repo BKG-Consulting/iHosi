@@ -9,7 +9,7 @@ const Registration = async () => {
   const { data } = await getPatientById(userId!);
 
   return (
-    <div className="w-full h-full flex justify-center">
+    <div className="w-full h-full flex justify-center bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#F5F7FA]">
       <div className="max-w-6xl w-full relative pb-10">
         <NewPatient data={data!} type={!data ? "create" : "update"} />
       </div>

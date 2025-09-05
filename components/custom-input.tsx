@@ -163,7 +163,7 @@ interface SwitchProps {
 }
 
 export const SwitchInput = ({ data, setWorkSchedule }: SwitchProps) => {
-  const [workSchedule, setLocalWorkSchedule] = useState<Day[]>([]);
+  const [localWorkSchedule, setLocalWorkSchedule] = useState<Day[]>([]);
 
   const handleChange = (day: string, field: any, value: any) => {
     setLocalWorkSchedule((prevDays: Day[]) => {
@@ -223,13 +223,13 @@ export const SwitchInput = ({ data, setWorkSchedule }: SwitchProps) => {
 
   // Sync with parent component
   useEffect(() => {
-    setWorkSchedule(workSchedule);
-  }, [workSchedule, setWorkSchedule]);
+    setWorkSchedule(localWorkSchedule);
+  }, [localWorkSchedule, setWorkSchedule]);
 
   return (
     <div className="space-y-4">
       {data?.map((el, id) => {
-        const dayData = workSchedule.find((d: Day) => d.day === el.value);
+        const dayData = localWorkSchedule.find((d: Day) => d.day === el.value);
         const isWorking = dayData?.is_working ?? false;
         
         return (

@@ -3,6 +3,10 @@ const nextConfig = {
   // Production optimizations
   output: 'standalone',
   
+  // Performance optimizations
+  swcMinify: true,
+  compress: true,
+  
   // Suppress hydration warnings for browser extensions
   onDemandEntries: {
     // Period (in ms) where the server will keep pages in the buffer
@@ -11,12 +15,45 @@ const nextConfig = {
     pagesBufferLength: 2,
   },
   
+  // Bundle optimization
+  webpack: (config, { dev, isServer }) => {
+    // Optimize bundle size
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+          clerk: {
+            test: /[\\/]node_modules[\\/]@clerk[\\/]/,
+            name: 'clerk',
+            chunks: 'all',
+            priority: 10,
+          },
+          ui: {
+            test: /[\\/]node_modules[\\/](lucide-react|@radix-ui)[\\/]/,
+            name: 'ui',
+            chunks: 'all',
+            priority: 9,
+          },
+        },
+      };
+    }
+    return config;
+  },
+  
   experimental: {
     serverActions: {
       allowedOrigins: process.env.NODE_ENV === 'production' 
         ? [process.env.NEXT_PUBLIC_APP_URL || 'https://your-app.railway.app']
         : ['localhost:3000', 'localhost:3001', '127.0.0.1:3000'],
-    }
+    },
+    // Enable optimizations
+    optimizeCss: true,
+    optimizePackageImports: ['lucide-react', '@radix-ui/react-icons'],
   },
   serverExternalPackages: ['@prisma/client'],
   images: {

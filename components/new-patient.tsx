@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   Card,
   CardContent,
@@ -230,7 +231,8 @@ export const NewPatient = ({ data, type }: DataProps) => {
       if (res && res.success) {
         toast.success(res.msg);
         form.reset();
-        router.push("/patient");
+        // Show success transition instead of immediate redirect
+        router.push("/patient?success=true");
       } else {
         console.error("Registration failed - Full response:", res);
         const errorMsg = res?.msg || "Failed to create patient";
@@ -520,17 +522,33 @@ export const NewPatient = ({ data, type }: DataProps) => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#F5F7FA] py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            {type === "create" ? "Patient Registration" : "Update Your Information"}
-          </h1>
-          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          <div className="flex items-center justify-center mb-6">
+            <div className="relative w-16 h-16 mr-4">
+              <Image
+                src="/logo.png"
+                alt="Ihosi Logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div className="text-left">
+              <h1 className="text-3xl md:text-4xl font-bold text-[#3E4C4B] mb-2">
+                {type === "create" ? "Patient Registration" : "Update Your Information"}
+              </h1>
+              <p className="text-sm text-[#5AC5C8] font-medium">
+                Ihosi Healthcare Management System
+              </p>
+            </div>
+          </div>
+          <p className="text-lg text-[#3E4C4B]/80 max-w-2xl mx-auto">
             {type === "create" 
-              ? "Please provide your information to create your patient profile and access our healthcare services."
-              : "Update your information to keep your medical records current."
+              ? "Please provide your information to create your patient profile and access our comprehensive healthcare services."
+              : "Update your information to keep your medical records current and secure."
             }
           </p>
         </div>
@@ -542,22 +560,22 @@ export const NewPatient = ({ data, type }: DataProps) => {
               {steps.map((step, index) => (
                 <div key={step.id} className="flex items-center">
                   <div className={`
-                    flex items-center justify-center w-12 h-12 rounded-full border-2 transition-all duration-300
+                    flex items-center justify-center w-14 h-14 rounded-full border-2 transition-all duration-300 shadow-lg
                     ${currentStep >= step.id 
-                      ? 'bg-blue-600 border-blue-600 text-white' 
-                      : 'bg-white border-gray-300 text-gray-400'
+                      ? 'bg-gradient-to-br from-[#046658] to-[#2EB6B0] border-[#046658] text-white shadow-[#046658]/30' 
+                      : 'bg-white border-[#D1F1F2] text-[#3E4C4B]/60 shadow-sm'
                     }
                   `}>
                     {currentStep > step.id ? (
-                      <CheckCircle className="h-6 w-6" />
+                      <CheckCircle className="h-7 w-7" />
                     ) : (
-                      <step.icon className="h-6 w-6" />
+                      <step.icon className="h-7 w-7" />
                     )}
                   </div>
                   {index < steps.length - 1 && (
                     <div className={`
-                      w-16 h-1 mx-2 transition-all duration-300
-                      ${currentStep > step.id ? 'bg-blue-600' : 'bg-gray-300'}
+                      w-16 h-1 mx-2 transition-all duration-300 rounded-full
+                      ${currentStep > step.id ? 'bg-gradient-to-r from-[#046658] to-[#2EB6B0]' : 'bg-[#D1F1F2]'}
                     `} />
                   )}
                 </div>
@@ -565,10 +583,10 @@ export const NewPatient = ({ data, type }: DataProps) => {
             </div>
             
             <div className="text-center">
-              <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              <h2 className="text-2xl font-bold text-[#3E4C4B] mb-2">
                 {steps[currentStep - 1].title}
               </h2>
-              <p className="text-gray-600">
+              <p className="text-[#3E4C4B]/70 text-lg">
                 {steps[currentStep - 1].description}
               </p>
             </div>
@@ -576,7 +594,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
         )}
 
         {/* Form Card */}
-        <Card className="shadow-xl border-0">
+        <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-8">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
@@ -587,7 +605,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
                 )}
 
                 {/* Navigation Buttons */}
-                <div className="flex justify-between items-center pt-6 border-t">
+                <div className="flex justify-between items-center pt-6 border-t border-[#D1F1F2]">
                   {type === "create" ? (
                     <>
                       <Button
@@ -595,7 +613,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
                         variant="outline"
                         onClick={prevStep}
                         disabled={currentStep === 1}
-                        className="flex items-center space-x-2"
+                        className="flex items-center space-x-2 border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#F5F7FA] hover:border-[#046658] transition-all duration-300"
                       >
                         <ArrowLeft className="h-4 w-4" />
                         <span>Previous</span>
@@ -605,7 +623,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
                         <Button
                           type="button"
                           onClick={handleNext}
-                          className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700"
+                          className="flex items-center space-x-2 bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#046658]/90 hover:to-[#2EB6B0]/90 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                         >
                           <span>Next</span>
                           <ArrowRight className="h-4 w-4" />
@@ -614,7 +632,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
                         <Button
                           type="submit"
                           disabled={loading}
-                          className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
+                          className="flex items-center space-x-2 bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#046658]/90 hover:to-[#2EB6B0]/90 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                           onClick={() => {
                             console.log("Complete Registration button clicked");
                             console.log("Form errors:", form.formState.errors);
@@ -639,7 +657,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
                     <Button
                       type="submit"
                       disabled={loading}
-                      className="w-full md:w-auto bg-blue-600 hover:bg-blue-700"
+                      className="w-full md:w-auto bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#046658]/90 hover:to-[#2EB6B0]/90 text-white shadow-lg hover:shadow-xl transition-all duration-300"
                     >
                       {loading ? "Updating..." : "Update Information"}
                     </Button>
@@ -651,11 +669,20 @@ export const NewPatient = ({ data, type }: DataProps) => {
         </Card>
 
         {/* Help Text */}
-        <div className="text-center mt-8 text-sm text-gray-500">
-          <p>
-            Need help? Contact our support team at{" "}
-            <a href="mailto:support@healthcarepro.com" className="text-blue-600 hover:underline">
-              support@healthcarepro.com
+        <div className="text-center mt-8 p-6 bg-white/50 backdrop-blur-sm rounded-xl border border-[#D1F1F2]">
+          <div className="flex items-center justify-center mb-3">
+            <div className="p-2 rounded-full bg-gradient-to-br from-[#046658] to-[#2EB6B0] text-white mr-3">
+              <Heart className="h-5 w-5" />
+            </div>
+            <h3 className="text-lg font-semibold text-[#3E4C4B]">Need Help?</h3>
+          </div>
+          <p className="text-[#3E4C4B]/70 mb-2">
+            Our support team is here to assist you with any questions or concerns.
+          </p>
+          <p className="text-sm text-[#3E4C4B]/60">
+            Contact us at{" "}
+            <a href="mailto:services@bkgconsultants.com" className="text-[#046658] hover:text-[#2EB6B0] hover:underline font-medium transition-colors duration-300">
+              services@bkgconsultants.com
             </a>
           </p>
         </div>

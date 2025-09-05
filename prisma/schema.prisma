@@ -19,6 +19,7 @@ enum Role {
   LAB_TECHNICIAN
   PATIENT
   CASHIER
+  ADMIN_ASSISTANT
 }
 
 enum Status {

@@ -1,9 +1,4 @@
-import { AvailableDoctors } from "@/components/available-doctor";
-import { AppointmentChart } from "@/components/charts/appointment-chart";
-import { StatSummary } from "@/components/charts/stat-summary";
-import { PatientRatingContainer } from "@/components/patient-rating-container";
 import { StatCard } from "@/components/stat-card";
-import { RecentAppointments } from "@/components/tables/recent-appointment";
 import { Button } from "@/components/ui/button";
 import { AvailableDoctorProps } from "@/types/data-types";
 import { getPatientDashboardStatistics } from "@/utils/services/patient";
@@ -12,13 +7,92 @@ import { currentUser } from "@clerk/nextjs/server";
 import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, User } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import React from "react";
+import React, { Suspense } from "react";
+import dynamic from "next/dynamic";
+import { SuccessTransition } from "@/components/success-transition";
 
-const PatientDashboard = async () => {
+// Lazy load heavy components with better loading states
+const AvailableDoctors = dynamic(() => import("@/components/available-doctor").then(mod => ({ default: mod.AvailableDoctors })), {
+  loading: () => (
+    <div className="space-y-4">
+      <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+      <div className="space-y-3">
+        {Array.from({ length: 2 }).map((_, i) => (
+          <div key={i} className="flex items-center space-x-3">
+            <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-24 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-32 bg-gray-200 rounded animate-pulse" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+});
+
+const AppointmentChart = dynamic(() => import("@/components/charts/appointment-chart").then(mod => ({ default: mod.AppointmentChart })), {
+  loading: () => (
+    <div className="h-[400px] bg-gray-100 rounded-lg animate-pulse flex items-center justify-center">
+      <div className="text-gray-400 text-sm">Loading chart...</div>
+    </div>
+  )
+});
+
+const StatSummary = dynamic(() => import("@/components/charts/stat-summary").then(mod => ({ default: mod.StatSummary })), {
+  loading: () => (
+    <div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center">
+      <div className="text-gray-400 text-sm">Loading summary...</div>
+    </div>
+  )
+});
+
+const PatientRatingContainer = dynamic(() => import("@/components/patient-rating-container").then(mod => ({ default: mod.PatientRatingContainer })), {
+  loading: () => (
+    <div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center">
+      <div className="text-gray-400 text-sm">Loading ratings...</div>
+    </div>
+  )
+});
+
+const RecentAppointments = dynamic(() => import("@/components/tables/recent-appointment").then(mod => ({ default: mod.RecentAppointments })), {
+  loading: () => (
+    <div className="space-y-4">
+      <div className="h-6 w-48 bg-gray-200 rounded animate-pulse" />
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex items-center space-x-4 p-4 border rounded-lg">
+            <div className="h-10 w-10 bg-gray-200 rounded-full animate-pulse" />
+            <div className="flex-1 space-y-2">
+              <div className="h-4 w-32 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-48 bg-gray-200 rounded animate-pulse" />
+            </div>
+            <div className="h-6 w-16 bg-gray-200 rounded animate-pulse" />
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+});
+
+const PatientDashboard = async ({ searchParams }: { searchParams?: Promise<{ success?: string }> }) => {
   const user = await currentUser();
 
   if (!user?.id) {
     redirect("/sign-in");
+  }
+
+  // Show success transition if coming from registration
+  const resolvedSearchParams = await searchParams;
+  if (resolvedSearchParams?.success === "true") {
+    return (
+      <SuccessTransition
+        title="Registration Successful!"
+        message="Welcome to Ihosi Healthcare Management System. Your patient profile has been created successfully."
+        redirectTo="/patient"
+        redirectDelay={4000}
+      />
+    );
   }
 
   const {
@@ -122,14 +196,16 @@ const PatientDashboard = async () => {
               <h2 className="text-xl font-semibold text-gray-900 mb-2">Appointment Trends</h2>
               <p className="text-gray-600">Your appointment activity over the past months</p>
             </div>
-            <div className="h-[400px]">
+            <Suspense fallback={<div className="h-[400px] bg-gray-100 rounded-lg animate-pulse flex items-center justify-center"><div className="text-gray-400 text-sm">Loading chart...</div></div>}>
               <AppointmentChart data={monthlyData || []} />
-            </div>
+            </Suspense>
           </div>
 
           {/* Recent Appointments */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <RecentAppointments data={last5Records || []} />
+            <Suspense fallback={<div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center"><div className="text-gray-400 text-sm">Loading appointments...</div></div>}>
+              <RecentAppointments data={last5Records || []} />
+            </Suspense>
           </div>
         </div>
 
@@ -137,17 +213,23 @@ const PatientDashboard = async () => {
         <div className="space-y-8">
           {/* Summary Chart */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <StatSummary data={appointmentCounts || {}} total={totalAppointments || 0} />
+            <Suspense fallback={<div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center"><div className="text-gray-400 text-sm">Loading summary...</div></div>}>
+              <StatSummary data={appointmentCounts || {}} total={totalAppointments || 0} />
+            </Suspense>
           </div>
 
           {/* Available Doctors */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <AvailableDoctors data={availableDoctor as AvailableDoctorProps} />
+            <Suspense fallback={<div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center"><div className="text-gray-400 text-sm">Loading doctors...</div></div>}>
+              <AvailableDoctors data={availableDoctor as AvailableDoctorProps} />
+            </Suspense>
           </div>
 
           {/* Patient Ratings */}
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-            <PatientRatingContainer />
+            <Suspense fallback={<div className="h-32 bg-gray-100 rounded-lg animate-pulse flex items-center justify-center"><div className="text-gray-400 text-sm">Loading ratings...</div></div>}>
+              <PatientRatingContainer />
+            </Suspense>
           </div>
         </div>
       </div>

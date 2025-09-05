@@ -1,20 +1,17 @@
-import { AvailableDoctors } from "@/components/available-doctor";
-import { AppointmentChart } from "@/components/charts/appointment-chart";
-import { StatSummary } from "@/components/charts/stat-summary";
-import { StatCard } from "@/components/stat-card";
-import { RecentAppointments } from "@/components/tables/recent-appointment";
-import { Button } from "@/components/ui/button";
-import { checkRole, getRole } from "@/utils/roles";
+import { DoctorDashboardContainer } from "@/components/doctor/dashboard/DoctorDashboardContainer";
 import { getDoctorDashboardStats } from "@/utils/services/doctor";
 import { currentUser } from "@clerk/nextjs/server";
-import { BriefcaseBusiness, BriefcaseMedical, User, Users } from "lucide-react";
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import React from "react";
 
 const DoctorDashboard = async () => {
   const user = await currentUser();
 
+  if (!user?.id) {
+    redirect("/sign-in");
+  }
+
+  // Get dashboard data
   const {
     totalPatient,
     totalNurses,
@@ -25,93 +22,71 @@ const DoctorDashboard = async () => {
     last5Records,
   } = await getDoctorDashboardStats();
 
-  const cardData = [
-    {
-      title: "Patients",
-      value: totalPatient,
-      icon: Users,
-      className: "bg-blue-600/15",
-      iconClassName: "bg-blue-600/25 text-blue-600",
-      note: "Total patients",
-      link: "/record/patients",
+  // Transform data to match new interface
+  const transformedAppointments = (last5Records || []).map(apt => ({
+    ...apt,
+    note: apt.note || undefined, // Convert null to undefined
+    patient: {
+      ...apt.patient,
+      email: '', // Add missing email
+      phone: '', // Add missing phone
+      img: apt.patient.img || undefined, // Convert null to undefined
+      colorCode: apt.patient.colorCode || undefined, // Convert null to undefined
     },
-    {
-      title: "Nurses",
-      value: totalNurses,
-      icon: User,
-      className: "bg-rose-600/15",
-      iconClassName: "bg-rose-600/25 text-rose-600",
-      note: "Total nurses",
-      link: "",
+    doctor: {
+      ...apt.doctor,
+      email: '', // Add missing email
+      phone: '', // Add missing phone
+      address: '', // Add missing address
+      img: apt.doctor.img || undefined, // Convert null to undefined
+      colorCode: apt.doctor.colorCode || undefined, // Convert null to undefined
+      created_at: new Date(), // Add missing created_at
+      updated_at: new Date(), // Add missing updated_at
     },
-    {
-      title: "Appointments",
-      value: totalAppointment,
-      icon: BriefcaseBusiness,
-      className: "bg-yellow-600/15",
-      iconClassName: "bg-yellow-600/25 text-yellow-600",
-      note: "Total appointments",
-      link: "/record/appointments",
+  }));
+
+  const transformedAnalytics = {
+    totalPatients: totalPatient || 0,
+    totalAppointments: totalAppointment || 0,
+    completedAppointments: appointmentCounts?.COMPLETED || 0,
+    cancelledAppointments: appointmentCounts?.CANCELLED || 0,
+    completionRate: totalAppointment ? (appointmentCounts?.COMPLETED || 0) / totalAppointment * 100 : 0,
+    cancellationRate: totalAppointment ? (appointmentCounts?.CANCELLED || 0) / totalAppointment * 100 : 0,
+    averageAppointmentDuration: 30,
+    appointmentTrends: (monthlyData || []).map(item => ({
+      date: new Date(item.name), // Assuming 'name' contains date info
+      count: item.appointment,
+    })),
+  };
+
+  const dashboardData = {
+    doctor: {
+      id: user.id,
+      name: user.firstName || 'Doctor',
+      email: user.emailAddresses[0]?.emailAddress || '',
+      specialization: 'General Practice', // This should come from doctor profile
+      department: 'General Medicine',
+      phone: '',
+      address: '',
+      img: user.imageUrl,
+      colorCode: '#3b82f6',
+      availability_status: 'AVAILABLE',
+      working_days: [],
+      created_at: new Date(),
+      updated_at: new Date(),
     },
-    {
-      title: "Consultation",
-      value: appointmentCounts?.COMPLETED,
-      icon: BriefcaseMedical,
-      className: "bg-emerald-600/15",
-      iconClassName: "bg-emerald-600/25 text-emerald-600",
-      note: "Total consultation",
-      link: "/record/appointments",
-    },
-  ];
+    appointments: transformedAppointments,
+    patients: [], // This should be fetched from a separate API
+    analytics: transformedAnalytics,
+  };
 
   return (
-    <div className="rounded-xl py-6 px-3 flex flex-col xl:flex-row gap-6">
-      {/* LEFT */}
-      <div className="w-full xl:w-[69%]">
-        <div className="bg-white rounded-xl p-4 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <h1 className="text-lg xl:text-2xl font-semibold">
-              Welcome, Dr. {user?.firstName}
-            </h1>
-            <Button size="sm" variant="outline" asChild>
-              <Link href={`/record/doctors/${user?.id}`}>View profile</Link>
-            </Button>
-          </div>
-
-          <div className="w-full flex flex-wrap gap-2">
-            {cardData?.map((el, index) => (
-              <StatCard
-                key={index}
-                title={el?.title}
-                value={el?.value!}
-                icon={el?.icon}
-                className={el?.className}
-                iconClassName={el?.iconClassName}
-                note={el?.note}
-                link={el?.link}
-              />
-            ))}
-          </div>
-        </div>
-
-        <div className="h-[500px]">
-          <AppointmentChart data={monthlyData!} />
-        </div>
-
-        <div className="bg-white rounded-xl p-4 mt-8">
-          <RecentAppointments data={last5Records!} />
-        </div>
-      </div>
-
-      {/* RIGHT */}
-      <div className="w-full xl:w-[30%]">
-        <div className="w-full h-[450px] mb-8">
-          <StatSummary data={appointmentCounts} total={totalAppointment!} />
-        </div>
-
-        <AvailableDoctors data={availableDoctors as any} />
-      </div>
-    </div>
+    <DoctorDashboardContainer
+      doctor={dashboardData.doctor}
+      appointments={dashboardData.appointments}
+      patients={dashboardData.patients}
+      analytics={dashboardData.analytics}
+    />
   );
 };
 

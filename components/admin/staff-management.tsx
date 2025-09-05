@@ -57,7 +57,7 @@ import {
   CheckCircle,
   XCircle
 } from "lucide-react";
-import { StaffForm } from "./staff-form";
+import { StaffFormNew } from "../forms/staff-form-new";
 import { toast } from "sonner";
 
 interface Staff {
@@ -192,8 +192,8 @@ export const StaffManagement = () => {
     return matchesSearch && matchesRole && matchesStatus;
   });
 
-  const handleAddStaff = async (newStaff: Omit<Staff, 'id'>) => {
-    // The StaffForm component will handle the API call
+  const handleAddStaff = async (newStaff: any) => {
+    // The StaffFormNew component will handle the API call
     // We just need to refresh the data after successful creation
     setIsAddDialogOpen(false);
     await fetchStaff(); // Refresh the staff list
@@ -272,7 +272,7 @@ export const StaffManagement = () => {
                     Register a new staff member with appropriate role and permissions
                   </DialogDescription>
                 </DialogHeader>
-                <StaffForm onSubmit={handleAddStaff} />
+                <StaffFormNew onSubmit={handleAddStaff} />
               </DialogContent>
             </Dialog>
           </div>
@@ -509,7 +509,7 @@ export const StaffManagement = () => {
                   Update staff member information and permissions
                 </DialogDescription>
               </DialogHeader>
-              <StaffForm 
+              <StaffFormNew 
                 staff={selectedStaff} 
                 onSubmit={handleUpdateStaff}
                 onCancel={() => setSelectedStaff(null)}

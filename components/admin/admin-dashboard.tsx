@@ -6,10 +6,12 @@ import {
   BriefcaseBusiness, BriefcaseMedical, User, Users, Building2,
   Shield, Activity, TrendingUp, AlertTriangle, Calendar, Settings,
   Database, FileText, CreditCard, BarChart3, Users2, Stethoscope,
-  Pill, Microscope, Bed, Truck, UserPlus, Package
+  Pill, Microscope, Bed, Truck, UserPlus, Package, Sparkles,
+  Heart, Zap, Target, ChevronRight
 } from "lucide-react";
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -39,74 +41,128 @@ export const AdminDashboard = ({ initialStats }: AdminDashboardProps) => {
   const [stats] = useState<DashboardStats>(initialStats);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#F5F7FA] py-8 px-4">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-            Hospital Administration Dashboard
-          </h1>
-          <p className="text-lg text-gray-600 max-w-3xl">
-            Manage your healthcare institution's infrastructure, staff, and operations. 
+          <div className="flex items-center mb-6">
+            <div className="relative w-16 h-16 mr-4">
+              <Image
+                src="/logo.png"
+                alt="Ihosi Logo"
+                fill
+                className="object-contain"
+                priority
+              />
+            </div>
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-[#3E4C4B] mb-2">
+                Hospital Administration Dashboard
+              </h1>
+              <p className="text-sm text-[#5AC5C8] font-medium">
+                Ihosi Healthcare Management System
+              </p>
+            </div>
+          </div>
+          <p className="text-lg text-[#3E4C4B]/80 max-w-3xl">
+            Manage your healthcare institution's infrastructure, staff, and operations with intelligent technology. 
             Follow the setup workflow below to properly configure your system.
           </p>
         </div>
 
         {/* Setup Workflow Guide */}
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Settings className="h-5 w-5 text-blue-600" />
+        <Card className="mb-8 shadow-xl border-0 bg-white/80 backdrop-blur-sm">
+          <CardHeader className="bg-gradient-to-r from-[#046658]/5 to-[#2EB6B0]/5 rounded-t-xl">
+            <CardTitle className="flex items-center gap-3 text-[#3E4C4B]">
+              <div className="p-2 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-lg">
+                <Settings className="h-5 w-5 text-white" />
+              </div>
               Hospital Setup Workflow
             </CardTitle>
-            <CardDescription>
-              Follow this order to properly configure your hospital management system
+            <CardDescription className="text-[#3E4C4B]/70">
+              Follow this order to properly configure your Ihosi Healthcare Management System
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="space-y-3">
+          <CardContent className="p-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="space-y-4 p-6 bg-gradient-to-br from-[#046658]/5 to-[#2EB6B0]/5 rounded-xl border border-[#D1F1F2]">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-blue-600">1</span>
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-sm font-bold text-white">1</span>
                   </div>
-                  <h4 className="font-medium text-gray-900">Infrastructure Setup</h4>
+                  <h4 className="font-semibold text-[#3E4C4B] text-lg">Infrastructure Setup</h4>
                 </div>
-                <ul className="text-sm text-gray-600 space-y-1 ml-11">
-                  <li>• Create Departments</li>
-                  <li>• Set up Wards</li>
-                  <li>• Configure Beds</li>
-                  <li>• Define Equipment</li>
+                <ul className="text-sm text-[#3E4C4B]/80 space-y-2 ml-13">
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#046658] rounded-full" />
+                    <span>Create Departments</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#046658] rounded-full" />
+                    <span>Set up Wards</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#046658] rounded-full" />
+                    <span>Configure Beds</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#046658] rounded-full" />
+                    <span>Define Equipment</span>
+                  </li>
                 </ul>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4 p-6 bg-gradient-to-br from-[#2EB6B0]/5 to-[#5AC5C8]/5 rounded-xl border border-[#D1F1F2]">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-green-600">2</span>
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#2EB6B0] to-[#5AC5C8] rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-sm font-bold text-white">2</span>
                   </div>
-                  <h4 className="font-medium text-gray-900">Staff & Professionals</h4>
+                  <h4 className="font-semibold text-[#3E4C4B] text-lg">Staff & Professionals</h4>
                 </div>
-                <ul className="text-sm text-gray-600 space-y-1 ml-11">
-                  <li>• Register Staff Members</li>
-                  <li>• Create Doctor Accounts</li>
-                  <li>• Assign to Departments</li>
-                  <li>• Set Department Heads</li>
+                <ul className="text-sm text-[#3E4C4B]/80 space-y-2 ml-13">
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#2EB6B0] rounded-full" />
+                    <span>Register Staff Members</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#2EB6B0] rounded-full" />
+                    <span>Create Doctor Accounts</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#2EB6B0] rounded-full" />
+                    <span>Assign to Departments</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#2EB6B0] rounded-full" />
+                    <span>Set Department Heads</span>
+                  </li>
                 </ul>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-4 p-6 bg-gradient-to-br from-[#5AC5C8]/5 to-[#D1F1F2] rounded-xl border border-[#D1F1F2]">
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
-                    <span className="text-sm font-bold text-purple-600">3</span>
+                  <div className="w-10 h-10 bg-gradient-to-br from-[#5AC5C8] to-[#D1F1F2] rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-sm font-bold text-[#3E4C4B]">3</span>
                   </div>
-                  <h4 className="font-medium text-gray-900">Operations</h4>
+                  <h4 className="font-semibold text-[#3E4C4B] text-lg">Operations</h4>
                 </div>
-                <ul className="text-sm text-gray-600 space-y-1 ml-11">
-                  <li>• Patient Registration</li>
-                  <li>• Appointment Scheduling</li>
-                  <li>• Medical Records</li>
-                  <li>• Billing & Payments</li>
+                <ul className="text-sm text-[#3E4C4B]/80 space-y-2 ml-13">
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#5AC5C8] rounded-full" />
+                    <span>Patient Registration</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#5AC5C8] rounded-full" />
+                    <span>Appointment Scheduling</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#5AC5C8] rounded-full" />
+                    <span>Medical Records</span>
+                  </li>
+                  <li className="flex items-center space-x-2">
+                    <div className="w-1.5 h-1.5 bg-[#5AC5C8] rounded-full" />
+                    <span>Billing & Payments</span>
+                  </li>
                 </ul>
               </div>
             </div>
@@ -116,64 +172,76 @@ export const AdminDashboard = ({ initialStats }: AdminDashboardProps) => {
         {/* Quick Actions */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <Link href="/admin/hospital/departments">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 bg-white/80 backdrop-blur-sm hover:scale-[1.02]">
               <CardContent className="p-6">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-blue-100 rounded-lg">
-                    <Building2 className="h-6 w-6 text-blue-600" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                      <Building2 className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-[#3E4C4B] group-hover:text-[#046658] transition-colors">Departments</h3>
+                      <p className="text-sm text-[#3E4C4B]/70">Manage hospital departments</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Departments</h3>
-                    <p className="text-sm text-gray-600">Manage hospital departments</p>
-                  </div>
+                  <ChevronRight className="h-5 w-5 text-[#3E4C4B]/40 group-hover:text-[#046658] group-hover:translate-x-1 transition-all duration-300" />
                 </div>
               </CardContent>
             </Card>
           </Link>
 
           <Link href="/admin/staff">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 bg-white/80 backdrop-blur-sm hover:scale-[1.02]">
               <CardContent className="p-6">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-green-100 rounded-lg">
-                    <Users className="h-6 w-6 text-green-600" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-gradient-to-br from-[#2EB6B0] to-[#5AC5C8] rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                      <Users className="h-6 w-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-[#3E4C4B] group-hover:text-[#2EB6B0] transition-colors">Staff</h3>
+                      <p className="text-sm text-[#3E4C4B]/70">Manage hospital staff</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Staff</h3>
-                    <p className="text-sm text-gray-600">Manage hospital staff</p>
-                  </div>
+                  <ChevronRight className="h-5 w-5 text-[#3E4C4B]/40 group-hover:text-[#2EB6B0] group-hover:translate-x-1 transition-all duration-300" />
                 </div>
               </CardContent>
             </Card>
           </Link>
 
           <Link href="/record/doctors">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 bg-white/80 backdrop-blur-sm hover:scale-[1.02]">
               <CardContent className="p-6">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <Stethoscope className="h-6 w-6 text-purple-600" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-gradient-to-br from-[#5AC5C8] to-[#D1F1F2] rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300">
+                      <Stethoscope className="h-6 w-6 text-[#3E4C4B]" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-[#3E4C4B] group-hover:text-[#5AC5C8] transition-colors">Doctors</h3>
+                      <p className="text-sm text-[#3E4C4B]/70">Manage medical professionals</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Doctors</h3>
-                    <p className="text-sm text-gray-600">Manage medical professionals</p>
-                  </div>
+                  <ChevronRight className="h-5 w-5 text-[#3E4C4B]/40 group-hover:text-[#5AC5C8] group-hover:translate-x-1 transition-all duration-300" />
                 </div>
               </CardContent>
             </Card>
           </Link>
 
           <Link href="/admin/wards">
-            <Card className="hover:shadow-lg transition-shadow cursor-pointer">
+            <Card className="group hover:shadow-2xl transition-all duration-300 cursor-pointer border-0 bg-white/80 backdrop-blur-sm hover:scale-[1.02]">
               <CardContent className="p-6">
-                <div className="flex items-center space-x-3">
-                  <div className="p-2 bg-orange-100 rounded-lg">
-                    <Bed className="h-6 w-6 text-orange-600" />
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-4">
+                    <div className="p-3 bg-gradient-to-br from-[#046658]/20 to-[#2EB6B0]/20 rounded-xl shadow-lg group-hover:shadow-xl transition-all duration-300 border border-[#D1F1F2]">
+                      <Bed className="h-6 w-6 text-[#046658]" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-[#3E4C4B] group-hover:text-[#046658] transition-colors">Wards & Beds</h3>
+                      <p className="text-sm text-[#3E4C4B]/70">Manage patient accommodations</p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Wards & Beds</h3>
-                    <p className="text-sm text-gray-600">Manage patient accommodations</p>
-                  </div>
+                  <ChevronRight className="h-5 w-5 text-[#3E4C4B]/40 group-hover:text-[#046658] group-hover:translate-x-1 transition-all duration-300" />
                 </div>
               </CardContent>
             </Card>
@@ -281,57 +349,91 @@ export const AdminDashboard = ({ initialStats }: AdminDashboardProps) => {
 
         {/* Statistics Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card>
+          <Card className="border-0 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users className="h-6 w-6 text-blue-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-xl shadow-lg">
+                    <Users className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#3E4C4B]/70">Total Patients</p>
+                    <p className="text-3xl font-bold text-[#3E4C4B]">{stats.totalPatient}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Patients</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalPatient}</p>
+                <div className="text-right">
+                  <div className="flex items-center space-x-1 text-green-600">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="text-sm font-medium">+12%</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <Stethoscope className="h-6 w-6 text-green-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-gradient-to-br from-[#2EB6B0] to-[#5AC5C8] rounded-xl shadow-lg">
+                    <Stethoscope className="h-6 w-6 text-white" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#3E4C4B]/70">Total Doctors</p>
+                    <p className="text-3xl font-bold text-[#3E4C4B]">{stats.totalDoctors}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Doctors</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalDoctors}</p>
+                <div className="text-right">
+                  <div className="flex items-center space-x-1 text-green-600">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="text-sm font-medium">+8%</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <Calendar className="h-6 w-6 text-purple-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-gradient-to-br from-[#5AC5C8] to-[#D1F1F2] rounded-xl shadow-lg">
+                    <Calendar className="h-6 w-6 text-[#3E4C4B]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#3E4C4B]/70">Total Appointments</p>
+                    <p className="text-3xl font-bold text-[#3E4C4B]">{stats.totalAppointments}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Appointments</p>
-                  <p className="text-2xl font-bold text-gray-900">{stats.totalAppointments}</p>
+                <div className="text-right">
+                  <div className="flex items-center space-x-1 text-green-600">
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="text-sm font-medium">+15%</span>
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-0 bg-white/80 backdrop-blur-sm shadow-lg hover:shadow-xl transition-all duration-300">
             <CardContent className="p-6">
-              <div className="flex items-center space-x-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <Activity className="h-6 w-6 text-orange-600" />
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <div className="p-3 bg-gradient-to-br from-[#046658]/20 to-[#2EB6B0]/20 rounded-xl shadow-lg border border-[#D1F1F2]">
+                    <Activity className="h-6 w-6 text-[#046658]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#3E4C4B]/70">System Status</p>
+                    <Badge className="bg-gradient-to-r from-green-100 to-emerald-100 text-green-800 border-green-200">
+                      <div className="flex items-center space-x-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                        <span>Operational</span>
+                      </div>
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-600">System Status</p>
-                  <Badge className="bg-green-100 text-green-800">Operational</Badge>
+                <div className="text-right">
+                  <div className="text-xs text-[#3E4C4B]/50">99.9% uptime</div>
                 </div>
               </div>
             </CardContent>
@@ -344,32 +446,40 @@ export const AdminDashboard = ({ initialStats }: AdminDashboardProps) => {
           <SetupChecklist />
 
           {/* Recent Activity */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Activity className="h-5 w-5 text-gray-600" />
+          <Card className="border-0 bg-white/80 backdrop-blur-sm shadow-lg">
+            <CardHeader className="bg-gradient-to-r from-[#046658]/5 to-[#2EB6B0]/5 rounded-t-xl">
+              <CardTitle className="flex items-center gap-3 text-[#3E4C4B]">
+                <div className="p-2 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-lg">
+                  <Activity className="h-5 w-5 text-white" />
+                </div>
                 Recent Activity
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-[#3E4C4B]/70">
                 Latest system activities and updates
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-6">
               <div className="space-y-4">
                 {stats.last5Records && stats.last5Records.length > 0 ? (
                   stats.last5Records.map((record, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                        <span className="text-sm text-gray-700">{record.action || 'System update'}</span>
+                    <div key={index} className="flex items-center justify-between p-4 bg-gradient-to-r from-[#F5F7FA] to-[#D1F1F2] rounded-xl border border-[#D1F1F2] hover:shadow-md transition-all duration-300">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-3 h-3 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-full shadow-sm"></div>
+                        <span className="text-sm text-[#3E4C4B] font-medium">{record.action || 'System update'}</span>
                       </div>
-                      <span className="text-xs text-gray-500">{record.timestamp || 'Just now'}</span>
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xs text-[#3E4C4B]/60 bg-white/50 px-2 py-1 rounded-full">{record.timestamp || 'Just now'}</span>
+                        <div className="w-2 h-2 bg-[#5AC5C8] rounded-full animate-pulse"></div>
+                      </div>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <Activity className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No recent activity to display</p>
+                  <div className="text-center py-12 text-[#3E4C4B]/60">
+                    <div className="p-4 bg-gradient-to-br from-[#046658]/10 to-[#2EB6B0]/10 rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+                      <Activity className="h-10 w-10 text-[#046658]/40" />
+                    </div>
+                    <p className="text-lg font-medium mb-2">No recent activity</p>
+                    <p className="text-sm">System activities will appear here</p>
                   </div>
                 )}
               </div>
