@@ -158,6 +158,13 @@ model Patient {
   medical_consent          Boolean
   img                      String?
   colorCode                String?
+  
+  // Authentication fields
+  password                 String?
+  mfa_secret               String?
+  mfa_enabled              Boolean @default(false)
+  last_login_at            DateTime?
+  password_changed_at      DateTime @default(now())
 
   appointments             Appointment[]
   medical                  MedicalRecords[]
@@ -198,6 +205,13 @@ model Doctor {
   img                   String?
   colorCode             String?
   availability_status   String?
+  
+  // Authentication fields
+  password              String?
+  mfa_secret            String?
+  mfa_enabled           Boolean @default(false)
+  last_login_at         DateTime?
+  password_changed_at   DateTime @default(now())
 
   type                  JOBTYPE @default(FULL)
   working_days          WorkingDays[]
@@ -285,6 +299,13 @@ model Staff {
 
   role          Role
   status        Status @default(ACTIVE)
+  
+  // Authentication fields
+  password      String?
+  mfa_secret    String?
+  mfa_enabled   Boolean @default(false)
+  last_login_at DateTime?
+  password_changed_at DateTime @default(now())
   
   // New: Department relationship
   department_ref        Department? @relation("DepartmentStaff", fields: [department_id], references: [id])
@@ -1050,6 +1071,35 @@ model PatientInsurance {
   
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+}
+
+// Email Verification System
+model EmailVerification {
+  id              String   @id @default(cuid())
+  email           String
+  token           String   @unique
+  type            VerificationType
+  expires_at      DateTime
+  verified        Boolean  @default(false)
+  verified_at     DateTime?
+  attempts        Int      @default(0)
+  max_attempts    Int      @default(3)
+  ip_address      String?
+  user_agent      String?
+  
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+  
+  @@index([email, type])
+  @@index([token])
+  @@index([expires_at])
+}
+
+enum VerificationType {
+  REGISTRATION
+  PASSWORD_RESET
+  EMAIL_CHANGE
+  MFA_SETUP
 }
 
 model InsuranceClaim {

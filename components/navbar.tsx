@@ -1,13 +1,10 @@
 "use client";
 
-import { useAuth, UserButton } from "@clerk/nextjs";
-import { Bell } from "lucide-react";
+import { UserButton } from "./user-button";
 import { usePathname } from "next/navigation";
 import React from "react";
 
 export const Navbar = () => {
-  const user = useAuth();
-
   function formatPathName(): string {
     const pathname = usePathname();
 
@@ -31,16 +28,7 @@ export const Navbar = () => {
         {path || "Overview"}
       </h1>
 
-      <div className="flex items-center gap-4">
-        <div className="relative">
-          <Bell />
-          <p className="absolute -top-3 right-1 size-4 bg-red-600 text-white rounded-full text-[10px] text-center">
-            2
-          </p>
-        </div>
-
-        {user?.userId && <UserButton />}
-      </div>
+      <UserButton />
     </div>
   );
 };

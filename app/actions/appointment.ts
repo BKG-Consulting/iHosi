@@ -3,12 +3,36 @@
 import { VitalSignsFormData } from "@/components/dialogs/add-vital-signs";
 import db from "@/lib/db";
 import { AppointmentSchema, VitalSignsSchema } from "@/lib/schema";
-import { auth, currentUser } from "@clerk/nextjs/server";
+import { HIPAAAuthService } from "@/lib/auth/hipaa-auth";
+import { cookies } from "next/headers";
 import { AppointmentStatus } from "@prisma/client";
 import { notificationService } from "@/lib/notifications";
 import { reminderScheduler } from "@/lib/reminder-scheduler";
 import { logAudit } from "@/lib/audit";
 import { SchedulingStrategy } from "@/lib/email-scheduler";
+
+// Helper function to get current user ID
+async function getCurrentUserId(): Promise<string | null> {
+  try {
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth-token')?.value;
+    
+    if (!token) {
+      return null;
+    }
+
+    const sessionResult = await HIPAAAuthService.verifySession(token);
+    
+    if (!sessionResult.valid || !sessionResult.user) {
+      return null;
+    }
+
+    return sessionResult.user.id;
+  } catch (error) {
+    console.error('Error getting current user ID:', error);
+    return null;
+  }
+}
 
 export async function createNewAppointment(data: any) {
   try {
@@ -221,7 +245,7 @@ export async function addVitalSigns(
   doctorId: string
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getCurrentUserId();
 
     if (!userId) {
       return { success: false, msg: "Unauthorized" };
@@ -283,7 +307,7 @@ export async function addVitalSigns(
 // New function to get appointment statistics for dashboard
 export async function getAppointmentStats() {
   try {
-    const { userId } = await auth();
+    const userId = await getCurrentUserId();
     if (!userId) {
       return { success: false, msg: "Unauthorized" };
     }
@@ -356,7 +380,7 @@ export async function rescheduleAppointment(
   reason?: string
 ) {
   try {
-    const { userId } = await auth();
+    const userId = await getCurrentUserId();
     if (!userId) {
       return { success: false, msg: "Unauthorized" };
     }

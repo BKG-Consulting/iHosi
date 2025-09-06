@@ -1,15 +1,26 @@
-import { DoctorDashboardContainer } from "@/components/doctor/dashboard/DoctorDashboardContainer";
+import { DoctorDashboard as DoctorDashboardComponent } from "@/components/doctor/dashboard/DoctorDashboard";
 import { getDoctorDashboardStats } from "@/utils/services/doctor";
-import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import React from "react";
+import { HIPAAAuthService } from "@/lib/auth/hipaa-auth";
+import { cookies } from "next/headers";
 
 const DoctorDashboard = async () => {
-  const user = await currentUser();
-
-  if (!user?.id) {
+  // Get user from our custom authentication system
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth-token')?.value;
+  
+  if (!token) {
     redirect("/sign-in");
   }
+
+  const sessionResult = await HIPAAAuthService.verifySession(token);
+  
+  if (!sessionResult.valid || !sessionResult.user) {
+    redirect("/sign-in");
+  }
+
+  const user = sessionResult.user;
 
   // Get dashboard data
   const {
@@ -23,11 +34,14 @@ const DoctorDashboard = async () => {
   } = await getDoctorDashboardStats();
 
   // Transform data to match new interface
-  const transformedAppointments = (last5Records || []).map(apt => ({
+  const transformedAppointments: any[] = (last5Records || []).map(apt => ({
     ...apt,
+    appointment_date: apt.appointment_date instanceof Date ? apt.appointment_date.toISOString() : apt.appointment_date,
     note: apt.note || undefined, // Convert null to undefined
+    reason: apt.reason || undefined, // Convert null to undefined
     patient: {
       ...apt.patient,
+      date_of_birth: apt.patient.date_of_birth instanceof Date ? apt.patient.date_of_birth.toISOString() : apt.patient.date_of_birth,
       email: '', // Add missing email
       phone: '', // Add missing phone
       img: apt.patient.img || undefined, // Convert null to undefined
@@ -63,12 +77,12 @@ const DoctorDashboard = async () => {
     doctor: {
       id: user.id,
       name: user.firstName || 'Doctor',
-      email: user.emailAddresses[0]?.emailAddress || '',
+      email: user.email || '',
       specialization: 'General Practice', // This should come from doctor profile
       department: 'General Medicine',
       phone: '',
       address: '',
-      img: user.imageUrl,
+      img: undefined, // No image in our custom user object
       colorCode: '#3b82f6',
       availability_status: 'AVAILABLE',
       working_days: [],
@@ -81,7 +95,7 @@ const DoctorDashboard = async () => {
   };
 
   return (
-    <DoctorDashboardContainer
+    <DoctorDashboardComponent
       doctor={dashboardData.doctor}
       appointments={dashboardData.appointments}
       patients={dashboardData.patients}

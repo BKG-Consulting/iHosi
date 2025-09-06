@@ -136,7 +136,8 @@ export function decryptSinglePatient(patient: any): DecryptedPatient {
     // Decrypt sensitive patient fields
     const sensitiveFields = [
       'first_name', 'last_name', 'email', 'phone', 'address', 
-      'emergency_contact', 'emergency_phone'
+      'emergency_contact', 'emergency_phone', 'medical_conditions', 
+      'allergies', 'medical_history', 'insurance_number'
     ];
     
     sensitiveFields.forEach(field => {

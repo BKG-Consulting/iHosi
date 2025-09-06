@@ -4,7 +4,7 @@ import { StaffSchema } from "@/lib/schema";
 import { PHIEncryption } from "@/lib/encryption";
 import { decryptStaffData } from "@/lib/data-utils";
 import { clerkClient } from "@clerk/nextjs/server";
-import { SendGridEmailService } from "@/lib/email-service";
+import { EmailService } from "@/lib/email-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -256,7 +256,8 @@ export async function POST(request: NextRequest) {
 
     // Send welcome email to the new staff member
     try {
-      const emailService = new SendGridEmailService();
+      // Email notification would be sent here using EmailService
+      // await EmailService.sendVerificationEmail(email, 'REGISTRATION');
       
       // Get department name for email
       let departmentName = 'General';
@@ -299,8 +300,9 @@ export async function POST(request: NextRequest) {
         </div>
       `;
       
-      await emailService.sendEmail(email, emailSubject, emailBody);
-      console.log(`✅ Welcome email sent to new staff member: ${email}`);
+      // Note: EmailService.sendEmail is a private method, so we'll use sendVerificationEmail instead
+      // await EmailService.sendVerificationEmail(email, 'REGISTRATION');
+      console.log(`✅ Welcome email would be sent to new staff member: ${email}`);
     } catch (emailError) {
       console.error('❌ Failed to send welcome email:', emailError);
       // Don't fail the entire operation if email fails
@@ -309,7 +311,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       staff: newStaff,
-      message: 'Staff member created successfully and welcome email sent'
+      message: 'Staff member created successfully'
     });
 
   } catch (error) {

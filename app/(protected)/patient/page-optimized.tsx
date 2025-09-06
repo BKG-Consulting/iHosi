@@ -2,8 +2,9 @@ import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { AvailableDoctorProps } from "@/types/data-types";
 import { getPatientDashboardStatistics } from "@/utils/services/patient";
-import { UserButton } from "@clerk/nextjs";
-import { currentUser } from "@clerk/nextjs/server";
+import { UserButton } from "@/components/user-button";
+import { HIPAAAuthService } from "@/lib/auth/hipaa-auth";
+import { cookies } from "next/headers";
 import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, User } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -80,7 +81,21 @@ const RecentAppointments = dynamic(() => import("@/components/tables/recent-appo
 });
 
 const PatientDashboard = async () => {
-  const user = await currentUser();
+  // Get user from our custom authentication system
+  const cookieStore = await cookies();
+  const token = cookieStore.get('auth-token')?.value;
+  
+  if (!token) {
+    redirect("/sign-in");
+  }
+
+  const sessionResult = await HIPAAAuthService.verifySession(token);
+  
+  if (!sessionResult.valid || !sessionResult.user) {
+    redirect("/sign-in");
+  }
+
+  const user = sessionResult.user;
 
   if (!user?.id) {
     redirect("/sign-in");

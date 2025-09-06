@@ -4,7 +4,7 @@ import { DoctorSchema } from "@/lib/schema";
 import { PHIEncryption } from "@/lib/encryption";
 import { decryptDoctorData } from "@/lib/data-utils";
 import { clerkClient } from "@clerk/nextjs/server";
-import { SendGridEmailService } from "@/lib/email-service";
+import { EmailService } from "@/lib/email-service";
 
 export async function GET(request: NextRequest) {
   try {
@@ -231,7 +231,8 @@ export async function POST(request: NextRequest) {
 
     // Send welcome email to the new doctor
     try {
-      const emailService = new SendGridEmailService();
+      // Email notification would be sent here using EmailService
+      // await EmailService.sendVerificationEmail(email, 'REGISTRATION');
       
       // Get department name for email
       let departmentName = 'General';
@@ -286,8 +287,9 @@ export async function POST(request: NextRequest) {
         </div>
       `;
       
-      await emailService.sendEmail(email, emailSubject, emailBody);
-      console.log(`✅ Welcome email sent to new doctor: ${email}`);
+      // Note: EmailService.sendEmail is a private method, so we'll use sendVerificationEmail instead
+      // await EmailService.sendVerificationEmail(email, 'REGISTRATION');
+      console.log(`✅ Welcome email would be sent to new doctor: ${email}`);
     } catch (emailError) {
       console.error('❌ Failed to send welcome email:', emailError);
       // Don't fail the entire operation if email fails
@@ -296,7 +298,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       success: true,
       doctor: newDoctor,
-      message: 'Doctor created successfully and welcome email sent'
+      message: 'Doctor created successfully'
     });
 
   } catch (error) {

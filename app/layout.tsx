@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { Toaster } from "sonner";
-import { ClerkProviderWrapper } from "@/components/providers/clerk-provider";
+import { AuthProvider } from "@/components/providers/auth-provider";
 import { NoSSR } from "@/components/providers/no-ssr";
 import "./globals.css";
 
@@ -33,10 +33,10 @@ export default function RootLayout({
         suppressHydrationWarning={true}
       >
         <NoSSR>
-          <ClerkProviderWrapper>
+          <AuthProvider>
             {children}
             <Toaster richColors position="top-center" />
-          </ClerkProviderWrapper>
+          </AuthProvider>
         </NoSSR>
       </body>
     </html>

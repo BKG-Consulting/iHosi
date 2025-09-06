@@ -132,7 +132,15 @@ export async function getPatientDashboardStatistics(id: string) {
     const { appointmentCounts, monthlyData } = await processAppointments(
       appointments
     );
-    const last5Records = appointments.slice(0, 5);
+    
+    // Decrypt appointment data including doctor and patient information
+    const decryptedAppointments = appointments.map(appointment => ({
+      ...appointment,
+      doctor: appointment.doctor ? PHIEncryption.decryptDoctorData(appointment.doctor) : null,
+      patient: appointment.patient ? PHIEncryption.decryptPatientData(appointment.patient) : null
+    }));
+    
+    const last5Records = decryptedAppointments.slice(0, 5);
 
     const today = daysOfWeek[new Date().getDay()];
 
@@ -158,6 +166,11 @@ export async function getPatientDashboardStatistics(id: string) {
       take: 4,
     });
 
+    // Decrypt available doctor data
+    const decryptedAvailableDoctors = availableDoctor.map(doctor => 
+      PHIEncryption.decryptDoctorData(doctor)
+    );
+
     // Decrypt PHI data before returning
     const decryptedData = data ? PHIEncryption.decryptPatientData(data) : null;
 
@@ -182,7 +195,7 @@ export async function getPatientDashboardStatistics(id: string) {
       appointmentCounts,
       last5Records,
       totalAppointments: appointments.length,
-      availableDoctor,
+      availableDoctor: decryptedAvailableDoctors,
       monthlyData,
       status: 200,
     };
