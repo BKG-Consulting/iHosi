@@ -93,6 +93,10 @@ enum LeaveType {
   PATERNITY
   UNPAID
   OTHER
+  VACATION
+  SICK_LEAVE
+  PERSONAL
+  CONFERENCE
 }
 
 enum LeaveStatus {
@@ -202,9 +206,11 @@ model Doctor {
   consultation_fee      Float
   max_patients_per_day  Int
   preferred_appointment_duration Int // in minutes
+  appointment_duration  Int @default(30) // Default appointment duration in minutes
+  buffer_time           Int @default(5) // Buffer time between appointments in minutes
   img                   String?
   colorCode             String?
-  availability_status   String?
+  availability_status   AvailabilityStatus @default(AVAILABLE)
   
   // Authentication fields
   password              String?
@@ -221,6 +227,7 @@ model Doctor {
   leave_requests        LeaveRequest[]
   availability_updates  AvailabilityUpdate[]
   admissions            Admission[]
+  export_jobs           ExportJob[]
   
   // New: Department relationship
   department_ref        Department? @relation("DepartmentDoctors", fields: [department_id], references: [id])
@@ -237,18 +244,21 @@ model Doctor {
 model WorkingDays {
   id              Int   @id @default(autoincrement())
   doctor_id       String
-  day             String
+  day_of_week     String
   start_time      String
-  close_time      String
+  end_time        String
   is_working      Boolean @default(true)
-  break_start     String?
-  break_end       String?
-  max_appointments Int?
+  break_start_time String?
+  break_end_time  String?
+  max_appointments Int @default(20)
 
   doctor          Doctor  @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
 
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+
+  @@unique([doctor_id, day_of_week])
+  @@index([doctor_id])
 }
 
 model LeaveRequest {
@@ -423,6 +433,35 @@ model Payment {
 
   created_at      DateTime @default(now())
   updated_at      DateTime @updatedAt
+}
+
+model ExportJob {
+  id                    String   @id @default(cuid())
+  doctor_id             String
+  format                String   // pdf, csv, excel, ical, json
+  date_range_start      DateTime
+  date_range_end        DateTime
+  include_appointments  Boolean  @default(true)
+  include_working_hours Boolean  @default(true)
+  include_leave_requests Boolean @default(false)
+  include_templates     Boolean  @default(false)
+  email_delivery        Boolean  @default(false)
+  email_address         String?
+  status                String   @default("PENDING") // PENDING, PROCESSING, COMPLETED, FAILED
+  file_path             String?
+  error_message         String?
+  created_by            String
+  processed_at          DateTime?
+  expires_at            DateTime?
+  
+  doctor                Doctor   @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+  
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+  
+  @@index([doctor_id])
+  @@index([status])
+  @@index([created_at])
 }
 
 model PatientBills {

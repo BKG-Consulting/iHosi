@@ -4,9 +4,15 @@ import { daysOfWeek } from "..";
 import { processAppointments } from "./patient";
 import { PHIEncryption } from "@/lib/encryption";
 
-export async function getDoctors() {
+export async function getDoctors(includeUnavailable: boolean = false) {
   try {
+    // Build where clause based on availability
+    const whereClause = includeUnavailable ? {} : {
+      availability_status: 'AVAILABLE' as const
+    };
+
     const data = await db.doctor.findMany({
+      where: whereClause,
       include: {
         working_days: true
       }
@@ -61,7 +67,7 @@ export async function getDoctorDashboardStats() {
         db.doctor.findMany({
           where: {
             working_days: {
-              some: { day: { equals: today, mode: "insensitive" } },
+              some: { day_of_week: { equals: today, mode: "insensitive" } },
             },
           },
           select: {

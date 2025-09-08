@@ -28,6 +28,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { AppointmentCalendar } from '@/components/scheduling/AppointmentCalendar';
+import { useScheduling } from '@/hooks/useScheduling';
+import { CreateAppointmentRequest, UpdateAppointmentRequest } from '@/types/scheduling';
+import { AvailabilityToggle } from '@/components/doctor/availability-toggle';
+import { AppointmentRequests } from '@/components/doctor/appointment-requests';
+import { ScheduleSetup } from '@/components/doctor/schedule-setup/ScheduleSetup';
+import { TimeSlotManager } from '@/components/doctor/schedule-setup/TimeSlotManager';
+import { ConflictDetector } from '@/components/doctor/schedule-setup/ConflictDetector';
 
 interface Doctor {
   id: string;
@@ -99,11 +107,37 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isAvailable, setIsAvailable] = useState(doctor.availability_status === 'AVAILABLE');
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [workingHours, setWorkingHours] = useState([
+    { day: 'Monday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
+    { day: 'Tuesday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
+    { day: 'Wednesday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
+    { day: 'Thursday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
+    { day: 'Friday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
+    { day: 'Saturday', isWorking: false, startTime: '09:00', endTime: '13:00', maxAppointments: 10 },
+    { day: 'Sunday', isWorking: false, startTime: '09:00', endTime: '13:00', maxAppointments: 5 },
+  ]);
+  const [timeSlots, setTimeSlots] = useState<any[]>([]);
+  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
+  
+  // Initialize scheduling hook
+  const {
+    appointments: schedulingAppointments,
+    isLoading: schedulingLoading,
+    createAppointment,
+    updateAppointment,
+    deleteAppointment,
+    loadAppointments,
+  } = useScheduling({
+    doctorId: doctor.id,
+    autoRefresh: true,
+    refreshInterval: 30000, // 30 seconds
+  });
 
   // Get today's appointments
   const today = new Date().toISOString().split('T')[0];
-  const todayAppointments = appointments.filter(apt => 
-    apt.appointment_date.split('T')[0] === today
+  const todayAppointments = schedulingAppointments.filter(apt => 
+    new Date(apt.appointmentDate).toISOString().split('T')[0] === today
   );
 
   // Get next appointment
@@ -118,6 +152,44 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
     const matchesStatus = statusFilter === 'all' || apt.status.toLowerCase() === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Handle appointment actions
+  const handleAppointmentCreate = async (appointment: CreateAppointmentRequest) => {
+    try {
+      await createAppointment(appointment);
+      await loadAppointments();
+    } catch (error) {
+      console.error('Error creating appointment:', error);
+    }
+  };
+
+  const handleAppointmentUpdate = async (appointment: UpdateAppointmentRequest) => {
+    try {
+      await updateAppointment(appointment);
+      await loadAppointments();
+    } catch (error) {
+      console.error('Error updating appointment:', error);
+    }
+  };
+
+  const handleAppointmentDelete = async (appointmentId: number) => {
+    try {
+      await deleteAppointment(appointmentId);
+      await loadAppointments();
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+    }
+  };
+
+  const handleAppointmentClick = (appointment: any) => {
+    // Handle appointment click - could open details modal
+    console.log('Appointment clicked:', appointment);
+  };
+
+  const handleTimeSlotClick = (timeSlot: any, date: Date) => {
+    // Handle time slot click - could open create appointment form
+    console.log('Time slot clicked:', timeSlot, date);
+  };
 
   const handleAvailabilityToggle = () => {
     setIsAvailable(!isAvailable);
@@ -150,9 +222,7 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
         {/* Header */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-16 h-16 bg-gradient-to-r from-[#046658] to-[#2EB6B0] rounded-2xl flex items-center justify-center">
-              <Stethoscope className="w-8 h-8 text-white" />
-            </div>
+          
             <div>
               <h1 className="text-3xl font-bold text-[#046658]">Doctor Dashboard</h1>
               <p className="text-[#3E4C4B]">Welcome back, Dr. {doctor.name}</p>
@@ -267,7 +337,7 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 bg-white/80 backdrop-blur-sm border-0 rounded-2xl p-2">
+          <TabsList className="grid w-full grid-cols-7 bg-white/80 backdrop-blur-sm border-0 rounded-2xl p-2">
             <TabsTrigger 
               value="overview" 
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
@@ -279,6 +349,24 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
               className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
             >
               Appointments
+            </TabsTrigger>
+            <TabsTrigger 
+              value="requests" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
+            >
+              Requests
+            </TabsTrigger>
+            <TabsTrigger 
+              value="scheduling" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
+            >
+              Scheduling
+            </TabsTrigger>
+            <TabsTrigger 
+              value="schedule-setup" 
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
+            >
+              Schedule Setup
             </TabsTrigger>
             <TabsTrigger 
               value="patients" 
@@ -296,8 +384,21 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Availability Toggle */}
+              <div className="lg:col-span-1">
+                <AvailabilityToggle 
+                  doctorId={doctor.id} 
+                  currentStatus={doctor.availability_status || 'AVAILABLE'}
+                  onStatusChange={(status) => {
+                    // Update local state if needed
+                    console.log('Availability changed to:', status);
+                  }}
+                />
+              </div>
+              
               {/* Today's Schedule */}
+              <div className="lg:col-span-2">
               <Card className="bg-white/80 backdrop-blur-sm border-0 rounded-2xl shadow-lg">
                 <CardHeader className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white rounded-t-2xl">
                   <CardTitle className="text-xl font-bold">Today's Schedule</CardTitle>
@@ -368,6 +469,7 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
                   </div>
                 </CardContent>
               </Card>
+              </div>
             </div>
           </TabsContent>
 
@@ -453,6 +555,36 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          {/* Requests Tab */}
+          <TabsContent value="requests" className="space-y-6">
+            <AppointmentRequests doctorId={doctor.id} />
+          </TabsContent>
+
+          {/* Scheduling Tab */}
+          <TabsContent value="scheduling" className="space-y-6">
+            <AppointmentCalendar
+              doctorId={doctor.id}
+              appointments={schedulingAppointments}
+              onAppointmentCreate={handleAppointmentCreate}
+              onAppointmentUpdate={handleAppointmentUpdate}
+              onAppointmentDelete={handleAppointmentDelete}
+              onAppointmentClick={handleAppointmentClick}
+              onTimeSlotClick={handleTimeSlotClick}
+              isLoading={schedulingLoading}
+            />
+          </TabsContent>
+
+          {/* Schedule Setup Tab */}
+          <TabsContent value="schedule-setup" className="space-y-6">
+            <ScheduleSetup 
+              doctorId={doctor.id}
+              onScheduleUpdate={(schedule) => {
+                console.log('Schedule updated:', schedule);
+                // Handle schedule update
+              }}
+            />
           </TabsContent>
 
           {/* Patients Tab */}

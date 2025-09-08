@@ -156,7 +156,7 @@ export async function getPatientDashboardStatistics(id: string) {
       where: {
         working_days: {
           some: {
-            day: {
+            day_of_week: {
               equals: today,
               mode: "insensitive",
             },

@@ -1,11 +1,11 @@
 import db from "@/lib/db";
-import { auth } from "@clerk/nextjs/server";
 import React from "react";
 import { RatingList } from "./rating-list";
 import { Star, MessageSquare } from "lucide-react";
 
 export const PatientRatingContainer = async ({ id }: { id?: string }) => {
-  const { userId } = await auth();
+  const { getCurrentUserId } = await import('@/lib/auth-helpers');
+  const userId = await getCurrentUserId();
 
   if (!userId) return null;
 

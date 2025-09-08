@@ -271,7 +271,16 @@ export async function createNewDoctor(data: any) {
           console.log("Working day data (without appointment_duration):", workingDayDataWithoutDuration);
           
           return db.workingDays.create({
-            data: { ...workingDayDataWithoutDuration, doctor_id: doctor.id },
+            data: { 
+              doctor_id: doctor.id,
+              day_of_week: workingDayDataWithoutDuration.day,
+              start_time: workingDayDataWithoutDuration.start_time,
+              end_time: workingDayDataWithoutDuration.close_time,
+              is_working: workingDayDataWithoutDuration.is_working,
+              break_start_time: workingDayDataWithoutDuration.break_start,
+              break_end_time: workingDayDataWithoutDuration.break_end,
+              max_appointments: workingDayDataWithoutDuration.max_appointments,
+            },
           });
         })
       );

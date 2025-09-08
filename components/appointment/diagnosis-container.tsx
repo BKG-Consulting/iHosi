@@ -1,5 +1,4 @@
 import db from "@/lib/db";
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { NoDataFound } from "../no-data-found";
 import { AddDiagnosis } from "../dialogs/add-diagnosis";
@@ -17,7 +16,8 @@ export const DiagnosisContainer = async ({
   doctorId: string;
   id: string;
 }) => {
-  const { userId } = await auth();
+  const { getCurrentUserId } = await import('@/lib/auth-helpers');
+  const userId = await getCurrentUserId();
 
   if (!userId) redirect("/sign-in");
 

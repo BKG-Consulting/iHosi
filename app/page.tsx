@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getRole } from "@/utils/roles";
-import { auth } from "@clerk/nextjs/server";
 import { 
   Calendar, 
   Users, 
@@ -40,8 +39,9 @@ import { redirect } from "next/navigation";
 import Image from "next/image";
 
 export default async function Home() {
-  const { userId } = await auth();
-  const role = await getRole();
+  const { getCurrentUserId, getCurrentUserRole } = await import('@/lib/auth-helpers');
+  const userId = await getCurrentUserId();
+  const role = await getCurrentUserRole();
 
   if (userId && role) {
     redirect(`/${role}`);

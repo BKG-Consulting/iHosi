@@ -1,8 +1,33 @@
 // Permission Guards and Middleware for Route and Action Protection
-import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { hasPermission, hasAnyPermission, hasAllPermissions, Permission, Role } from "./permissions";
 import { logAudit } from "./audit";
+
+// Helper function to get current user using custom HIPAA authentication
+async function getCurrentUser() {
+  try {
+    const { cookies } = await import('next/headers');
+    const { HIPAAAuthService } = await import('./auth/hipaa-auth');
+    
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth-token')?.value;
+    
+    if (!token) {
+      return null;
+    }
+
+    const sessionResult = await HIPAAAuthService.verifySession(token);
+    
+    if (!sessionResult.valid || !sessionResult.user) {
+      return null;
+    }
+
+    return sessionResult.user;
+  } catch (error) {
+    console.error('Failed to get current user:', error);
+    return null;
+  }
+}
 
 // Permission Guard Interface
 export interface PermissionGuard {
@@ -41,16 +66,16 @@ export class PermissionChecker {
    */
   static async checkPermission(permission: Permission): Promise<PermissionCheckResult> {
     try {
-      const { userId, sessionClaims } = await auth();
+      const user = await getCurrentUser();
       
-      if (!userId) {
+      if (!user) {
         return {
           allowed: false,
           reason: 'User not authenticated'
         };
       }
 
-      const userRole = sessionClaims?.metadata?.role as Role;
+      const userRole = user.role?.toLowerCase() as Role;
       if (!userRole) {
         return {
           allowed: false,
@@ -80,16 +105,16 @@ export class PermissionChecker {
    */
   static async checkAnyPermission(permissions: Permission[]): Promise<PermissionCheckResult> {
     try {
-      const { userId, sessionClaims } = await auth();
+      const user = await getCurrentUser();
       
-      if (!userId) {
+      if (!user) {
         return {
           allowed: false,
           reason: 'User not authenticated'
         };
       }
 
-      const userRole = sessionClaims?.metadata?.role as Role;
+      const userRole = user.role?.toLowerCase() as Role;
       if (!userRole) {
         return {
           allowed: false,
@@ -119,16 +144,16 @@ export class PermissionChecker {
    */
   static async checkAllPermissions(permissions: Permission[]): Promise<PermissionCheckResult> {
     try {
-      const { userId, sessionClaims } = await auth();
+      const user = await getCurrentUser();
       
-      if (!userId) {
+      if (!user) {
         return {
           allowed: false,
-          reason: 'User role not defined'
+          reason: 'User not authenticated'
         };
       }
 
-      const userRole = sessionClaims?.metadata?.role as Role;
+      const userRole = user.role?.toLowerCase() as Role;
       if (!userRole) {
         return {
           allowed: false,
@@ -158,16 +183,16 @@ export class PermissionChecker {
    */
   static async checkRole(roles: Role[]): Promise<PermissionCheckResult> {
     try {
-      const { userId, sessionClaims } = await auth();
+      const user = await getCurrentUser();
       
-      if (!userId) {
+      if (!user) {
         return {
           allowed: false,
           reason: 'User not authenticated'
         };
       }
 
-      const userRole = sessionClaims?.metadata?.role as Role;
+      const userRole = user.role?.toLowerCase() as Role;
       if (!userRole) {
         return {
           allowed: false,
@@ -268,16 +293,29 @@ export async function requireRole(roles: Role[], fallback: string = '/unauthoriz
   console.log("Requested roles:", roles);
   
   try {
-    const { userId, sessionClaims } = await auth();
-    console.log("Current user ID:", userId);
-    console.log("Session claims:", sessionClaims);
+    // Use custom HIPAA authentication instead of Clerk
+    const { cookies } = await import('next/headers');
+    const { HIPAAAuthService } = await import('./auth/hipaa-auth');
     
-    if (!userId) {
-      console.log("No user ID found, redirecting to:", fallback);
+    const cookieStore = await cookies();
+    const token = cookieStore.get('auth-token')?.value;
+    
+    if (!token) {
+      console.log("No auth token found, redirecting to:", fallback);
       redirect(fallback);
     }
 
-    const userRole = sessionClaims?.metadata?.role as Role;
+    const sessionResult = await HIPAAAuthService.verifySession(token);
+    
+    if (!sessionResult.valid || !sessionResult.user) {
+      console.log("Invalid session, redirecting to:", fallback);
+      redirect(fallback);
+    }
+
+    const user = sessionResult.user;
+    const userRole = user.role?.toLowerCase() as Role;
+    
+    console.log("Current user ID:", user.id);
     console.log("Current user role:", userRole);
     console.log("User role in requested roles:", roles.includes(userRole));
     
@@ -361,8 +399,8 @@ export async function protectActionWithMultiplePermissions(
 // Utility function to get current user's role
 export async function getCurrentUserRole(): Promise<Role | null> {
   try {
-    const { sessionClaims } = await auth();
-    return sessionClaims?.metadata?.role as Role || null;
+    const user = await getCurrentUser();
+    return user?.role?.toLowerCase() as Role || null;
   } catch (error) {
     console.error('Failed to get user role:', error);
     return null;

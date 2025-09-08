@@ -4,7 +4,7 @@ import db from "./db";
 
 export interface AuditLogParams {
   action: 'CREATE' | 'READ' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'PAGE_ACCESS' | 'EXPORT' | 'PRINT';
-  resourceType: 'PATIENT' | 'MEDICAL_RECORD' | 'APPOINTMENT' | 'PAYMENT' | 'PAGE' | 'SYSTEM' | 'AUTH' | 'DOCTOR' | 'STAFF' | 'DEPARTMENT' | 'WARD' | 'BED' | 'EQUIPMENT' | 'SERVICE' | 'ADMISSION';
+  resourceType: 'PATIENT' | 'MEDICAL_RECORD' | 'APPOINTMENT' | 'PAYMENT' | 'PAGE' | 'SYSTEM' | 'AUTH' | 'DOCTOR' | 'STAFF' | 'DEPARTMENT' | 'WARD' | 'BED' | 'EQUIPMENT' | 'SERVICE' | 'ADMISSION' | 'SCHEDULE' | 'LEAVE_REQUEST' | 'EXPORT_JOB';
   resourceId: string;
   patientId?: string;
   phiAccessed?: string[];

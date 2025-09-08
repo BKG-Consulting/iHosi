@@ -38,7 +38,7 @@ export async function getAdminDashboardStats() {
         db.doctor.findMany({
           where: {
             working_days: {
-              some: { day: { equals: today, mode: "insensitive" } },
+              some: { day_of_week: { equals: today, mode: "insensitive" } },
             },
           },
           select: {

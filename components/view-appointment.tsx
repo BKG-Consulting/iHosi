@@ -16,12 +16,13 @@ import { Calendar, Phone } from "lucide-react";
 import { format } from "date-fns";
 import { AppointmentStatusIndicator } from "./appointment-status-indicator";
 import { checkRole } from "@/utils/roles";
-import { auth } from "@clerk/nextjs/server";
 import { AppointmentAction } from "./appointment-action";
 
 export const ViewAppointment = async ({ id }: { id: string | undefined }) => {
   const { data } = await getAppointmentById(Number(id!));
-  const { userId } = await auth();
+  
+  const { getCurrentUserId } = await import('@/lib/auth-helpers');
+  const userId = await getCurrentUserId();
 
   if (!data) return null;
 

@@ -5,7 +5,8 @@ import { getDoctors } from "@/utils/services/doctor";
 
 export const AppointmentContainer = async ({ id }: { id: string }) => {
   const { data } = await getPatientById(id);
-  const { data: doctors } = await getDoctors();
+  // Only get available doctors for patient booking
+  const { data: doctors } = await getDoctors(false);
 
   return (
     <div>

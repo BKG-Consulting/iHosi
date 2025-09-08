@@ -43,7 +43,21 @@ export async function createNewAppointment(data: any) {
     }
     const validated = validatedData.data;
 
-    // Create the appointment
+    // Check if doctor exists and is available
+    const doctor = await db.doctor.findUnique({
+      where: { id: validated.doctor_id },
+    });
+
+    if (!doctor) {
+      return { success: false, msg: "Doctor not found" };
+    }
+
+    // Check if doctor is available for new appointments
+    if (doctor.availability_status !== 'AVAILABLE') {
+      return { success: false, msg: "Doctor is not available for new appointments" };
+    }
+
+    // Create the appointment request (PENDING status)
     const appointment = await db.appointment.create({
       data: {
         patient_id: data.patient_id,
@@ -52,6 +66,8 @@ export async function createNewAppointment(data: any) {
         type: validated.type,
         appointment_date: new Date(validated.appointment_date),
         note: validated.note,
+        status: AppointmentStatus.PENDING,
+        reason: data.reason || 'General consultation',
       },
       include: {
         patient: true,
@@ -104,7 +120,7 @@ export async function createNewAppointment(data: any) {
 
     return {
       success: true,
-      message: "Appointment booked successfully",
+      message: "Appointment request submitted successfully. The doctor will review and schedule your appointment.",
       appointmentId: appointment.id,
     };
   } catch (error) {

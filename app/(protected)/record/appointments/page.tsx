@@ -7,7 +7,6 @@ import { ViewAppointment } from "@/components/view-appointment";
 import { checkRole, getRole } from "@/utils/roles";
 import { DATA_LIMIT } from "@/utils/seetings";
 import { getPatientAppointments } from "@/utils/services/appointment";
-import { auth } from "@clerk/nextjs/server";
 import { Appointment, Doctor, Patient } from "@prisma/client";
 import { format } from "date-fns";
 import { BriefcaseBusiness } from "lucide-react";
@@ -54,7 +53,10 @@ const Appointments = async (props: {
 }) => {
   const searchParams = await props.searchParams;
   const userRole = await getRole();
-  const { userId } = await auth();
+  
+  const { getCurrentUserId } = await import('@/lib/auth-helpers');
+  const userId = await getCurrentUserId();
+  
   const isPatient = await checkRole("PATIENT");
 
   const page = (searchParams?.p || "1") as string;
