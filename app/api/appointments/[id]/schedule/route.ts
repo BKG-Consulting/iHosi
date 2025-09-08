@@ -4,7 +4,7 @@ import db from '@/lib/db';
 import { logAudit } from '@/lib/audit';
 import { HIPAAAuthService } from '@/lib/auth/hipaa-auth';
 import { notificationService } from '@/lib/notifications';
-import { AppointmentStatus } from '@prisma/client';
+// Remove this import - AppointmentStatus is not exported from Prisma client
 
 // Validation schema for scheduling appointment
 const scheduleAppointmentSchema = z.object({
@@ -86,7 +86,7 @@ export async function PUT(
       }, { status: 404 });
     }
     
-    if (existingAppointment.status !== AppointmentStatus.PENDING) {
+    if (existingAppointment.status !== 'PENDING') {
       return NextResponse.json({
         success: false,
         message: 'Appointment is not pending and cannot be scheduled',
@@ -163,7 +163,7 @@ export async function PUT(
       data: {
         appointment_date: appointmentDate,
         time: validatedData.time,
-        status: AppointmentStatus.SCHEDULED,
+        status: 'SCHEDULED',
         note: existingAppointment.note ? 
           `${existingAppointment.note}\n\nDOCTOR COMMENTS: ${validatedData.doctorComments || 'No additional comments'}\n\nPREPARATION INSTRUCTIONS: ${validatedData.preparationInstructions || 'No special preparation required'}\n\nSPECIAL INSTRUCTIONS: ${validatedData.specialInstructions || 'None'}` :
           `DOCTOR COMMENTS: ${validatedData.doctorComments || 'No additional comments'}\n\nPREPARATION INSTRUCTIONS: ${validatedData.preparationInstructions || 'No special preparation required'}\n\nSPECIAL INSTRUCTIONS: ${validatedData.specialInstructions || 'None'}`,

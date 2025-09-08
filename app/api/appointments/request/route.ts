@@ -4,7 +4,7 @@ import db from '@/lib/db';
 import { logAudit } from '@/lib/audit';
 import { HIPAAAuthService } from '@/lib/auth/hipaa-auth';
 import { notificationService } from '@/lib/notifications';
-import { AppointmentStatus } from '@prisma/client';
+// Remove this import - AppointmentStatus is not exported from Prisma client
 
 // Validation schema for appointment request
 const appointmentRequestSchema = z.object({
@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
         doctor_id: validatedData.doctorId,
         appointment_date: new Date(validatedData.preferredDate),
         time: validatedData.preferredTime,
-        status: AppointmentStatus.PENDING,
+        status: 'PENDING',
         type: validatedData.type,
         reason: validatedData.reason,
         note: validatedData.notes,

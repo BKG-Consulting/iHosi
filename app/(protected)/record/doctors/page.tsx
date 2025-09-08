@@ -10,7 +10,7 @@ import { SearchParamsProps } from "@/types";
 import { checkRole } from "@/utils/roles";
 import { DATA_LIMIT } from "@/utils/seetings";
 import { getAllDoctors } from "@/utils/services/doctor";
-import { Doctor } from "@prisma/client";
+// Remove this import - Doctor type is not exported from Prisma client
 import { format } from "date-fns";
 import { Users } from "lucide-react";
 import React from "react";
@@ -123,7 +123,7 @@ const DoctorsList = async (props: SearchParamsProps) => {
     );
   }
 
-  const renderRow = (item: Doctor) => (
+  const renderRow = (item: any) => (
     <tr
       key={item?.id}
       className="border-b border-gray-200 even:bg-slate-50 text-sm hover:bg-slate-50"

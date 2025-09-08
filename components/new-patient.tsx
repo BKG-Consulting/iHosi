@@ -1,7 +1,7 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import { Patient } from "@prisma/client";
+import { useCurrentUser } from "@/hooks/useCurrentUser";
+// Remove this import - Patient type is not exported from Prisma client
 import { 
   User, 
   Heart, 
@@ -39,11 +39,11 @@ import { createNewPatient, updatePatient } from "@/app/actions/patient";
 import { toast } from "sonner";
 
 interface DataProps {
-  data?: Patient;
+  data?: any; // Changed from Patient to any since Patient type is not exported
   type: "create" | "update";
 }
 export const NewPatient = ({ data, type }: DataProps) => {
-  const { user } = useUser();
+  const { user, loading: userLoading } = useCurrentUser();
   const [loading, setLoading] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [imgURL, setImgURL] = useState<any>();
@@ -84,7 +84,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
 
   // Ensure all default values are properly defined to prevent controlled/uncontrolled input issues
   type MaritalStatus = "married" | "single" | "divorced" | "widowed" | "separated";
-  type RelationType = "mother" | "father" | "husband" | "wife" | "other";
+  type RelationType = "mother" | "father" | "husband" | "wife" | "spouse" | "other";
 
   const getDefaultValues = () => {
     const baseDefaults = {
@@ -112,10 +112,10 @@ export const NewPatient = ({ data, type }: DataProps) => {
 
     // Safely populate user data if available
     if (user) {
-      baseDefaults.first_name = user.firstName || "";
-      baseDefaults.last_name = user.lastName || "";
-      baseDefaults.email = user.emailAddresses?.[0]?.emailAddress || "";
-      baseDefaults.phone = user.phoneNumbers?.[0]?.phoneNumber || "";
+      baseDefaults.first_name = user?.firstName || "";
+      baseDefaults.last_name = user?.lastName || "";
+      baseDefaults.email = user?.email || "";
+      baseDefaults.phone = user?.phone || "";
     }
 
     // If updating existing patient, merge with existing data
@@ -125,7 +125,7 @@ export const NewPatient = ({ data, type }: DataProps) => {
         ...data,
         date_of_birth: data.date_of_birth ? new Date(data.date_of_birth) : new Date(),
         marital_status: (data.marital_status as MaritalStatus) ?? baseDefaults.marital_status,
-        relation: (data.relation as RelationType) ?? baseDefaults.relation,
+        relation: (data.relation?.toLowerCase() as RelationType) ?? baseDefaults.relation,
       };
     }
 
@@ -142,10 +142,10 @@ export const NewPatient = ({ data, type }: DataProps) => {
   useEffect(() => {
     if (user && type === "create") {
       const userValues = {
-        first_name: user.firstName || "",
-        last_name: user.lastName || "",
-        email: user.emailAddresses?.[0]?.emailAddress || "",
-        phone: user.phoneNumbers?.[0]?.phoneNumber || "",
+        first_name: user?.firstName || "",
+        last_name: user?.lastName || "",
+        email: user?.email || "",
+        phone: user?.phone || "",
       };
       
       // Only update if values are different to prevent unnecessary re-renders
@@ -157,6 +157,18 @@ export const NewPatient = ({ data, type }: DataProps) => {
       });
     }
   }, [user, form, type]);
+
+  // Normalize relation field if it has incorrect case
+  useEffect(() => {
+    const currentRelation = form.getValues("relation");
+    if (currentRelation && typeof currentRelation === "string") {
+      const normalizedRelation = currentRelation.toLowerCase();
+      if (normalizedRelation !== currentRelation) {
+        console.log("Normalizing relation field from", currentRelation, "to", normalizedRelation);
+        form.setValue("relation", normalizedRelation as any);
+      }
+    }
+  }, [form]);
 
   const nextStep = () => {
     if (currentStep < totalSteps) {
@@ -186,7 +198,11 @@ export const NewPatient = ({ data, type }: DataProps) => {
   const onSubmit: SubmitHandler<z.infer<typeof PatientFormSchema>> = async (
     values
   ) => {
+    console.log("=== FORM SUBMISSION STARTED ===");
     console.log("Form submission triggered", values);
+    console.log("Type:", type);
+    console.log("User ID:", userId);
+    console.log("Form errors:", form.formState.errors);
     setLoading(true);
 
     try {
@@ -264,12 +280,13 @@ export const NewPatient = ({ data, type }: DataProps) => {
         address: data.address,
         emergency_contact_name: data.emergency_contact_name,
         emergency_contact_number: data.emergency_contact_number,
-        relation: data.relation as
+        relation: (data.relation?.toLowerCase() as
           | "mother"
           | "father"
           | "husband"
           | "wife"
-          | "other",
+          | "spouse"
+          | "other") || "mother",
         blood_group: data?.blood_group || "",
         allergies: data?.allergies || "",
         medical_conditions: data?.medical_conditions || "",
@@ -521,6 +538,23 @@ export const NewPatient = ({ data, type }: DataProps) => {
     }
   };
 
+  // Show loading state while user data is being fetched
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#F5F7FA] py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#046658] mx-auto mb-4"></div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading...</h3>
+              <p className="text-gray-600">Preparing your registration form</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#F5F7FA] py-8 px-4">
       <div className="max-w-4xl mx-auto">
@@ -597,7 +631,19 @@ export const NewPatient = ({ data, type }: DataProps) => {
         <Card className="shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
           <CardContent className="p-8">
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+              <form 
+                onSubmit={form.handleSubmit(
+                  (data) => {
+                    console.log("Form handleSubmit called with data:", data);
+                    onSubmit(data);
+                  },
+                  (errors) => {
+                    console.log("Form validation failed with errors:", errors);
+                    console.log("Form state:", form.formState);
+                  }
+                )} 
+                className="space-y-8"
+              >
                 {type === "create" ? renderStepContent() : (
                   <div className="space-y-8">
                     {renderStepContent()}
@@ -658,6 +704,24 @@ export const NewPatient = ({ data, type }: DataProps) => {
                       type="submit"
                       disabled={loading}
                       className="w-full md:w-auto bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#046658]/90 hover:to-[#2EB6B0]/90 text-white shadow-lg hover:shadow-xl transition-all duration-300"
+                      onClick={async () => {
+                        console.log("Update Information button clicked");
+                        console.log("Form errors:", form.formState.errors);
+                        console.log("Form values:", form.getValues());
+                        console.log("User ID:", userId);
+                        console.log("Type:", type);
+                        
+                        // Manual validation check
+                        const isValid = await form.trigger();
+                        console.log("Manual validation result:", isValid);
+                        if (!isValid) {
+                          console.log("Validation errors:", form.formState.errors);
+                        }
+                        
+                        // Try to submit manually
+                        const formData = form.getValues();
+                        console.log("Attempting manual submission with data:", formData);
+                      }}
                     >
                       {loading ? "Updating..." : "Update Information"}
                     </Button>

@@ -16,6 +16,7 @@ export const RELATION = [
   { value: "father", label: "Father" },
   { value: "husband", label: "Husband" },
   { value: "wife", label: "Wife" },
+  { value: "spouse", label: "Spouse" },
   { value: "other", label: "Other" },
 ];
 

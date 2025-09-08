@@ -18,8 +18,8 @@ async function createTestUsers() {
     const doctor = await prisma.doctor.create({
       data: {
         id: crypto.randomUUID(),
-        name: 'Dr. Test Doctor',
-        email: 'doctor@test.com',
+        name: 'Test Doctor',
+        email: 'doctor@test01.com',
         phone: '+1234567890',
         address: '123 Medical Center, Test City',
         specialization: 'General Practice',
@@ -55,7 +55,7 @@ async function createTestUsers() {
       data: {
         id: crypto.randomUUID(),
         name: 'Admin User',
-        email: 'admin@test.com',
+        email: 'admin@test01.com',
         phone: '+1234567891',
         address: '456 Admin Street, Test City',
         role: 'ADMIN',
@@ -82,10 +82,10 @@ async function createTestUsers() {
     const patient = await prisma.patient.create({
       data: {
         id: crypto.randomUUID(),
-        first_name: 'Test',
+        first_name: 'TestPatient',
         last_name: 'Patient',
-        email: 'patient@test.com',
-        phone: '+1234567892',
+        email: 'patient@test01.com',
+        phone: '0701134048',
         date_of_birth: new Date('1990-01-01'),
         gender: 'MALE',
         marital_status: 'SINGLE',

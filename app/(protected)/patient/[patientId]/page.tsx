@@ -3,7 +3,7 @@ import { PatientRatingContainer } from "@/components/patient-rating-container";
 import { ProfileImage } from "@/components/profile-image";
 import { Card } from "@/components/ui/card";
 import { getPatientFullDataById } from "@/utils/services/patient";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUserId } from "@/lib/auth-helpers";
 import { format } from "date-fns";
 import Link from "next/link";
 import React from "react";
@@ -22,8 +22,18 @@ const PatientProfile = async (props: ParamsProps) => {
   const cat = searchParams?.cat || "medical-history";
 
   if (patientId === "self") {
-    const { userId } = await auth();
-    id = userId!;
+    const userId = await getCurrentUserId();
+    if (!userId) {
+      return (
+        <div className="bg-gray-100/60 h-full rounded-xl py-6 px-3 2xl:p-6 flex items-center justify-center">
+          <div className="text-center">
+            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Authentication Required</h2>
+            <p className="text-gray-600">Please sign in to view your profile.</p>
+          </div>
+        </div>
+      );
+    }
+    id = userId;
   } else id = patientId;
 
   const { data } = await getPatientFullDataById(id);

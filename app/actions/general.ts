@@ -5,33 +5,58 @@ import {
   reviewSchema,
 } from "@/components/dialogs/review-form";
 import db from "@/lib/db";
-import { clerkClient } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/auth-helpers";
+import { logAudit } from "@/lib/audit";
 
 export async function deleteDataById(
   id: string,
-
   deleteType: "doctor" | "staff" | "patient" | "payment" | "bill"
 ) {
   try {
-    switch (deleteType) {
-      case "doctor":
-        await db.doctor.delete({ where: { id: id } });
-      case "staff":
-        await db.staff.delete({ where: { id: id } });
-      case "patient":
-        await db.patient.delete({ where: { id: id } });
-      case "payment":
-        await db.payment.delete({ where: { id: Number(id) } });
+    // Check authentication
+    const user = await getCurrentUser();
+    if (!user) {
+      return {
+        success: false,
+        message: "Unauthorized",
+        status: 401,
+      };
     }
 
-    if (
-      deleteType === "staff" ||
-      deleteType === "patient" ||
-      deleteType === "doctor"
-    ) {
-      const client = await clerkClient();
-      await client.users.deleteUser(id);
+    let deletedRecord = null;
+
+    switch (deleteType) {
+      case "doctor":
+        deletedRecord = await db.doctor.delete({ where: { id: id } });
+        break;
+      case "staff":
+        deletedRecord = await db.staff.delete({ where: { id: id } });
+        break;
+      case "patient":
+        deletedRecord = await db.patient.delete({ where: { id: id } });
+        break;
+      case "payment":
+        deletedRecord = await db.payment.delete({ where: { id: Number(id) } });
+        break;
+      default:
+        return {
+          success: false,
+          message: "Invalid delete type",
+          status: 400,
+        };
     }
+
+    // Log audit trail
+    await logAudit({
+      action: 'DELETE',
+      resourceType: deleteType.toUpperCase() as any,
+      resourceId: id,
+      reason: `${deleteType} deleted`,
+      metadata: {
+        deletedBy: user.id,
+        deleteType: deleteType
+      }
+    });
 
     return {
       success: true,
@@ -39,7 +64,7 @@ export async function deleteDataById(
       status: 200,
     };
   } catch (error) {
-    console.log(error);
+    console.error("Delete error:", error);
 
     return {
       success: false,

@@ -106,20 +106,62 @@ const PatientDashboard = async ({ searchParams }: { searchParams?: Promise<{ suc
     );
   }
 
-  const {
-    data,
-    appointmentCounts,
-    last5Records,
-    totalAppointments,
-    availableDoctor,
-    monthlyData,
-  } = await getPatientDashboardStatistics(user.id);
-
-  if (user && !data) {
-    redirect("/patient/registration");
+  // Enhanced debugging for patient data retrieval
+  console.log("=== PATIENT DASHBOARD DEBUG ===");
+  console.log("About to call getPatientDashboardStatistics with user ID:", user.id);
+  console.log("User object:", user);
+  
+  let result;
+  try {
+    result = await getPatientDashboardStatistics(user.id);
+    console.log("getPatientDashboardStatistics completed successfully");
+    console.log("Full result from getPatientDashboardStatistics:", JSON.stringify(result, null, 2));
+    console.log("Result success:", result.success);
+    console.log("Result data:", result.data);
+    console.log("Result message:", (result as any).message);
+    console.log("Result status:", result.status);
+  } catch (error) {
+    console.error("=== ERROR IN getPatientDashboardStatistics CALL ===");
+    console.error("Error:", error);
+    console.error("Error message:", error instanceof Error ? error.message : "Unknown error");
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    
+    // Return error result to prevent redirect loop
+    result = {
+      success: false,
+      message: "Error retrieving patient data",
+      data: null,
+      status: 500,
+      appointmentCounts: {},
+      last5Records: [],
+      totalAppointments: 0,
+      availableDoctor: [],
+      monthlyData: []
+    };
   }
 
-  if (!data) return null;
+  // Check if patient data exists
+  console.log("=== REDIRECT CHECK ===");
+  console.log("Result success:", result.success);
+  console.log("Result data exists:", !!result.data);
+  console.log("Result data:", result.data);
+  
+  if (!result.success || !result.data) {
+    console.log("❌ REDIRECTING TO REGISTRATION - Patient data not found");
+    console.log("Result:", result);
+    redirect("/patient/registration");
+  } else {
+    console.log("✅ NO REDIRECT - Patient data found, proceeding to dashboard");
+  }
+
+  const {
+    data,
+    appointmentCounts = {},
+    last5Records = [],
+    totalAppointments = 0,
+    availableDoctor = [],
+    monthlyData = [],
+  } = result as any;
 
   const cardData = [
     {
@@ -160,6 +202,9 @@ const PatientDashboard = async ({ searchParams }: { searchParams?: Promise<{ suc
     },
   ];
 
+  console.log("=== RENDERING DASHBOARD ===");
+  console.log("About to render patient dashboard with data:", data);
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#F5F7FA] p-6">
       {/* Header Section */}

@@ -5,77 +5,89 @@ import {
   DoctorSchema,
   ServicesSchema,
   StaffSchema,
-  WorkingDaysSchema,
 } from "@/lib/schema";
 import { generateRandomColor } from "@/utils";
-import { checkRole } from "@/utils/roles";
-import { auth, clerkClient } from "@clerk/nextjs/server";
+import { getCurrentUser, isAdmin } from "@/lib/auth-helpers";
+import { UserCreationService } from "@/lib/user-creation-service";
 
 export async function createNewStaff(data: any) {
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return { success: false, msg: "Unauthorized" };
+    // Check authentication and admin role
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, message: "Unauthorized" };
     }
 
-    const isAdmin = await checkRole("ADMIN");
-
-    if (!isAdmin) {
-      return { success: false, msg: "Unauthorized" };
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
+      return { success: false, message: "Unauthorized" };
     }
 
+    // Validate input data
     const values = StaffSchema.safeParse(data);
-
     if (!values.success) {
       return {
         success: false,
         errors: true,
-        message: "Please provide all required info",
+        message: "Please provide all required information",
+        validationErrors: values.error.errors,
       };
     }
 
     const validatedValues = values.data;
 
-    const client = await clerkClient();
-
-    // Generate username from email
-    const username = validatedValues.email.split('@')[0];
+    // Validate password strength
+    if (!validatedValues.password) {
+      return {
+        success: false,
+        message: "Password is required"
+      };
+    }
     
-    const user = await client.users.createUser({
-      emailAddress: [validatedValues.email],
-      username: username,
+    const passwordValidation = UserCreationService.validatePassword(validatedValues.password);
+    if (!passwordValidation.valid) {
+      return {
+        success: false,
+        message: passwordValidation.message || "Invalid password"
+      };
+    }
+
+    // Parse name into first and last name
+    const nameParts = validatedValues.name.trim().split(" ");
+    const firstName = nameParts[0];
+    const lastName = nameParts.slice(1).join(" ") || "User";
+
+    // Create staff user using our custom service
+    const result = await UserCreationService.createStaff({
+      email: validatedValues.email,
       password: validatedValues.password,
-      firstName: validatedValues.name.split(" ")[0],
-      lastName: validatedValues.name.split(" ")[1] || "User",
-      publicMetadata: { role: validatedValues.role.toLowerCase() },
+      firstName,
+      lastName,
+      role: validatedValues.role,
+      phone: validatedValues.phone,
+      address: validatedValues.address,
+      department: validatedValues.department,
+      license_number: validatedValues.license_number,
     });
 
-    delete validatedValues["password"];
-
-    const doctor = await db.staff.create({
-      data: {
-        name: validatedValues.name,
-        phone: validatedValues.phone,
-        email: validatedValues.email,
-        address: validatedValues.address,
-        role: validatedValues.role as any,
-        license_number: validatedValues.license_number,
-        department: validatedValues.department,
-        colorCode: generateRandomColor(),
-        id: user.id,
-        status: "ACTIVE",
-      },
-    });
+    if (!result.success) {
+      return {
+        success: false,
+        message: result.error || "Failed to create staff member"
+      };
+    }
 
     return {
       success: true,
-      message: "Doctor added successfully",
+      message: "Staff member added successfully",
       error: false,
     };
   } catch (error) {
-    console.log(error);
-    return { error: true, success: false, message: "Something went wrong" };
+    console.error("Error in createNewStaff:", error);
+    return { 
+      success: false, 
+      message: "Something went wrong while creating staff member" 
+    };
   }
 }
 export async function createNewDoctor(data: any) {
@@ -85,15 +97,14 @@ export async function createNewDoctor(data: any) {
   console.log("Function: createNewDoctor");
   
   try {
-    const { userId } = await auth();
-
-    if (!userId) {
+    // Check authentication and admin role
+    const user = await getCurrentUser();
+    if (!user) {
       return { success: false, message: "Unauthorized" };
     }
 
-    const isAdmin = await checkRole("ADMIN");
-
-    if (!isAdmin) {
+    const userIsAdmin = await isAdmin();
+    if (!userIsAdmin) {
       return { success: false, message: "Unauthorized" };
     }
 
@@ -112,67 +123,35 @@ export async function createNewDoctor(data: any) {
     
     console.log("DoctorSchema validation passed:", values.data);
 
-    console.log("Validating work schedule with WorkingDaysSchema...");
-    const workingDaysValues = WorkingDaysSchema.safeParse(data?.work_schedule);
-
-    if (!workingDaysValues.success) {
-      console.error("Working days validation errors:", workingDaysValues.error.errors);
-      return {
-        success: false,
-        errors: true,
-        message: "Please provide valid working schedule",
-        validationErrors: workingDaysValues.error.errors,
-      };
-    }
-    
-    console.log("Working days validation passed:", workingDaysValues.data);
-
     const validatedValues = values.data;
-    const workingDayData = workingDaysValues.data!;
 
-    // Normalize email first
-    const normalizedEmail = validatedValues.email.toLowerCase().trim();
-    console.log("Normalized email:", normalizedEmail);
-    
-    // Check if email already exists in database
-    console.log("Checking if email already exists in database...");
-    const existingDoctor = await db.doctor.findUnique({
-      where: { email: normalizedEmail },
-    });
-
-    if (existingDoctor) {
-      console.log("Email already exists in database, returning error");
+    // Validate password strength
+    if (!validatedValues.password) {
       return {
         success: false,
-        message: "A doctor with this email already exists",
+        message: "Password is required"
       };
     }
     
-    // Skip Clerk check for now to isolate the issue
-    console.log("Skipping Clerk email check for now...");
-    const client = await clerkClient();
+    const passwordValidation = UserCreationService.validatePassword(validatedValues.password);
+    if (!passwordValidation.valid) {
+      return {
+        success: false,
+        message: passwordValidation.message || "Invalid password"
+      };
+    }
 
-    console.log("Email is unique, proceeding with Clerk user creation...");
-
-    console.log("Creating Clerk user...");
-    console.log("Email:", validatedValues.email);
-    console.log("Password length:", validatedValues.password?.length);
-    console.log("Name:", validatedValues.name);
-    
-    // Better name handling for titles like "Dr"
-    let firstName, lastName;
+    // Parse name into first and last name
     const nameParts = validatedValues.name.trim().split(" ");
+    let firstName, lastName;
     
     if (nameParts.length === 1) {
-      // Only one name provided
       firstName = nameParts[0];
-      lastName = "User"; // Default last name
+      lastName = "User";
     } else if (nameParts.length === 2) {
-      // Two names provided
       firstName = nameParts[0];
       lastName = nameParts[1];
     } else {
-      // Multiple names - first is first name, rest is last name
       firstName = nameParts[0];
       lastName = nameParts.slice(1).join(" ");
     }
@@ -183,114 +162,47 @@ export async function createNewDoctor(data: any) {
         firstName.toLowerCase().startsWith('mr') ||
         firstName.toLowerCase().startsWith('ms') ||
         firstName.toLowerCase().startsWith('mrs')) {
-      console.log("Title detected, adjusting names...");
       firstName = nameParts[1] || "User";
       lastName = nameParts.slice(2).join(" ") || "User";
-      console.log("Adjusted first name:", firstName);
-      console.log("Adjusted last name:", lastName);
     }
+
+    console.log("Creating doctor using custom user creation service...");
     
-    console.log("First name:", firstName);
-    console.log("Last name:", lastName);
-    
-    // Validate required fields for Clerk
-    if (!firstName || firstName.length < 1) {
-      console.error("Invalid first name for Clerk");
-      return {
-        success: false,
-        message: "First name is required and must be at least 1 character"
-      };
-    }
-    
-    if (!lastName || lastName.length < 1) {
-      console.error("Invalid last name for Clerk");
-      return {
-        success: false,
-        message: "Last name is required and must be at least 1 character"
-      };
-    }
-    
-    // Enhanced email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!normalizedEmail || !emailRegex.test(normalizedEmail)) {
-      console.error("Invalid email format for Clerk");
-      return {
-        success: false,
-        message: "Please provide a valid email address"
-      };
-    }
-    
-    if (!validatedValues.password || validatedValues.password.length < 8) {
-      console.error("Invalid password for Clerk");
-      return {
-        success: false,
-        message: "Password must be at least 8 characters long"
-      };
-    }
-    
-    // Generate username from email (remove @domain part)
-    const username = normalizedEmail.split('@')[0];
-    console.log("Generated username:", username);
-    
-    // Prepare Clerk user data
-    const clerkUserData = {
-      emailAddress: [normalizedEmail],
-      username: username,
+    // Create doctor user using our custom service
+    const result = await UserCreationService.createDoctor({
+      email: validatedValues.email,
       password: validatedValues.password,
-      firstName: firstName,
-      lastName: lastName,
-      publicMetadata: { role: "doctor" },
-    };
-    
-    console.log("Clerk user data:", JSON.stringify(clerkUserData, null, 2));
-    
-    console.log("About to call Clerk createUser...");
-    const user = await client.users.createUser(clerkUserData);
-    console.log("Clerk user created successfully:", user.id);
-
-    delete validatedValues["password"];
-
-    console.log("Creating doctor record in database...");
-    const doctor = await db.doctor.create({
-      data: {
-        ...validatedValues,
-        email: normalizedEmail, // Use normalized email
-        id: user.id,
-        colorCode: generateRandomColor(),
-      },
+      firstName,
+      lastName,
+      role: 'DOCTOR',
+      phone: validatedValues.phone,
+      address: validatedValues.address,
+      specialization: validatedValues.specialization,
+      license_number: validatedValues.license_number,
+      department: validatedValues.department,
+      experience_years: validatedValues.experience_years,
+      languages: validatedValues.languages,
+      consultation_fee: validatedValues.consultation_fee,
+      max_patients_per_day: validatedValues.max_patients_per_day,
+      emergency_contact: validatedValues.emergency_contact,
+      emergency_phone: validatedValues.emergency_phone,
+      qualifications: validatedValues.qualifications,
     });
-    console.log("Doctor record created successfully:", doctor.id);
 
-    // Create working days if provided
-    if (workingDayData && workingDayData.length > 0) {
-      console.log("Creating working days records...");
-      await Promise.all(
-        workingDayData.map((el) => {
-          // Remove appointment_duration field as it's not in the database schema
-          const { appointment_duration, ...workingDayDataWithoutDuration } = el;
-          console.log("Working day data (without appointment_duration):", workingDayDataWithoutDuration);
-          
-          return db.workingDays.create({
-            data: { 
-              doctor_id: doctor.id,
-              day_of_week: workingDayDataWithoutDuration.day,
-              start_time: workingDayDataWithoutDuration.start_time,
-              end_time: workingDayDataWithoutDuration.close_time,
-              is_working: workingDayDataWithoutDuration.is_working,
-              break_start_time: workingDayDataWithoutDuration.break_start,
-              break_end_time: workingDayDataWithoutDuration.break_end,
-              max_appointments: workingDayDataWithoutDuration.max_appointments,
-            },
-          });
-        })
-      );
-      console.log("Working days records created successfully");
+    if (!result.success) {
+      return {
+        success: false,
+        message: result.error || "Failed to create doctor"
+      };
     }
+
+    console.log("Doctor user created successfully:", result.userId);
+    console.log("Note: Doctor can now set up their own schedule through the dashboard");
 
     console.log("=== SUCCESS: Doctor creation completed ===");
     return {
       success: true,
-      message: "Doctor added successfully",
+      message: "Doctor added successfully. The doctor can now set up their schedule through their dashboard.",
       error: false,
     };
   } catch (error) {
@@ -300,88 +212,6 @@ export async function createNewDoctor(data: any) {
     console.error("Error message:", error instanceof Error ? error.message : "Unknown error");
     console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
     
-    // Handle Clerk-specific errors
-    if (error && typeof error === 'object' && 'clerkError' in error) {
-      console.error("Clerk error detected");
-      console.error("Clerk errors array:", (error as any).errors);
-      
-      // Check for specific Clerk validation errors
-      if ((error as any).errors && Array.isArray((error as any).errors)) {
-        const clerkErrors = (error as any).errors;
-        console.error("Clerk validation errors:", clerkErrors);
-        
-        // Check for email validation errors
-        const emailError = clerkErrors.find((err: any) => 
-          err.code === 'form_identifier_exists' || 
-          err.message?.toLowerCase().includes('email') ||
-          err.message?.toLowerCase().includes('identifier')
-        );
-        
-        if (emailError) {
-          console.log("Email already exists in Clerk");
-          return { 
-            success: false, 
-            message: "A doctor with this email already exists in the system" 
-          };
-        }
-        
-        // Check for password validation errors
-        const passwordError = clerkErrors.find((err: any) => 
-          err.message?.toLowerCase().includes('password') ||
-          err.code?.toLowerCase().includes('password')
-        );
-        
-        if (passwordError) {
-          console.log("Password validation error");
-          return { 
-            success: false, 
-            message: "Password does not meet security requirements. Please use at least 8 characters with a mix of letters, numbers, and symbols." 
-          };
-        }
-        
-        // Check for name validation errors
-        const nameError = clerkErrors.find((err: any) => 
-          err.message?.toLowerCase().includes('name') ||
-          err.message?.toLowerCase().includes('first') ||
-          err.message?.toLowerCase().includes('last')
-        );
-        
-        if (nameError) {
-          console.log("Name validation error");
-          return { 
-            success: false, 
-            message: "Please provide a valid first and last name" 
-          };
-        }
-        
-        // Generic Clerk validation error
-        console.log("Generic Clerk validation error");
-        return { 
-          success: false, 
-          message: "User creation failed: " + clerkErrors.map((err: any) => err.message).join(", ") 
-        };
-      }
-    }
-    
-    // Handle specific Clerk errors
-    if (error instanceof Error) {
-      if (error.message.includes("email")) {
-        console.log("Email error detected, returning email exists message");
-        return { 
-          success: false, 
-          message: "A doctor with this email already exists" 
-        };
-      }
-      if (error.message.includes("password")) {
-        console.log("Password error detected, returning password requirements message");
-        return { 
-          success: false, 
-          message: "Password does not meet requirements" 
-        };
-      }
-    }
-    
-    console.log("Returning generic error message");
     return { 
       success: false, 
       message: "Failed to create doctor. Please try again." 

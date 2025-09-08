@@ -104,12 +104,12 @@ const PatientDashboard = async () => {
   // Load critical data first
   const {
     data,
-    appointmentCounts,
-    last5Records,
-    totalAppointments,
-    availableDoctor,
-    monthlyData,
-  } = await getPatientDashboardStatistics(user.id);
+    appointmentCounts = {},
+    last5Records = [],
+    totalAppointments = 0,
+    availableDoctor = [],
+    monthlyData = [],
+  } = await getPatientDashboardStatistics(user.id) as any;
 
   if (user && !data) {
     redirect("/patient/registration");

@@ -1,4 +1,4 @@
-import { AppointmentStatus, Doctor, Patient } from "@prisma/client";
+// Remove Prisma imports - types are not exported from Prisma client
 
 export type AppointmentsChartProps = {
   name: string;
@@ -13,10 +13,9 @@ export type Appointment = {
   type: string;
   appointment_date: Date;
   time: string;
-  status: AppointmentStatus;
-
-  patient: Patient;
-  doctor: Doctor;
+  status: string;
+  patient: any;
+  doctor: any;
 };
 
 export type AvailableDoctorProps = {
@@ -25,9 +24,11 @@ export type AvailableDoctorProps = {
   specialization: string;
   img?: string;
   colorCode?: string;
+  availability_status: string;
   working_days: {
-    day: string;
+    day_of_week: string;
     start_time: string;
-    close_time: string;
+    end_time: string;
+    is_working: boolean;
   }[];
 }[];

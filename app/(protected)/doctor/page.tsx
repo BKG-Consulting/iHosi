@@ -34,7 +34,7 @@ const DoctorDashboard = async () => {
   } = await getDoctorDashboardStats();
 
   // Transform data to match new interface
-  const transformedAppointments: any[] = (last5Records || []).map(apt => ({
+  const transformedAppointments: any[] = (last5Records || []).map((apt: any) => ({
     ...apt,
     appointment_date: apt.appointment_date instanceof Date ? apt.appointment_date.toISOString() : apt.appointment_date,
     note: apt.note || undefined, // Convert null to undefined

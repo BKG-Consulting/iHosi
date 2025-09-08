@@ -17,9 +17,10 @@ const getToday = () => {
 const todayDay = getToday();
 
 interface Days {
-  day: string;
+  day_of_week: string;
   start_time: string;
-  close_time: string;
+  end_time: string;
+  is_working: boolean;
 }
 
 interface DataProps {
@@ -28,11 +29,11 @@ interface DataProps {
 
 export const availableDays = ({ data }: { data: Days[] }) => {
   const isTodayWorkingDay = data?.find(
-    (dayObj) => dayObj?.day?.toLowerCase() === todayDay
+    (dayObj) => dayObj?.day_of_week?.toLowerCase() === todayDay.toLowerCase()
   );
 
-  return isTodayWorkingDay
-    ? `${isTodayWorkingDay?.start_time} - ${isTodayWorkingDay?.close_time}`
+  return isTodayWorkingDay && isTodayWorkingDay.is_working
+    ? `${isTodayWorkingDay?.start_time} - ${isTodayWorkingDay?.end_time}`
     : "Not Available";
 };
 

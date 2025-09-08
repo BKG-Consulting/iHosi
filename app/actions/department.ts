@@ -3,15 +3,16 @@
 import db from "@/lib/db";
 import { DepartmentSchema, WardSchema, BedSchema, EquipmentSchema } from "@/lib/schema";
 import { logAudit } from "@/lib/audit";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/auth-helpers";
 
 // Department Management
 export async function createDepartment(data: any) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await getCurrentUser();
+    if (!user) {
       return { success: false, error: true, msg: "Unauthorized" };
     }
+    const userId = user.id;
 
     const validatedData = DepartmentSchema.safeParse(data);
     if (!validatedData.success) {
@@ -62,10 +63,11 @@ export async function createDepartment(data: any) {
 
 export async function updateDepartment(id: string, data: any) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await getCurrentUser();
+    if (!user) {
       return { success: false, error: true, msg: "Unauthorized" };
     }
+    const userId = user.id;
 
     const validatedData = DepartmentSchema.partial().safeParse(data);
     if (!validatedData.success) {
@@ -113,10 +115,11 @@ export async function updateDepartment(id: string, data: any) {
 
 export async function deleteDepartment(id: string) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await getCurrentUser();
+    if (!user) {
       return { success: false, error: true, msg: "Unauthorized" };
     }
+    const userId = user.id;
 
     // Check if department has any related records
     const relatedRecords = await db.department.findFirst({
@@ -269,10 +272,11 @@ export async function getDepartmentById(id: string) {
 // Ward Management
 export async function createWard(data: any) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await getCurrentUser();
+    if (!user) {
       return { success: false, error: true, msg: "Unauthorized" };
     }
+    const userId = user.id;
 
     const validatedData = WardSchema.safeParse(data);
     if (!validatedData.success) {
@@ -318,10 +322,11 @@ export async function createWard(data: any) {
 // Bed Management
 export async function createBed(data: any) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await getCurrentUser();
+    if (!user) {
       return { success: false, error: true, msg: "Unauthorized" };
     }
+    const userId = user.id;
 
     const validatedData = BedSchema.safeParse(data);
     if (!validatedData.success) {
@@ -367,10 +372,11 @@ export async function createBed(data: any) {
 // Equipment Management
 export async function createEquipment(data: any) {
   try {
-    const { userId } = await auth();
-    if (!userId) {
+    const user = await getCurrentUser();
+    if (!user) {
       return { success: false, error: true, msg: "Unauthorized" };
     }
+    const userId = user.id;
 
     const validatedData = EquipmentSchema.safeParse(data);
     if (!validatedData.success) {

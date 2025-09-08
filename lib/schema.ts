@@ -14,7 +14,7 @@ export const PatientFormSchema = z.object({
   date_of_birth: z.coerce.date(),
   gender: z.enum(["MALE", "FEMALE"], { message: "Gender is required" }),
 
-  phone: z.string().min(10, "Enter phone number").max(10, "Enter phone number"),
+  phone: z.string().min(10, "Enter phone number").max(15, "Phone number too long"),
   email: z.string().email("Invalid email address."),
   address: z
     .string()
@@ -31,8 +31,8 @@ export const PatientFormSchema = z.object({
   emergency_contact_number: z
     .string()
     .min(10, "Enter phone number")
-    .max(10, "Enter phone number"),
-  relation: z.enum(["mother", "father", "husband", "wife", "other"], {
+    .max(15, "Phone number too long"),
+  relation: z.enum(["mother", "father", "husband", "wife", "spouse", "other"], {
     message: "Relations with contact person required",
   }),
   blood_group: z.string().optional(),

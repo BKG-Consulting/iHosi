@@ -14,9 +14,9 @@ import {
   SheetTrigger,
 } from "../ui/sheet";
 import { Button } from "../ui/button";
-import { Plus, User, Briefcase, Phone, Calendar } from "lucide-react";
+import { Plus, User, Briefcase, Phone } from "lucide-react";
 import { Form } from "../ui/form";
-import { CustomInput, SwitchInput } from "../custom-input";
+import { CustomInput } from "../custom-input";
 import { SPECIALIZATION } from "@/utils/seetings";
 import { Label } from "../ui/label";
 import { toast } from "sonner";
@@ -28,36 +28,19 @@ const TYPES = [
   { label: "Part-Time", value: "PART" },
 ];
 
-const WORKING_DAYS = [
-  { label: "Sunday", value: "sunday" },
-  { label: "Monday", value: "monday" },
-  { label: "Tuesday", value: "tuesday" },
-  { label: "Wednesday", value: "wednesday" },
-  { label: "Thursday", value: "thursday" },
-  { label: "Friday", value: "friday" },
-  { label: "Saturday", value: "saturday" },
-];
+// WORKING_DAYS removed - doctors manage their own schedules
 
 const LANGUAGES = [
   "English", "Spanish", "French", "German", "Chinese", "Japanese", "Korean", "Arabic", "Hindi", "Portuguese"
 ];
 
-type Day = {
-  day: string;
-  start_time?: string;
-  close_time?: string;
-  is_working?: boolean;
-  break_start?: string;
-  break_end?: string;
-  max_appointments?: number;
-  appointment_duration?: number;
-};
+// Day type removed - no longer needed for working schedule
 
 export const DoctorForm = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
-  const [workSchedule, setWorkSchedule] = useState<Day[]>([]);
+  // workSchedule state removed - doctors manage their own schedules
   const [selectedLanguages, setSelectedLanguages] = useState<string[]>([]);
 
   const form = useForm<z.infer<typeof DoctorSchema>>({
@@ -87,16 +70,10 @@ export const DoctorForm = () => {
   const handleSubmit = async (values: z.infer<typeof DoctorSchema>) => {
     console.log("=== DOCTOR FORM SUBMISSION START ===");
     console.log("Form values:", values);
-    console.log("Work schedule:", workSchedule);
     console.log("Selected languages:", selectedLanguages);
     
     try {
-      // Validate required fields
-      if (workSchedule.length === 0) {
-        console.log("ERROR: No working days selected");
-        toast.error("Please select at least one working day");
-        return;
-      }
+      // Note: Working schedule is now managed by doctors through their dashboard
 
       if (selectedLanguages.length === 0) {
         console.log("ERROR: No languages selected");
@@ -110,7 +87,7 @@ export const DoctorForm = () => {
       const payload = {
         ...values,
         languages: selectedLanguages,
-        work_schedule: workSchedule,
+        // work_schedule removed - doctors manage their own schedules
       };
       
       console.log("Calling createNewDoctor with payload:", payload);
@@ -125,7 +102,6 @@ export const DoctorForm = () => {
 
       if (resp.success) {
         toast.success("Doctor added successfully!");
-        setWorkSchedule([]);
         setSelectedLanguages([]);
         form.reset();
         setIsOpen(false); // Close the modal
@@ -181,7 +157,7 @@ export const DoctorForm = () => {
     if (!open) {
       // Reset form when modal is closed
       form.reset();
-      setWorkSchedule([]);
+        // workSchedule no longer needed
       setSelectedLanguages([]);
       setIsLoading(false);
     }
@@ -371,41 +347,7 @@ export const DoctorForm = () => {
                 </CardContent>
               </Card>
 
-              {/* Scheduling & Capacity */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Calendar className="w-5 h-5 text-orange-600" />
-                    Scheduling & Capacity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <CustomInput
-                      type="input"
-                      control={form.control}
-                      name="max_patients_per_day"
-                      placeholder="Maximum patients per day"
-                      label="Max Patients/Day"
-                    />
-                    <CustomInput
-                      type="input"
-                      control={form.control}
-                      name="preferred_appointment_duration"
-                      placeholder="Appointment duration in minutes"
-                      label="Appointment Duration (min)"
-                    />
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label className="text-sm font-medium">Working Days & Schedule</Label>
-                <SwitchInput
-                  data={WORKING_DAYS}
-                  setWorkSchedule={setWorkSchedule}
-                />
-              </div>
-                </CardContent>
-              </Card>
+              {/* Note: Scheduling is now managed by doctors through their dashboard */}
 
               {/* Account Security */}
               <Card>
@@ -429,7 +371,7 @@ export const DoctorForm = () => {
 
               <Button 
                 type="submit" 
-                disabled={isLoading || selectedLanguages.length === 0 || workSchedule.length === 0} 
+                disabled={isLoading || selectedLanguages.length === 0} 
                 className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-3 text-lg font-semibold shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isLoading ? (
@@ -447,10 +389,7 @@ export const DoctorForm = () => {
                 {selectedLanguages.length === 0 && (
                   <p className="text-red-600">⚠️ Please select at least one language</p>
                 )}
-                {workSchedule.length === 0 && (
-                  <p className="text-red-600">⚠️ Please set up working schedule</p>
-                )}
-                {selectedLanguages.length > 0 && workSchedule.length > 0 && (
+                {selectedLanguages.length > 0 && (
                   <p className="text-green-600">✅ Ready to create doctor account</p>
                 )}
               </div>

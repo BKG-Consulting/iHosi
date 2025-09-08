@@ -72,8 +72,16 @@ export const processAppointments = async (appointments: Appointment[]) => {
 };
 
 export async function getPatientDashboardStatistics(id: string) {
+  console.log("=== getPatientDashboardStatistics FUNCTION START ===");
+  console.log("Function called with ID:", id);
+  console.log("ID type:", typeof id);
+  console.log("ID length:", id?.length);
+  
   try {
+    console.log("Entering try block...");
+    
     if (!id) {
+      console.log("No ID provided");
       return {
         success: false,
         message: "No data found",
@@ -81,6 +89,8 @@ export async function getPatientDashboardStatistics(id: string) {
       };
     }
 
+    console.log("About to query database for patient with ID:", id);
+    
     const data = await db.patient.findUnique({
       where: { id },
       select: {
@@ -93,7 +103,13 @@ export async function getPatientDashboardStatistics(id: string) {
       },
     });
 
+    console.log("Database query completed");
+    console.log("Patient data query result:", data);
+    console.log("Patient data type:", typeof data);
+    console.log("Patient data keys:", data ? Object.keys(data) : "null");
+
     if (!data) {
+      console.log("Patient data not found in database");
       return {
         success: false,
         message: "Patient data not found",
@@ -134,7 +150,7 @@ export async function getPatientDashboardStatistics(id: string) {
     );
     
     // Decrypt appointment data including doctor and patient information
-    const decryptedAppointments = appointments.map(appointment => ({
+    const decryptedAppointments = appointments.map((appointment: any) => ({
       ...appointment,
       doctor: appointment.doctor ? PHIEncryption.decryptDoctorData(appointment.doctor) : null,
       patient: appointment.patient ? PHIEncryption.decryptPatientData(appointment.patient) : null
@@ -144,38 +160,95 @@ export async function getPatientDashboardStatistics(id: string) {
 
     const today = daysOfWeek[new Date().getDay()];
 
-    const availableDoctor = await db.doctor.findMany({
-      select: {
-        id: true,
-        name: true,
-        specialization: true,
-        img: true,
-        working_days: true,
-        colorCode: true,
-      },
-      where: {
-        working_days: {
-          some: {
-            day_of_week: {
-              equals: today,
-              mode: "insensitive",
+    // Try to get available doctors, but don't fail the entire request if this fails
+    type AvailableDoctor = {
+      id: string;
+      name: string;
+      specialization: string;
+      img: string | null;
+      colorCode: string | null;
+      availability_status: string;
+      working_days: Array<{
+        day_of_week: string;
+        start_time: string;
+        end_time: string;
+        is_working: boolean;
+      }>;
+    };
+    
+    let availableDoctor: AvailableDoctor[] = [];
+    try {
+      availableDoctor = await db.doctor.findMany({
+        select: {
+          id: true,
+          name: true,
+          specialization: true,
+          img: true,
+          colorCode: true,
+          availability_status: true,
+          working_days: {
+            where: {
+              day_of_week: {
+                equals: today,
+                mode: "insensitive",
+              },
+              is_working: true,
+            },
+            select: {
+              day_of_week: true,
+              start_time: true,
+              end_time: true,
+              is_working: true,
             },
           },
         },
-      },
-      take: 4,
-    });
+        where: {
+          availability_status: 'AVAILABLE',
+          working_days: {
+            some: {
+              day_of_week: {
+                equals: today,
+                mode: "insensitive",
+              },
+              is_working: true,
+            },
+          },
+        },
+        take: 4,
+      });
+    } catch (error) {
+      console.error('Error fetching available doctors:', error);
+      // Continue with empty array if doctors query fails
+      availableDoctor = [];
+    }
 
     // Decrypt available doctor data
-    const decryptedAvailableDoctors = availableDoctor.map(doctor => 
+    const decryptedAvailableDoctors = availableDoctor.map((doctor) => 
       PHIEncryption.decryptDoctorData(doctor)
     );
 
     // Decrypt PHI data before returning
-    const decryptedData = data ? PHIEncryption.decryptPatientData(data) : null;
+    console.log("=== DECRYPTION DEBUG ===");
+    console.log("Raw patient data before decryption:", data);
+    console.log("Data type:", typeof data);
+    console.log("Data keys:", data ? Object.keys(data) : "null");
+    
+    let decryptedData = null;
+    try {
+      decryptedData = data ? PHIEncryption.decryptPatientData(data) : null;
+      console.log("Decryption successful:", !!decryptedData);
+      console.log("Decrypted data:", decryptedData);
+    } catch (decryptError) {
+      console.error("Decryption failed:", decryptError);
+      console.error("Decryption error message:", decryptError instanceof Error ? decryptError.message : "Unknown error");
+      decryptedData = null;
+    }
+
+    // Use decrypted data if available, otherwise use raw data
+    const finalPatientData = decryptedData || data;
 
     // Audit log for patient data access
-    if (decryptedData) {
+    if (finalPatientData) {
       await logAudit({
         action: 'READ',
         resourceType: 'PATIENT',
@@ -184,14 +257,15 @@ export async function getPatientDashboardStatistics(id: string) {
         reason: 'Dashboard data access',
         phiAccessed: ['personal_info', 'contact_info'],
         metadata: {
-          accessType: 'dashboard_summary'
+          accessType: 'dashboard_summary',
+          decryptionSuccessful: !!decryptedData
         }
       });
     }
-
-    return {
+    
+    const finalResult = {
       success: true,
-      data: decryptedData,
+      data: finalPatientData,
       appointmentCounts,
       last5Records,
       totalAppointments: appointments.length,
@@ -199,8 +273,21 @@ export async function getPatientDashboardStatistics(id: string) {
       monthlyData,
       status: 200,
     };
+
+    console.log("=== FINAL RESULT FROM getPatientDashboardStatistics ===");
+    console.log("Success:", finalResult.success);
+    console.log("Data exists:", !!finalResult.data);
+    console.log("Data content:", finalResult.data);
+    console.log("Appointment counts:", finalResult.appointmentCounts);
+    console.log("Total appointments:", finalResult.totalAppointments);
+    console.log("Available doctors count:", finalResult.availableDoctor?.length || 0);
+
+    return finalResult;
   } catch (error) {
-    console.log(error);
+    console.log("=== ERROR IN getPatientDashboardStatistics ===");
+    console.log("Error:", error);
+    console.log("Error message:", error instanceof Error ? error.message : "Unknown error");
+    console.log("Error stack:", error instanceof Error ? error.stack : "No stack trace");
     return { success: false, message: "Internal Server Error", status: 500 };
   }
 }
@@ -359,7 +446,7 @@ export async function getAllPatients({
     ]);
 
     // Decrypt PHI data for all patients
-    const decryptedPatients = patients.map(patient => PHIEncryption.decryptPatientData(patient));
+    const decryptedPatients = patients.map((patient: any) => PHIEncryption.decryptPatientData(patient));
 
     const totalPages = Math.ceil(totalRecords / LIMIT);
 

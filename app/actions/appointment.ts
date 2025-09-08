@@ -5,7 +5,7 @@ import db from "@/lib/db";
 import { AppointmentSchema, VitalSignsSchema } from "@/lib/schema";
 import { HIPAAAuthService } from "@/lib/auth/hipaa-auth";
 import { cookies } from "next/headers";
-import { AppointmentStatus } from "@prisma/client";
+// Remove this import - AppointmentStatus is not exported from Prisma client
 import { notificationService } from "@/lib/notifications";
 import { reminderScheduler } from "@/lib/reminder-scheduler";
 import { logAudit } from "@/lib/audit";
@@ -66,7 +66,7 @@ export async function createNewAppointment(data: any) {
         type: validated.type,
         appointment_date: new Date(validated.appointment_date),
         note: validated.note,
-        status: AppointmentStatus.PENDING,
+        status: 'PENDING',
         reason: data.reason || 'General consultation',
       },
       include: {
@@ -131,7 +131,7 @@ export async function createNewAppointment(data: any) {
 
 export async function appointmentAction(
   id: string | number,
-  status: AppointmentStatus,
+  status: string,
   reason: string
 ) {
   try {
@@ -152,7 +152,7 @@ export async function appointmentAction(
     const updatedAppointment = await db.appointment.update({
       where: { id: Number(id) },
       data: {
-        status,
+        status: status as any,
         reason,
       },
       include: {
