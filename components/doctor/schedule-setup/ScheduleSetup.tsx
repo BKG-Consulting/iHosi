@@ -78,34 +78,130 @@ export const ScheduleSetup: React.FC<ScheduleSetupProps> = ({
   onScheduleUpdate
 }) => {
   const [activeTab, setActiveTab] = useState('working-hours');
-  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([
-    { day: 'Monday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
-    { day: 'Tuesday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
-    { day: 'Wednesday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
-    { day: 'Thursday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
-    { day: 'Friday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
-    { day: 'Saturday', isWorking: false, startTime: '09:00', endTime: '13:00', maxAppointments: 10 },
-    { day: 'Sunday', isWorking: false, startTime: '09:00', endTime: '13:00', maxAppointments: 5 },
-  ]);
-  
-  const [templates, setTemplates] = useState<ScheduleTemplate[]>([
-    {
-      id: 'default',
-      name: 'Standard Schedule',
-      description: 'Regular 9-5 schedule with lunch break',
-      workingHours: workingHours,
-      appointmentDuration: 30,
-      bufferTime: 5,
-      isDefault: true
-    }
-  ]);
-  
+  const [workingHours, setWorkingHours] = useState<WorkingHours[]>([]);
+  const [templates, setTemplates] = useState<ScheduleTemplate[]>([]);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>([]);
   const [appointmentDuration, setAppointmentDuration] = useState(30);
   const [bufferTime, setBufferTime] = useState(5);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const daysOfWeek = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+
+  // Fetch schedule data on component mount
+  const fetchScheduleData = async () => {
+    try {
+      setIsInitialLoading(true);
+      const response = await fetch(`/api/doctors/${doctorId}/schedule`, {
+        method: 'GET',
+        credentials: 'include',
+      });
+
+      const result = await response.json();
+
+      if (response.ok && result.success) {
+        const schedule = result.data;
+        
+        // Set working hours with proper defaults if not found
+        if (schedule.workingHours && schedule.workingHours.length > 0) {
+          setWorkingHours(schedule.workingHours);
+        } else {
+          // Set default working hours if none exist
+          const defaultWorkingHours = daysOfWeek.map(day => ({
+            day,
+            isWorking: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day),
+            startTime: '09:00',
+            endTime: '17:00',
+            breakStart: '12:00',
+            breakEnd: '13:00',
+            maxAppointments: 20
+          }));
+          setWorkingHours(defaultWorkingHours);
+        }
+
+        // Set appointment settings
+        if (schedule.appointmentDuration) {
+          setAppointmentDuration(schedule.appointmentDuration);
+        }
+        if (schedule.bufferTime) {
+          setBufferTime(schedule.bufferTime);
+        }
+
+        // Set leave requests
+        if (schedule.leaveRequests) {
+          setLeaveRequests(schedule.leaveRequests);
+        }
+
+        // Set default template if none exist
+        const defaultTemplate: ScheduleTemplate = {
+          id: 'default',
+          name: 'Standard Schedule',
+          description: 'Regular 9-5 schedule with lunch break',
+          workingHours: schedule.workingHours || workingHours,
+          appointmentDuration: schedule.appointmentDuration || 30,
+          bufferTime: schedule.bufferTime || 5,
+          isDefault: true
+        };
+        setTemplates([defaultTemplate]);
+      } else {
+        // Set default data if API fails
+        const defaultWorkingHours = daysOfWeek.map(day => ({
+          day,
+          isWorking: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day),
+          startTime: '09:00',
+          endTime: '17:00',
+          breakStart: '12:00',
+          breakEnd: '13:00',
+          maxAppointments: 20
+        }));
+        setWorkingHours(defaultWorkingHours);
+        
+        const defaultTemplate: ScheduleTemplate = {
+          id: 'default',
+          name: 'Standard Schedule',
+          description: 'Regular 9-5 schedule with lunch break',
+          workingHours: defaultWorkingHours,
+          appointmentDuration: 30,
+          bufferTime: 5,
+          isDefault: true
+        };
+        setTemplates([defaultTemplate]);
+      }
+    } catch (error) {
+      console.error('Error fetching schedule data:', error);
+      toast.error('Failed to load schedule data');
+      
+      // Set default data on error
+      const defaultWorkingHours = daysOfWeek.map(day => ({
+        day,
+        isWorking: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'].includes(day),
+        startTime: '09:00',
+        endTime: '17:00',
+        breakStart: '12:00',
+        breakEnd: '13:00',
+        maxAppointments: 20
+      }));
+      setWorkingHours(defaultWorkingHours);
+      
+      const defaultTemplate: ScheduleTemplate = {
+        id: 'default',
+        name: 'Standard Schedule',
+        description: 'Regular 9-5 schedule with lunch break',
+        workingHours: defaultWorkingHours,
+        appointmentDuration: 30,
+        bufferTime: 5,
+        isDefault: true
+      };
+      setTemplates([defaultTemplate]);
+    } finally {
+      setIsInitialLoading(false);
+    }
+  };
+
+  // Load data on component mount
+  useEffect(() => {
+    fetchScheduleData();
+  }, [doctorId]);
 
   const handleWorkingHoursChange = (day: string, field: keyof WorkingHours, value: any) => {
     setWorkingHours(prev => prev.map(dayHours => 
@@ -138,6 +234,10 @@ export const ScheduleSetup: React.FC<ScheduleSetupProps> = ({
       }
       
       toast.success('Schedule saved successfully!');
+      
+      // Refresh the data to show the updated schedule
+      await fetchScheduleData();
+      
       onScheduleUpdate?.({
         workingHours,
         appointmentDuration,
@@ -233,6 +333,20 @@ export const ScheduleSetup: React.FC<ScheduleSetupProps> = ({
       default: return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
+
+  // Show loading state while fetching initial data
+  if (isInitialLoading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center gap-3">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#046658]"></div>
+            <span className="text-[#3E4C4B] font-medium">Loading schedule...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

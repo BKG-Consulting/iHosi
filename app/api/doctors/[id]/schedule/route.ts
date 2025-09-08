@@ -50,11 +50,20 @@ export async function GET(
       return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
     }
 
-    // Fetch doctor's working days
-    const workingDays = await db.workingDays.findMany({
-      where: { doctor_id: doctorId },
-      orderBy: { day_of_week: 'asc' }
-    });
+    // Fetch doctor's working days and profile
+    const [workingDays, doctor] = await Promise.all([
+      db.workingDays.findMany({
+        where: { doctor_id: doctorId },
+        orderBy: { day_of_week: 'asc' }
+      }),
+      db.doctor.findUnique({
+        where: { id: doctorId },
+        select: {
+          appointment_duration: true,
+          buffer_time: true
+        }
+      })
+    ]);
 
     // Fetch doctor's availability updates
     const availabilityUpdates = await db.availabilityUpdate.findMany({
@@ -87,8 +96,8 @@ export async function GET(
 
     const schedule = {
       workingHours,
-      appointmentDuration: 30, // Default, could be stored in doctor profile
-      bufferTime: 5, // Default, could be stored in doctor profile
+      appointmentDuration: doctor?.appointment_duration || 30,
+      bufferTime: doctor?.buffer_time || 5,
       availabilityUpdates,
       leaveRequests: leaveRequests.map(leave => ({
         id: leave.id.toString(),
@@ -201,8 +210,9 @@ export async function PUT(
       await tx.doctor.update({
         where: { id: doctorId },
         data: {
+          appointment_duration: validatedData.appointmentDuration,
+          buffer_time: validatedData.bufferTime,
           updated_at: new Date()
-          // Could add appointment_duration and buffer_time fields to doctor table
         }
       });
     });
