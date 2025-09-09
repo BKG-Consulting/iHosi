@@ -3,10 +3,10 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "npm run build && node server.js",
-    "dev:next": "next dev",
+    "dev": "next dev",
+    "dev:build": "npm run build && next start",
     "build": "prisma generate && next build",
-    "start": "node server.js",
+    "start": "next start",
     "postinstall": "prisma generate",
     "lint": "next lint",
     "test": "jest",
