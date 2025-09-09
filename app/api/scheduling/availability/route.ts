@@ -349,7 +349,7 @@ export async function GET(request: NextRequest) {
     const availability: DoctorAvailability = {
       id: doctor.id,
       doctorId: doctor.id,
-      status: (doctor.availability_status as AvailabilityStatus) || AvailabilityStatus.AVAILABLE,
+      status: (doctor.availability_status as any) || AvailabilityStatus.AVAILABLE,
       workingDays: doctor.working_days.map(wd => ({
         id: wd.id,
         doctorId: wd.doctor_id,
@@ -366,11 +366,11 @@ export async function GET(request: NextRequest) {
       leaveRequests: doctor.leave_requests.map(lr => ({
         id: lr.id,
         doctorId: lr.doctor_id,
-        leaveType: lr.leave_type,
+        leaveType: lr.leave_type as any,
         startDate: lr.start_date,
         endDate: lr.end_date,
         reason: lr.reason,
-        status: lr.status,
+        status: lr.status as any,
         approvedBy: lr.approved_by || undefined,
         approvedAt: lr.approved_at || undefined,
         notes: lr.notes || undefined,
@@ -380,7 +380,7 @@ export async function GET(request: NextRequest) {
       availabilityUpdates: doctor.availability_updates.map(au => ({
         id: au.id,
         doctorId: au.doctor_id,
-        updateType: au.update_type,
+        updateType: au.update_type as any,
         effectiveDate: au.effective_date,
         endDate: au.end_date || undefined,
         reason: au.reason || undefined,

@@ -23,9 +23,9 @@ import {
   CreateAppointmentRequest,
   UpdateAppointmentRequest,
   APPOINTMENT_TYPES,
-  PRIORITY_LEVELS
+  PRIORITY_LEVELS,
+  AppointmentStatus
 } from '@/types/scheduling';
-import { AppointmentStatus } from '@prisma/client';
 
 interface AppointmentCalendarProps {
   doctorId: string;

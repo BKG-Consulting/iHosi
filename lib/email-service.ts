@@ -358,4 +358,28 @@ export class EmailService {
       console.log('Email HTML:', options.template.html);
     }
   }
+
+  /**
+   * Public method for email scheduler compatibility
+   */
+  static async sendSimpleEmail(to: string, subject: string, body: string): Promise<boolean> {
+    try {
+      const template: EmailTemplate = {
+        subject,
+        html: body,
+        text: body.replace(/<[^>]*>/g, '') // Strip HTML tags for text version
+      };
+
+      await this.sendEmail({
+        to,
+        template,
+        category: 'notification'
+      });
+
+      return true;
+    } catch (error) {
+      console.error('Failed to send email:', error);
+      return false;
+    }
+  }
 }

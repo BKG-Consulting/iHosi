@@ -1,14 +1,26 @@
 // Comprehensive Scheduling System Type Definitions
-import { 
-  AppointmentStatus, 
-  AvailabilityStatus, 
-  LeaveType, 
-  LeaveStatus, 
+
+// Import Prisma enums first
+import {
+  AppointmentStatus,
+  AvailabilityStatus,
+  LeaveType,
+  LeaveStatus,
   AvailabilityUpdateType,
-  JOBTYPE 
-} from "@prisma/client";
+} from './enums';
+
+// Re-export for external use
+export {
+  AppointmentStatus,
+  AvailabilityStatus,
+  LeaveType,
+  LeaveStatus,
+  AvailabilityUpdateType,
+};
 
 // ===== CORE SCHEDULING TYPES =====
+
+export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export interface TimeSlot {
   start: string; // HH:MM format
@@ -51,7 +63,7 @@ export interface AppointmentRequest {
   note?: string;
   serviceId?: number;
   duration?: number; // in minutes
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  priority?: PriorityLevel;
   isRecurring?: boolean;
   recurringPattern?: RecurringPattern;
 }
@@ -77,7 +89,7 @@ export interface AppointmentDetails {
   reason?: string;
   serviceId?: number;
   duration: number;
-  priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  priority: PriorityLevel;
   isRecurring: boolean;
   recurringPattern?: RecurringPattern;
   calendarEventId?: string;
@@ -345,7 +357,7 @@ export interface CreateAppointmentRequest {
   note?: string;
   serviceId?: number;
   duration?: number;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  priority?: PriorityLevel;
   isRecurring?: boolean;
   recurringPattern?: RecurringPattern;
 }
@@ -359,7 +371,7 @@ export interface UpdateAppointmentRequest {
   note?: string;
   serviceId?: number;
   duration?: number;
-  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+  priority?: PriorityLevel;
   status?: AppointmentStatus;
 }
 
@@ -491,8 +503,6 @@ export type AppointmentType =
   | 'PROCEDURE' 
   | 'THERAPY' 
   | 'VACCINATION';
-
-export type PriorityLevel = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 
 export type RecurringFrequency = 'DAILY' | 'WEEKLY' | 'MONTHLY';
 

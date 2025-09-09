@@ -1,16 +1,16 @@
 import React from "react";
-import { BookAppointment } from "./forms/book-appointment";
+import { ImprovedBookAppointment } from "./forms/improved-book-appointment";
 import { getPatientById } from "@/utils/services/patient";
 import { getDoctors } from "@/utils/services/doctor";
 
 export const AppointmentContainer = async ({ id }: { id: string }) => {
   const { data } = await getPatientById(id);
-  // Only get available doctors for patient booking
-  const { data: doctors } = await getDoctors(false);
+  // Get all doctors initially - filtering will happen in the improved form based on date/time selection
+  const { data: doctors } = await getDoctors(true);
 
   return (
     <div>
-      <BookAppointment data={data!} doctors={doctors!} />
+      <ImprovedBookAppointment data={data!} doctors={doctors!} />
     </div>
   );
 };

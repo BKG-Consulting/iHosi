@@ -11,9 +11,10 @@ import {
   AppointmentListResponse,
   SchedulingApiResponse,
   GetAvailabilityRequest,
-  GetAvailableSlotsRequest
+  GetAvailableSlotsRequest,
+  AppointmentStatus,
+  AvailabilityStatus
 } from '@/types/scheduling';
-import { AppointmentStatus } from '@prisma/client';
 
 export class SchedulingService {
   private baseUrl: string;
@@ -101,7 +102,7 @@ export class SchedulingService {
         availability: {
           id: 'fallback',
           doctorId: params.doctorId,
-          status: 'AVAILABLE',
+          status: AvailabilityStatus.AVAILABLE,
           workingDays: [],
           leaveRequests: [],
           availabilityUpdates: [],

@@ -404,10 +404,8 @@ export class EmailScheduler {
       console.log(`📧 Body length: ${body.length} characters`);
 
       // Use the real email service
-      const { SendGridEmailService } = require('./email-service');
-      const emailService = new SendGridEmailService();
-      
-      const success = await emailService.sendEmail(
+      const { EmailService } = require('./email-service');
+      const success = await EmailService.sendSimpleEmail(
         job.context.recipientEmail,
         subject,
         body

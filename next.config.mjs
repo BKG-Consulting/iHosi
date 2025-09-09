@@ -16,6 +16,17 @@ const nextConfig = {
   
   // Bundle optimization
   webpack: (config, { dev, isServer }) => {
+    // Handle Socket.IO server-side only
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        crypto: false,
+      };
+    }
+
     // Optimize bundle size
     if (!dev && !isServer) {
       config.optimization.splitChunks = {

@@ -1,5 +1,3 @@
-import { auth } from "@clerk/nextjs/server";
-import { headers } from "next/headers";
 import db from "./db";
 
 export interface AuditLogParams {
@@ -14,28 +12,17 @@ export interface AuditLogParams {
   metadata?: Record<string, any>;
 }
 
-export async function logAudit(params: AuditLogParams) {
+export async function logAudit(params: AuditLogParams, context?: {
+  userId?: string;
+  userRole?: string;
+  userAgent?: string;
+  ipAddress?: string;
+}) {
   try {
-    let userId = 'SYSTEM';
-    let userRole = 'SYSTEM';
-    let userAgent = 'Unknown';
-    let ipAddress = 'Unknown';
-    
-    try {
-      const { userId: authUserId, sessionClaims } = await auth();
-      const headersList = await headers();
-      
-      userId = authUserId || 'SYSTEM';
-      userRole = sessionClaims?.metadata?.role || 'SYSTEM';
-      userAgent = headersList.get('user-agent') || 'Unknown';
-      
-      const forwardedFor = headersList.get('x-forwarded-for');
-      const realIp = headersList.get('x-real-ip');
-      ipAddress = forwardedFor?.split(',')[0] || realIp || 'Unknown';
-    } catch (authError) {
-      // If auth fails (e.g., outside request scope), use system defaults
-      console.warn('Auth context not available for audit logging, using system defaults:', authError instanceof Error ? authError.message : String(authError));
-    }
+    const userId = context?.userId || 'SYSTEM';
+    const userRole = context?.userRole || 'SYSTEM';
+    const userAgent = context?.userAgent || 'Unknown';
+    const ipAddress = context?.ipAddress || 'Unknown';
     
     // Create audit log entry
     await db.auditLog.create({

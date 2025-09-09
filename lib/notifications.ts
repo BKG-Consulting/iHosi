@@ -729,6 +729,62 @@ export class NotificationService {
   }
 
   // Send appointment confirmation using template
+  async sendAppointmentScheduledTemplate(
+    appointment: Appointment & { patient: Patient; doctor: Doctor },
+    strategy: SchedulingStrategy = SchedulingStrategy.IMMEDIATE
+  ): Promise<string> {
+    try {
+      const patientData = await this.getPatientData(appointment.patient_id);
+      const doctorData = await this.getDoctorData(appointment.doctor_id);
+      
+      if (!patientData || !doctorData) {
+        throw new Error('Failed to retrieve patient or doctor data');
+      }
+
+      // Create template context
+      const context: TemplateContext = {
+        recipientName: `${patientData.first_name} ${patientData.last_name}`,
+        recipientEmail: await this.getRecipientEmail(appointment.patient_id, 'PATIENT') || '',
+        recipientPhone: await this.getRecipientPhone(appointment.patient_id, 'PATIENT') || undefined,
+        appointmentId: appointment.id.toString(),
+        appointmentType: appointment.type,
+        appointmentDate: this.formatDate(appointment.appointment_date),
+        appointmentTime: appointment.time,
+        doctorName: doctorData.name,
+        doctorSpecialization: doctorData.specialization,
+        facilityName: 'iHosi Healthcare',
+        supportPhone: '+1 (555) 123-4567',
+        supportEmail: 'info@ihosi.com',
+        websiteUrl: 'https://ihosi.com'
+      };
+
+      // Send using template notification method
+      const jobId = await this.sendTemplateNotification(
+        'appointment_scheduled',
+        context,
+        strategy,
+        NotificationPriority.HIGH
+      );
+
+      // Log the notification
+      await this.logNotification({
+        type: NotificationType.APPOINTMENT_BOOKED,
+        channel: NotificationChannel.EMAIL,
+        recipientId: appointment.patient_id,
+        recipientType: 'PATIENT',
+        appointmentId: appointment.id,
+        templateId: 'appointment_scheduled',
+        jobId: jobId,
+        priority: NotificationPriority.HIGH
+      });
+
+      return jobId;
+    } catch (error) {
+      console.error('Error sending appointment scheduled template:', error);
+      throw error;
+    }
+  }
+
   async sendAppointmentConfirmationTemplate(
     appointment: Appointment & { patient: Patient; doctor: Doctor },
     strategy: SchedulingStrategy = SchedulingStrategy.IMMEDIATE
@@ -826,6 +882,41 @@ export class NotificationService {
   // Get email scheduler for external access
   getEmailScheduler(): EmailScheduler {
     return this.emailScheduler;
+  }
+
+  // Log notification to database
+  private async logNotification(data: {
+    type: NotificationType;
+    channel: NotificationChannel;
+    recipientId: string;
+    recipientType: 'PATIENT' | 'DOCTOR' | 'ADMIN';
+    appointmentId?: number;
+    templateId?: string;
+    jobId?: string;
+    priority: NotificationPriority;
+  }): Promise<void> {
+    try {
+      await db.auditLog.create({
+        data: {
+          user_id: data.recipientId,
+          record_id: data.appointmentId?.toString() || data.templateId || 'notification',
+          action: `NOTIFICATION_${data.type}`,
+          details: JSON.stringify({
+            type: data.type,
+            channel: data.channel,
+            recipientType: data.recipientType,
+            templateId: data.templateId,
+            jobId: data.jobId,
+            priority: data.priority,
+            status: NotificationStatus.PENDING,
+            timestamp: new Date().toISOString()
+          }),
+          model: 'NOTIFICATION'
+        }
+      });
+    } catch (error) {
+      console.error('Failed to log notification:', error);
+    }
   }
 }
 

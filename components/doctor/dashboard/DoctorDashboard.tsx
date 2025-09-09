@@ -33,6 +33,8 @@ import { useScheduling } from '@/hooks/useScheduling';
 import { CreateAppointmentRequest, UpdateAppointmentRequest } from '@/types/scheduling';
 import { AvailabilityToggle } from '@/components/doctor/availability-toggle';
 import { AppointmentRequests } from '@/components/doctor/appointment-requests';
+import { EnhancedAppointmentRequests } from '@/components/doctor/enhanced-appointment-requests';
+import { RealTimeNotifications } from '@/components/doctor/real-time-notifications';
 import { ScheduleSetup } from '@/components/doctor/schedule-setup/ScheduleSetup';
 import { TimeSlotManager } from '@/components/doctor/schedule-setup/TimeSlotManager';
 import { ConflictDetector } from '@/components/doctor/schedule-setup/ConflictDetector';
@@ -231,6 +233,11 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
           </div>
           
           <div className="flex items-center gap-3">
+            <RealTimeNotifications 
+              doctorId={doctor.id}
+              doctorName={doctor.name}
+              doctorEmail={doctor.email}
+            />
             <Button
               onClick={handleAvailabilityToggle}
               className={cn(
@@ -559,7 +566,7 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
 
           {/* Requests Tab */}
           <TabsContent value="requests" className="space-y-6">
-            <AppointmentRequests doctorId={doctor.id} />
+            <EnhancedAppointmentRequests doctorId={doctor.id} />
           </TabsContent>
 
           {/* Scheduling Tab */}

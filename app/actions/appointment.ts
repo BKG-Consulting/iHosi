@@ -57,6 +57,69 @@ export async function createNewAppointment(data: any) {
       return { success: false, msg: "Doctor is not available for new appointments" };
     }
 
+    // Check if doctor works on the selected date
+    const appointmentDate = new Date(validated.appointment_date);
+    const dayOfWeek = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
+    
+    console.log(`🔍 Checking doctor availability for ${validated.doctor_id} on ${dayOfWeek} (${validated.appointment_date})`);
+    
+    // First, let's check what working days this doctor has
+    const allWorkingDays = await db.workingDays.findMany({
+      where: {
+        doctor_id: validated.doctor_id
+      }
+    });
+    
+    console.log(`📅 Doctor's working days:`, allWorkingDays.map((wd: any) => `${wd.day_of_week}: ${wd.is_working ? 'working' : 'not working'} (${wd.start_time}-${wd.end_time})`));
+    
+    const workingDay = await db.workingDays.findFirst({
+      where: {
+        doctor_id: validated.doctor_id,
+        day_of_week: {
+          equals: dayOfWeek,
+          mode: 'insensitive'
+        },
+        is_working: true
+      }
+    });
+
+    if (!workingDay) {
+      console.log(`❌ No working day found for ${dayOfWeek}`);
+      return { success: false, msg: `Doctor is not available on ${dayOfWeek}. Please check the doctor's schedule.` };
+    }
+    
+    console.log(`✅ Found working day: ${workingDay.day_of_week} (${workingDay.start_time}-${workingDay.end_time})`);
+
+    // Check if selected time is within working hours
+    const [timeHours, timeMinutes] = validated.time.split(':').map(Number);
+    const [workStartHours, workStartMinutes] = workingDay.start_time.split(':').map(Number);
+    const [workEndHours, workEndMinutes] = workingDay.end_time.split(':').map(Number);
+
+    const appointmentTime = timeHours * 60 + timeMinutes;
+    const workStartTime = workStartHours * 60 + workStartMinutes;
+    const workEndTime = workEndHours * 60 + workEndMinutes;
+
+    if (appointmentTime < workStartTime || appointmentTime >= workEndTime) {
+      return { success: false, msg: "Selected time is outside doctor's working hours" };
+    }
+
+    // Check for existing appointments at the same time
+    const existingAppointment = await db.appointment.findFirst({
+      where: {
+        doctor_id: validated.doctor_id,
+        appointment_date: {
+          gte: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate()),
+          lt: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate() + 1),
+        },
+        time: validated.time,
+        status: { in: ['PENDING', 'SCHEDULED'] }
+      }
+    });
+
+    if (existingAppointment) {
+      return { success: false, msg: "Time slot is already booked" };
+    }
+
     // Create the appointment request (PENDING status)
     const appointment = await db.appointment.create({
       data: {
@@ -86,6 +149,30 @@ export async function createNewAppointment(data: any) {
     } catch (notificationError) {
       console.error(`Failed to send notifications for appointment ${appointment.id}:`, notificationError);
       // Don't fail the appointment creation if notifications fail
+    }
+
+    // Send real-time socket notification to doctor
+    try {
+      const { getSocketService } = await import('@/lib/socket-server');
+      const socketService = getSocketService();
+      
+      if (socketService) {
+        await socketService.sendAppointmentRequest(validated.doctor_id, {
+          appointmentId: appointment.id,
+          patientId: appointment.patient_id,
+          patientName: `${appointment.patient.first_name} ${appointment.patient.last_name}`,
+          appointmentDate: appointment.appointment_date.toISOString().split('T')[0],
+          appointmentTime: appointment.time,
+          appointmentType: appointment.type,
+          reason: appointment.reason || undefined,
+          note: appointment.note || undefined,
+          timestamp: new Date()
+        });
+        console.log(`✅ Real-time notification sent to doctor ${validated.doctor_id}`);
+      }
+    } catch (socketError) {
+      console.error(`Failed to send real-time notification for appointment ${appointment.id}:`, socketError);
+      // Don't fail the appointment creation if socket notifications fail
     }
 
     // Schedule reminders using the smart scheduler

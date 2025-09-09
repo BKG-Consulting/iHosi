@@ -1,4 +1,3 @@
-import { Appointment, Doctor, Patient } from '@prisma/client';
 
 // Notification types
 export enum NotificationType {
@@ -242,6 +241,23 @@ export class TemplateRegistry {
     });
 
     this.registerTemplate({
+      id: 'appointment_scheduled',
+      name: 'Appointment Scheduled Email',
+      description: 'Email sent when appointment is scheduled by doctor',
+      version: '1.0.0',
+      type: NotificationType.APPOINTMENT_BOOKED,
+      channel: NotificationChannel.EMAIL,
+      subject: 'Your Appointment Has Been Scheduled - {{appointmentType}}',
+      body: this.getDefaultAppointmentScheduledEmail(),
+      variables: ['recipientName', 'appointmentType', 'appointmentDate', 'appointmentTime', 'doctorName', 'requirements', 'notes'],
+      fallbacks: {
+        appointmentType: 'Medical Appointment',
+        doctorName: 'Your Healthcare Provider',
+        requirements: 'Please bring your ID and insurance card'
+      }
+    });
+
+    this.registerTemplate({
       id: 'appointment-reminder-email',
       name: 'Appointment Reminder Email',
       description: 'Email sent as appointment reminder',
@@ -481,6 +497,88 @@ export class TemplateRegistry {
         </div>
         <p>Please arrive 15 minutes before your scheduled time. If you need to reschedule or cancel, please contact us at least 24 hours in advance.</p>
         <p>Best regards,<br>{{facilityName}} Team</p>
+      </div>
+    `;
+  }
+
+  private getDefaultAppointmentScheduledEmail(): string {
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(135deg, #046658 0%, #2EB6B0 100%); padding: 20px; border-radius: 12px;">
+        <div style="background: white; padding: 30px; border-radius: 8px;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="color: #046658; margin: 0; font-size: 28px;">Your Appointment Has Been Scheduled!</h1>
+            <p style="color: #3E4C4B; margin: 10px 0 0 0; font-size: 16px;">iHosi Healthcare</p>
+          </div>
+          
+          <p style="color: #3E4C4B; font-size: 16px; margin-bottom: 20px;">Dear {{recipientName}},</p>
+          
+          <p style="color: #3E4C4B; font-size: 16px; margin-bottom: 25px;">
+            Great news! Your appointment has been confirmed and scheduled. Here are all the details you need:
+          </p>
+          
+          <div style="background: linear-gradient(135deg, #F5F7FA 0%, #D1F1F2 100%); padding: 25px; border-radius: 12px; margin: 25px 0; border-left: 4px solid #046658;">
+            <h3 style="color: #046658; margin: 0 0 15px 0; font-size: 20px;">📅 Appointment Details</h3>
+            <div style="display: grid; gap: 12px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #2EB6B0; font-weight: bold;">Type:</span>
+                <span style="color: #3E4C4B;">{{appointmentType}}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #2EB6B0; font-weight: bold;">Date:</span>
+                <span style="color: #3E4C4B;">{{appointmentDate}}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #2EB6B0; font-weight: bold;">Time:</span>
+                <span style="color: #3E4C4B;">{{appointmentTime}}</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="color: #2EB6B0; font-weight: bold;">Doctor:</span>
+                <span style="color: #3E4C4B;">Dr. {{doctorName}}</span>
+              </div>
+            </div>
+          </div>
+          
+          <div style="background: #F5F7FA; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #2EB6B0;">
+            <h3 style="color: #046658; margin: 0 0 15px 0; font-size: 18px;">📋 Preparation Requirements</h3>
+            <p style="color: #3E4C4B; margin: 0; line-height: 1.6;">{{requirements}}</p>
+          </div>
+          
+          {{#if notes}}
+          <div style="background: #FFF8E1; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #FFA726;">
+            <h3 style="color: #E65100; margin: 0 0 15px 0; font-size: 18px;">📝 Additional Notes</h3>
+            <p style="color: #3E4C4B; margin: 0; line-height: 1.6;">{{notes}}</p>
+          </div>
+          {{/if}}
+          
+          <div style="background: #E8F5E8; padding: 20px; border-radius: 8px; margin: 25px 0; border-left: 4px solid #4CAF50;">
+            <h3 style="color: #2E7D32; margin: 0 0 15px 0; font-size: 18px;">⏰ Important Reminders</h3>
+            <ul style="color: #3E4C4B; margin: 0; padding-left: 20px; line-height: 1.6;">
+              <li>Please arrive <strong>15 minutes early</strong> for check-in</li>
+              <li>Bring a valid photo ID and insurance card</li>
+              <li>Bring any relevant medical records or test results</li>
+              <li>If you need to reschedule, please call us at least 24 hours in advance</li>
+            </ul>
+          </div>
+          
+          <div style="text-align: center; margin-top: 30px; padding-top: 20px; border-top: 2px solid #D1F1F2;">
+            <p style="color: #3E4C4B; margin: 0 0 10px 0; font-size: 16px;">
+              <strong>Questions or need to reschedule?</strong>
+            </p>
+            <p style="color: #2EB6B0; margin: 0; font-size: 14px;">
+              📞 Call us at +1 (555) 123-4567 | ✉️ Email: info@ihosi.com
+            </p>
+            <p style="color: #3E4C4B; margin: 10px 0 0 0; font-size: 14px;">
+              We look forward to seeing you!
+            </p>
+          </div>
+          
+          <div style="text-align: center; margin-top: 25px;">
+            <p style="color: #046658; font-weight: bold; margin: 0;">
+              Best regards,<br>
+              The iHosi Healthcare Team
+            </p>
+          </div>
+        </div>
       </div>
     `;
   }

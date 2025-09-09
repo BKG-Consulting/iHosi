@@ -31,6 +31,7 @@ interface InputProps {
   inputType?: "text" | "email" | "password" | "date";
   selectList?: { label: string; value: string }[];
   defaultValue?: string;
+  disabled?: boolean;
 }
 
 const RenderInput = ({ field, props }: { field: any; props: InputProps }) => {
@@ -48,7 +49,7 @@ const RenderInput = ({ field, props }: { field: any; props: InputProps }) => {
 
     case "select":
       return (
-        <Select onValueChange={field.onChange} value={field?.value}>
+        <Select onValueChange={field.onChange} value={field?.value} disabled={props.disabled}>
           <FormControl>
             <SelectTrigger>
               <SelectValue placeholder={props.placeholder} />

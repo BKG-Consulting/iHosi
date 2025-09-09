@@ -27,6 +27,59 @@ export async function getDoctors(includeUnavailable: boolean = false) {
     return { success: false, message: "Internal Server Error", status: 500 };
   }
 }
+
+export async function getAvailableDoctorsForBooking(selectedDate?: string, selectedTime?: string) {
+  try {
+    // Get doctors who are marked as available
+    const doctors = await db.doctor.findMany({
+      where: {
+        availability_status: 'AVAILABLE' as const
+      },
+      include: {
+        working_days: true
+      }
+    });
+
+    if (!selectedDate || !selectedTime) {
+      // If no specific date/time, return all available doctors
+      const decryptedData = doctors.map(doctor => PHIEncryption.decryptDoctorData(doctor));
+      return { success: true, data: decryptedData, status: 200 };
+    }
+
+    // Filter doctors based on their working schedule for the selected date
+    const appointmentDate = new Date(selectedDate);
+    const dayOfWeek = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
+    
+    const availableDoctors = doctors.filter(doctor => {
+      // Check if doctor works on this day
+      const workingDay = doctor.working_days.find(day => 
+        day.day_of_week.toLowerCase() === dayOfWeek.toLowerCase() && 
+        day.is_working
+      );
+
+      if (!workingDay) return false;
+
+      // Check if selected time is within working hours
+      const [timeHours, timeMinutes] = selectedTime.split(':').map(Number);
+      const [workStartHours, workStartMinutes] = workingDay.start_time.split(':').map(Number);
+      const [workEndHours, workEndMinutes] = workingDay.end_time.split(':').map(Number);
+
+      const appointmentTime = timeHours * 60 + timeMinutes;
+      const workStartTime = workStartHours * 60 + workStartMinutes;
+      const workEndTime = workEndHours * 60 + workEndMinutes;
+
+      return appointmentTime >= workStartTime && appointmentTime < workEndTime;
+    });
+
+    // Decrypt sensitive doctor data before returning
+    const decryptedData = availableDoctors.map(doctor => PHIEncryption.decryptDoctorData(doctor));
+
+    return { success: true, data: decryptedData, status: 200 };
+  } catch (error) {
+    console.log(error);
+    return { success: false, message: "Internal Server Error", status: 500 };
+  }
+}
 export async function getDoctorDashboardStats() {
   try {
     const { userId } = await auth();
