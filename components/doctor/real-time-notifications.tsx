@@ -16,7 +16,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSocketNotifications } from '@/hooks/useSocketNotifications';
+import { useNotifications } from '@/hooks/useNotifications';
 
 interface RealTimeNotificationsProps {
   doctorId: string;
@@ -35,12 +35,14 @@ export const RealTimeNotifications: React.FC<RealTimeNotificationsProps> = ({
   const {
     isConnected,
     notifications,
+    isLoading,
     clearNotification,
     clearAllNotifications
-  } = useSocketNotifications(doctorId, 'DOCTOR');
+  } = useNotifications(doctorId, 'DOCTOR');
 
   // Track new notifications
   useEffect(() => {
+    console.log('🔔 Notifications updated:', notifications.length, notifications);
     if (notifications.length > 0) {
       setHasNewNotifications(true);
     }
@@ -109,7 +111,9 @@ export const RealTimeNotifications: React.FC<RealTimeNotificationsProps> = ({
           hasNewNotifications && "border-[#2EB6B0] bg-[#2EB6B0]/10"
         )}
       >
-        {isConnected ? (
+        {isLoading ? (
+          <RefreshCw className="w-4 h-4 mr-2 text-blue-500 animate-spin" />
+        ) : isConnected ? (
           <Wifi className="w-4 h-4 mr-2 text-green-500" />
         ) : (
           <WifiOff className="w-4 h-4 mr-2 text-red-500" />
@@ -137,7 +141,7 @@ export const RealTimeNotifications: React.FC<RealTimeNotificationsProps> = ({
               <div>
                 <CardTitle className="text-lg font-bold">Real-time Notifications</CardTitle>
                 <CardDescription className="text-white/90">
-                  {isConnected ? 'Connected' : 'Disconnected'}
+                  {isLoading ? 'Connecting...' : isConnected ? 'Connected' : 'Disconnected'}
                 </CardDescription>
               </div>
               <Button

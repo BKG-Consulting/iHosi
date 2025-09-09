@@ -1,5 +1,5 @@
 import db from "@/lib/db";
-import { auth } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/auth-helpers";
 import { daysOfWeek } from "..";
 import { processAppointments } from "./patient";
 import { PHIEncryption } from "@/lib/encryption";
@@ -82,7 +82,11 @@ export async function getAvailableDoctorsForBooking(selectedDate?: string, selec
 }
 export async function getDoctorDashboardStats() {
   try {
-    const { userId } = await auth();
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, message: "Unauthorized", status: 401 };
+    }
+    const userId = user.id;
 
     const todayDate = new Date().getDay();
     const today = daysOfWeek[todayDate];

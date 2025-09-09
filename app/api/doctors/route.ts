@@ -3,7 +3,8 @@ import db from "@/lib/db";
 import { DoctorSchema } from "@/lib/schema";
 import { PHIEncryption } from "@/lib/encryption";
 import { decryptDoctorData } from "@/lib/data-utils";
-import { clerkClient } from "@clerk/nextjs/server";
+import { getCurrentUser } from "@/lib/auth-helpers";
+import { UserCreationService } from "@/lib/user-creation-service";
 import { EmailService } from "@/lib/email-service";
 
 export async function GET(request: NextRequest) {
@@ -19,23 +20,26 @@ export async function GET(request: NextRequest) {
     }
     
     if (specialization && specialization !== 'all') {
-      whereClause = { ...whereClause, specialization };
+      whereClause = { ...whereClause, specialization: specialization };
     }
 
     const doctors = await db.doctor.findMany({
       where: whereClause,
+      include: {
+        working_days: true
+      },
       orderBy: {
         created_at: 'desc'
       }
     });
 
-    // Decrypt doctor data
+    // Decrypt sensitive data before returning
     const decryptedDoctors = decryptDoctorData(doctors);
 
     return NextResponse.json({
       success: true,
-      doctors: decryptedDoctors,
-      total: decryptedDoctors.length
+      data: decryptedDoctors,
+      message: 'Doctors fetched successfully'
     });
 
   } catch (error) {
@@ -43,8 +47,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to fetch doctors',
-        message: 'Unable to retrieve doctor information at this time'
+        error: 'Internal Server Error',
+        message: 'Failed to fetch doctors'
       },
       { status: 500 }
     );
@@ -53,6 +57,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    // Check if user is authenticated and is admin
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    if (user.role !== 'ADMIN') {
+      return NextResponse.json(
+        { success: false, error: 'Forbidden - Admin access required' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json();
     const { 
       name, email, phone, specialization, address, type, department_id, 
@@ -91,214 +111,83 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Check if user already exists in Clerk
-    const client = await clerkClient();
-    let existingClerkUser = null;
-    try {
-      const existingUser = await client.users.getUserList({
-        emailAddress: [email]
-      });
-      
-      if (existingUser.data.length > 0) {
-        existingClerkUser = existingUser.data[0];
-        console.log('Found existing Clerk user:', {
-          id: existingClerkUser.id,
-          email: existingClerkUser.emailAddresses[0]?.emailAddress,
-          role: existingClerkUser.publicMetadata?.role
-        });
-      }
-    } catch (error) {
-      console.log('No existing Clerk user found, will create new one');
-    }
+    // Strip titles from name (e.g., "Dr. John Doe" -> "John Doe")
+    const cleanName = name.replace(/^(Dr\.|Dr|Mr\.|Mr|Ms\.|Ms|Mrs\.|Mrs)\s+/i, '');
+    const nameParts = cleanName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
 
-    // Create or use existing Clerk user account
-    let clerkUser;
-    if (existingClerkUser) {
-      // Use existing Clerk user
-      clerkUser = existingClerkUser;
-      console.log('Using existing Clerk user for doctor creation');
-      
-      // Update the existing user's metadata if needed
-      try {
-        await client.users.updateUser(existingClerkUser.id, {
-          publicMetadata: { 
-            role: 'doctor',
-            department_id: department_id,
-            user_type: 'doctor',
-            specialization: specialization
-          },
-          privateMetadata: {
-            department_id: department_id,
-            license_number: license_number,
-            specialization: specialization
-          }
-        });
-        console.log('Updated existing Clerk user metadata for doctor');
-      } catch (updateError) {
-        console.warn('Failed to update existing user metadata:', updateError);
-        // Continue anyway, the user exists
-      }
-    } else {
-      // Create new Clerk user account
-      try {
-        // Strip titles from name (e.g., "Dr. John Doe" -> "John Doe")
-        const cleanName = name.replace(/^(Dr\.|Dr|Mr\.|Mr|Ms\.|Ms|Mrs\.|Mrs)\s+/i, '');
-        const nameParts = cleanName.split(' ');
-        const firstName = nameParts[0] || '';
-        const lastName = nameParts.slice(1).join(' ') || '';
-
-        clerkUser = await client.users.createUser({
-          emailAddress: [email],
-          password: password || 'TempPassword123!', // Default password if none provided
-          firstName: firstName,
-          lastName: lastName,
-          username: email.split('@')[0], // Use email prefix as username
-          publicMetadata: { 
-            role: 'doctor',
-            department_id: department_id,
-            user_type: 'doctor',
-            specialization: specialization
-          },
-          privateMetadata: {
-            department_id: department_id,
-            license_number: license_number,
-            specialization: specialization
-          }
-        });
-        console.log('Created new Clerk user for doctor');
-      } catch (error: any) {
-        console.error('Error creating Clerk user:', error);
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: 'Failed to create user account',
-            message: error.errors?.[0]?.message || 'Unable to create user account'
-          },
-          { status: 400 }
-        );
-      }
-    }
-
-    // Encrypt sensitive data
-    const encryptedData = PHIEncryption.encryptDoctorData({
-      name,
+    // Create doctor using UserCreationService
+    const createResult = await UserCreationService.createDoctor({
       email,
+      password: password || 'TempPassword123!',
+      firstName,
+      lastName,
+      role: 'DOCTOR',
       phone,
       address,
+      department: department_id,
       license_number,
       specialization,
+      experience_years,
+      consultation_fee,
+      max_patients_per_day,
       emergency_contact,
       emergency_phone,
       qualifications
     });
 
-    // Use Clerk user ID as the doctor ID
-    const doctorId = clerkUser.id;
-
-    // Check if doctor record already exists in database
-    const existingDoctor = await db.doctor.findUnique({
-      where: { id: doctorId }
-    });
-
-    if (existingDoctor) {
-      console.log('Doctor record already exists in database:', {
-        id: existingDoctor.id,
-        specialization: existingDoctor.specialization,
-        department_id: existingDoctor.department_id
-      });
-      
-      return NextResponse.json({
-        success: true,
-        doctor: existingDoctor,
-        message: 'Doctor already exists in database'
-      });
+    if (!createResult.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: createResult.error || 'Failed to create doctor',
+          message: createResult.message || 'Could not create doctor account'
+        },
+        { status: 400 }
+      );
     }
 
-    // Create new doctor
-    const newDoctor = await db.doctor.create({
+    // Update doctor with additional fields
+    await db.doctor.update({
+      where: { id: createResult.userId! },
       data: {
-        id: doctorId,
-        ...encryptedData,
-        type,
-        department_id: department_id || null, // Use department_id for the foreign key
-        experience_years: experience_years || 0,
-        consultation_fee: consultation_fee || 0,
-        max_patients_per_day: max_patients_per_day || 20,
+        type: type || 'GENERAL',
         preferred_appointment_duration: preferred_appointment_duration || 30,
-        // Remove password field - it doesn't exist in the Doctor model
+        availability_status: 'AVAILABLE' as const
       }
     });
 
-    // Send welcome email to the new doctor
+    console.log('Doctor created successfully:', {
+      id: createResult.userId,
+      name,
+      email,
+      specialization
+    });
+
+    // Send welcome email
     try {
-      // Email notification would be sent here using EmailService
-      // await EmailService.sendVerificationEmail(email, 'REGISTRATION');
-      
-      // Get department name for email
-      let departmentName = 'General';
-      if (department_id) {
-        const department = await (db as any).department.findUnique({
-          where: { id: department_id },
-          select: { name: true }
-        });
-        departmentName = department?.name || 'General';
-      }
-      
-      const emailSubject = `Welcome to the Healthcare Management System - ${departmentName} Department`;
-      const emailBody = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2 style="color: #2563eb;">Welcome to Our Healthcare Team!</h2>
-          
-          <p>Dear Dr. ${name},</p>
-          
-          <p>Welcome to our Healthcare Management System! Your doctor account has been successfully created.</p>
-          
-          <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
-            <h3 style="color: #1e40af; margin-top: 0;">Your Account Details:</h3>
-            <ul style="list-style: none; padding: 0;">
-              <li><strong>Role:</strong> Doctor</li>
-              <li><strong>Specialization:</strong> ${specialization}</li>
-              <li><strong>Department:</strong> ${departmentName}</li>
-              <li><strong>Email:</strong> ${email}</li>
-              <li><strong>License Number:</strong> ${license_number}</li>
-              <li><strong>Login URL:</strong> <a href="${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/sign-in">Sign In Here</a></li>
-            </ul>
-          </div>
-          
-          <div style="background-color: #fef3c7; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h4 style="color: #92400e; margin-top: 0;">🔐 Important Security Information:</h4>
-            <p style="margin: 0;">Please change your password on first login for security purposes.</p>
-          </div>
-          
-          <div style="background-color: #ecfdf5; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <h4 style="color: #065f46; margin-top: 0;">📋 Next Steps:</h4>
-            <ul style="margin: 0;">
-              <li>Complete your profile setup</li>
-              <li>Set your working hours and availability</li>
-              <li>Review department protocols and procedures</li>
-              <li>Contact your department head for any questions</li>
-            </ul>
-          </div>
-          
-          <p>If you have any questions or need assistance, please contact your department administrator.</p>
-          
-          <p>Best regards,<br>
-          Healthcare Management System Team</p>
-        </div>
-      `;
-      
-      // Note: EmailService.sendEmail is a private method, so we'll use sendVerificationEmail instead
-      // await EmailService.sendVerificationEmail(email, 'REGISTRATION');
-      console.log(`✅ Welcome email would be sent to new doctor: ${email}`);
+      await EmailService.sendSimpleEmail(
+        email,
+        'Welcome to iHosi Healthcare System',
+        `Dear Dr. ${name},\n\nWelcome to iHosi Healthcare System! Your account has been created successfully.\n\nYour login credentials:\nEmail: ${email}\nPassword: ${password || 'TempPassword123!'}\n\nPlease log in and update your password for security.\n\nBest regards,\niHosi Healthcare Team`
+      );
+      console.log('Welcome email sent to doctor:', email);
     } catch (emailError) {
-      console.error('❌ Failed to send welcome email:', emailError);
-      // Don't fail the entire operation if email fails
+      console.warn('Failed to send welcome email:', emailError);
+      // Don't fail the request if email fails
     }
 
     return NextResponse.json({
       success: true,
-      doctor: newDoctor,
-      message: 'Doctor created successfully'
+      message: 'Doctor created successfully',
+      data: {
+        id: createResult.userId,
+        name,
+        email,
+        specialization,
+        department_id
+      }
     });
 
   } catch (error) {
@@ -306,8 +195,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         success: false, 
-        error: 'Failed to create doctor',
-        message: 'Unable to create doctor at this time'
+        error: 'Internal Server Error',
+        message: 'Failed to create doctor. Please try again.'
       },
       { status: 500 }
     );

@@ -23,9 +23,13 @@ export function useSocketNotifications(userId?: string, userRole?: string) {
     // Only connect on client side
     if (typeof window === 'undefined') return;
 
-    const socketInstance = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3001', {
+    console.log('🔌 Attempting to connect to socket server...');
+    
+    const socketInstance = io(process.env.NEXT_PUBLIC_SOCKET_URL || 'http://localhost:3000', {
       transports: ['websocket', 'polling'],
       autoConnect: true,
+      timeout: 5000,
+      forceNew: true
     });
 
     socketInstance.on('connect', () => {
@@ -51,6 +55,15 @@ export function useSocketNotifications(userId?: string, userRole?: string) {
     socketInstance.on('disconnect', () => {
       console.log('🔌 Socket disconnected');
       setIsConnected(false);
+    });
+
+    socketInstance.on('connect_error', (error) => {
+      console.error('🔌 Socket connection error:', error);
+      setIsConnected(false);
+    });
+
+    socketInstance.on('error', (error) => {
+      console.error('🔌 Socket error:', error);
     });
 
     // Listen for appointment requests (for doctors)

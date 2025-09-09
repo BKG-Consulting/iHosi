@@ -32,6 +32,7 @@ import { EnhancedAppointmentRequests } from '@/components/doctor/enhanced-appoin
 import { RealTimeNotifications } from '@/components/doctor/real-time-notifications';
 import { ScheduleSetup } from '@/components/doctor/schedule-setup/ScheduleSetup';
 import { AppointmentSkeleton } from '@/components/doctor/appointment-skeleton';
+import { PatientList } from '@/components/doctor/patient-list';
 
 interface Doctor {
   id: string;
@@ -714,19 +715,13 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
           <TabsContent value="patients" className="space-y-6">
             <Card className="bg-white border border-slate-200 rounded-2xl shadow-sm">
               <CardHeader className="bg-slate-50 border-b border-slate-200 rounded-t-2xl">
-                <CardTitle className="text-2xl font-bold text-slate-800">Patient Management</CardTitle>
+                <CardTitle className="text-2xl font-bold text-slate-800">My Patients</CardTitle>
                 <CardDescription className="text-slate-600">
-                  View and manage your patients
+                  Patients you are actively engaged with through appointments
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="text-center py-16">
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                    <Users className="w-10 h-10 text-slate-400" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-slate-800 mb-2">Patient Management</h3>
-                  <p className="text-slate-600 max-w-md mx-auto">This feature will be implemented in the next phase. You'll be able to view detailed patient information, medical history, and more.</p>
-                </div>
+                <PatientList doctorId={doctor.id} />
               </CardContent>
             </Card>
           </TabsContent>
