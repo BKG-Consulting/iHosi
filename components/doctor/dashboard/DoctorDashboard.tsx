@@ -11,13 +11,9 @@ import {
   Users, 
   Activity, 
   AlertCircle, 
-  Stethoscope,
   FileText,
   Settings,
-  Bell,
   Search,
-  Filter,
-  Plus,
   Eye,
   Edit,
   CheckCircle,
@@ -32,12 +28,9 @@ import { AppointmentCalendar } from '@/components/scheduling/AppointmentCalendar
 import { useScheduling } from '@/hooks/useScheduling';
 import { CreateAppointmentRequest, UpdateAppointmentRequest } from '@/types/scheduling';
 import { AvailabilityToggle } from '@/components/doctor/availability-toggle';
-import { AppointmentRequests } from '@/components/doctor/appointment-requests';
 import { EnhancedAppointmentRequests } from '@/components/doctor/enhanced-appointment-requests';
 import { RealTimeNotifications } from '@/components/doctor/real-time-notifications';
 import { ScheduleSetup } from '@/components/doctor/schedule-setup/ScheduleSetup';
-import { TimeSlotManager } from '@/components/doctor/schedule-setup/TimeSlotManager';
-import { ConflictDetector } from '@/components/doctor/schedule-setup/ConflictDetector';
 
 interface Doctor {
   id: string;
@@ -47,8 +40,8 @@ interface Doctor {
   department: string;
   phone: string;
   address: string;
-  img?: string | undefined;
-  colorCode?: string | undefined;
+  img?: string;
+  colorCode?: string;
   availability_status: string;
   working_days: any[];
   created_at: Date;
@@ -63,8 +56,8 @@ interface Patient {
   phone: string;
   date_of_birth: string;
   gender: string;
-  img?: string | undefined;
-  colorCode?: string | undefined;
+  img?: string;
+  colorCode?: string;
   medical_conditions?: string;
   allergies?: string;
 }
@@ -77,8 +70,8 @@ interface Appointment {
   time: string;
   status: 'PENDING' | 'SCHEDULED' | 'CANCELLED' | 'COMPLETED';
   type: string;
-  note?: string | undefined;
-  reason?: string | undefined;
+  note?: string;
+  reason?: string;
   patient: Patient;
   doctor: Doctor;
 }
@@ -109,18 +102,8 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [isAvailable, setIsAvailable] = useState(doctor.availability_status === 'AVAILABLE');
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [workingHours, setWorkingHours] = useState([
-    { day: 'Monday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
-    { day: 'Tuesday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
-    { day: 'Wednesday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
-    { day: 'Thursday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
-    { day: 'Friday', isWorking: true, startTime: '09:00', endTime: '17:00', breakStart: '12:00', breakEnd: '13:00', maxAppointments: 20 },
-    { day: 'Saturday', isWorking: false, startTime: '09:00', endTime: '13:00', maxAppointments: 10 },
-    { day: 'Sunday', isWorking: false, startTime: '09:00', endTime: '13:00', maxAppointments: 5 },
-  ]);
-  const [timeSlots, setTimeSlots] = useState<any[]>([]);
-  const [leaveRequests, setLeaveRequests] = useState<any[]>([]);
+  const [currentAppointments, setCurrentAppointments] = useState<Appointment[]>(appointments);
+  const [isLoadingAppointments, setIsLoadingAppointments] = useState(false);
   
   // Initialize scheduling hook
   const {
@@ -136,6 +119,85 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
     refreshInterval: 30000, // 30 seconds
   });
 
+  // Fetch appointments from API
+  const fetchAppointments = async () => {
+    try {
+      setIsLoadingAppointments(true);
+      const response = await fetch(`/api/scheduling/appointments?doctorId=${doctor.id}&page=1&limit=50`);
+      if (response.ok) {
+        const result = await response.json();
+        if (result.success && result.data) {
+          // Transform the data to match the expected format
+          const transformedAppointments = result.data.appointments.map((apt: any) => ({
+            id: apt.id,
+            patient_id: apt.patientId,
+            doctor_id: apt.doctorId,
+            appointment_date: apt.appointmentDate,
+            time: apt.time,
+            status: apt.status,
+            type: apt.type,
+            note: apt.note,
+            reason: apt.reason,
+            service_id: apt.serviceId,
+            calendar_event_id: apt.calendarEventId,
+            calendar_synced_at: apt.calendarSyncedAt,
+            created_at: apt.created_at,
+            updated_at: apt.updated_at,
+            patient: {
+              id: apt.patient.id,
+              first_name: apt.patient.first_name,
+              last_name: apt.patient.last_name,
+              email: apt.patient.email || '',
+              phone: apt.patient.phone || '',
+              img: apt.patient.img,
+              colorCode: apt.patient.colorCode,
+            },
+            doctor: {
+              id: apt.doctor.id,
+              name: apt.doctor.name,
+              specialization: apt.doctor.specialization,
+              img: apt.doctor.img,
+              colorCode: apt.doctor.colorCode,
+            },
+            service: apt.service ? {
+              id: apt.service.id,
+              service_name: apt.service.service_name,
+              duration_minutes: apt.service.duration_minutes,
+              price: apt.service.price,
+            } : undefined,
+          }));
+          console.log('📅 Fetched appointments:', transformedAppointments);
+          setCurrentAppointments(transformedAppointments);
+        } else {
+          console.log('❌ No appointments data in response:', result);
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+    } finally {
+      setIsLoadingAppointments(false);
+    }
+  };
+
+  // Refresh appointments when tab changes to appointments
+  useEffect(() => {
+    if (activeTab === 'appointments') {
+      fetchAppointments();
+    }
+  }, [activeTab, doctor.id]);
+
+  // Listen for appointment scheduled events
+  useEffect(() => {
+    const handleAppointmentScheduled = () => {
+      fetchAppointments();
+    };
+
+    window.addEventListener('appointmentScheduled', handleAppointmentScheduled);
+    return () => {
+      window.removeEventListener('appointmentScheduled', handleAppointmentScheduled);
+    };
+  }, []);
+
   // Get today's appointments
   const today = new Date().toISOString().split('T')[0];
   const todayAppointments = schedulingAppointments.filter(apt => 
@@ -148,12 +210,18 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
     .sort((a, b) => a.time.localeCompare(b.time))[0];
 
   // Filter appointments based on search and status
-  const filteredAppointments = todayAppointments.filter(apt => {
+  const filteredAppointments = currentAppointments.filter(apt => {
     const matchesSearch = searchTerm === '' || 
       `${apt.patient.first_name} ${apt.patient.last_name}`.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === 'all' || apt.status.toLowerCase() === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Debug logging
+  console.log('🔍 Current appointments:', currentAppointments.length);
+  console.log('🔍 Filtered appointments:', filteredAppointments.length);
+  console.log('🔍 Status filter:', statusFilter);
+  console.log('🔍 Search term:', searchTerm);
 
   // Handle appointment actions
   const handleAppointmentCreate = async (appointment: CreateAppointmentRequest) => {
@@ -195,7 +263,7 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
 
   const handleAvailabilityToggle = () => {
     setIsAvailable(!isAvailable);
-    // TODO: Update doctor availability status in database
+    // Note: Availability status should be updated in database
   };
 
   const getStatusColor = (status: string) => {
@@ -512,12 +580,51 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
                       <option value="cancelled">Cancelled</option>
                       <option value="pending">Pending</option>
                     </select>
+                    <Button
+                      onClick={fetchAppointments}
+                      disabled={isLoadingAppointments}
+                      variant="outline"
+                      size="sm"
+                      className="border-[#2EB6B0] text-[#2EB6B0] hover:bg-[#2EB6B0] hover:text-white"
+                    >
+                      {isLoadingAppointments ? (
+                        <>
+                          <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-[#2EB6B0] border-t-transparent" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Activity className="w-4 h-4 mr-2" />
+                          Refresh
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-4">
-                  {filteredAppointments.map((appointment) => (
+                  {filteredAppointments.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Calendar className="w-16 h-16 text-[#D1F1F2] mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-[#3E4C4B] mb-2">No Appointments Found</h3>
+                      <p className="text-[#3E4C4B]/70 mb-4">
+                        {currentAppointments.length === 0 
+                          ? "You don't have any appointments yet." 
+                          : "No appointments match your current filters."}
+                      </p>
+                      {currentAppointments.length === 0 && (
+                        <Button 
+                          onClick={fetchAppointments}
+                          className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#034a4a] hover:to-[#259a9a] text-white"
+                        >
+                          <Activity className="w-4 h-4 mr-2" />
+                          Refresh Appointments
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    filteredAppointments.map((appointment) => (
                     <div key={appointment.id} className="flex items-center justify-between p-6 bg-gradient-to-r from-[#D1F1F2] to-[#F5F7FA] rounded-xl hover:shadow-md transition-shadow">
                       <div className="flex items-center gap-4">
                         <Avatar className="w-12 h-12">
@@ -551,13 +658,7 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
                         </div>
                       </div>
                     </div>
-                  ))}
-                  {filteredAppointments.length === 0 && (
-                    <div className="text-center py-12 text-[#3E4C4B]">
-                      <Calendar className="w-16 h-16 mx-auto mb-4 text-[#2EB6B0]" />
-                      <p className="text-lg font-medium">No appointments found</p>
-                      <p className="text-sm">Try adjusting your search or filter criteria</p>
-                    </div>
+                    ))
                   )}
                 </div>
               </CardContent>

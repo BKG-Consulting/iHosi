@@ -73,6 +73,10 @@ export const EnhancedAppointmentRequests: React.FC<EnhancedAppointmentRequestsPr
     notes: '',
     duration: 30
   });
+  const [isScheduling, setIsScheduling] = useState(false);
+  const [isRejecting, setIsRejecting] = useState<number | null>(null);
+  const [showRejectDialog, setShowRejectDialog] = useState(false);
+  const [appointmentToReject, setAppointmentToReject] = useState<number | null>(null);
 
   // Fetch appointment requests
   const fetchAppointmentRequests = async () => {
@@ -105,6 +109,7 @@ export const EnhancedAppointmentRequests: React.FC<EnhancedAppointmentRequestsPr
     if (!selectedRequest) return;
 
     try {
+      setIsScheduling(true);
       const response = await fetch(`/api/appointments/${selectedRequest.id}/schedule`, {
         method: 'PUT',
         headers: {
@@ -132,6 +137,11 @@ export const EnhancedAppointmentRequests: React.FC<EnhancedAppointmentRequestsPr
           duration: 30
         });
         await fetchAppointmentRequests(); // Refresh the list
+        
+        // Trigger a custom event to refresh appointments in other components
+        window.dispatchEvent(new CustomEvent('appointmentScheduled', { 
+          detail: { appointmentId: selectedRequest.id } 
+        }));
       } else {
         const result = await response.json();
         toast.error(result.message || 'Failed to schedule appointment');
@@ -139,13 +149,16 @@ export const EnhancedAppointmentRequests: React.FC<EnhancedAppointmentRequestsPr
     } catch (error) {
       console.error('Error scheduling appointment:', error);
       toast.error('Failed to schedule appointment');
+    } finally {
+      setIsScheduling(false);
     }
   };
 
   // Handle rejecting an appointment
   const handleRejectAppointment = async (appointmentId: number) => {
     try {
-      const response = await fetch(`/api/appointments/${appointmentId}`, {
+      setIsRejecting(appointmentId);
+      const response = await fetch(`/api/scheduling/appointments/${appointmentId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -159,6 +172,8 @@ export const EnhancedAppointmentRequests: React.FC<EnhancedAppointmentRequestsPr
       if (response.ok) {
         toast.success('Appointment request rejected');
         await fetchAppointmentRequests(); // Refresh the list
+        setShowRejectDialog(false);
+        setAppointmentToReject(null);
       } else {
         const result = await response.json();
         toast.error(result.message || 'Failed to reject appointment');
@@ -166,7 +181,15 @@ export const EnhancedAppointmentRequests: React.FC<EnhancedAppointmentRequestsPr
     } catch (error) {
       console.error('Error rejecting appointment:', error);
       toast.error('Failed to reject appointment');
+    } finally {
+      setIsRejecting(null);
     }
+  };
+
+  // Show reject confirmation dialog
+  const showRejectConfirmation = (appointmentId: number) => {
+    setAppointmentToReject(appointmentId);
+    setShowRejectDialog(true);
   };
 
   const getStatusColor = (status: string) => {
@@ -362,9 +385,10 @@ export const EnhancedAppointmentRequests: React.FC<EnhancedAppointmentRequestsPr
                     </Button>
                     
                     <Button
-                      onClick={() => handleRejectAppointment(request.id)}
+                      onClick={() => showRejectConfirmation(request.id)}
                       variant="outline"
-                      className="border-red-200 text-red-600 hover:bg-red-50"
+                      disabled={isRejecting === request.id}
+                      className="border-red-200 text-red-600 hover:bg-red-50 disabled:opacity-50"
                     >
                       <XCircle className="w-4 h-4 mr-2" />
                       Reject
@@ -457,9 +481,59 @@ export const EnhancedAppointmentRequests: React.FC<EnhancedAppointmentRequestsPr
             </Button>
             <Button
               onClick={handleScheduleAppointment}
-              className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#034a4a] hover:to-[#259a9a] text-white"
+              disabled={isScheduling}
+              className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#034a4a] hover:to-[#259a9a] text-white disabled:opacity-50"
             >
-              Schedule Appointment
+              {isScheduling ? (
+                <>
+                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Scheduling...
+                </>
+              ) : (
+                'Schedule Appointment'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Confirmation Dialog */}
+      <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Reject Appointment Request</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to reject this appointment request? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-sm text-gray-600">
+              The patient will be notified that their appointment request has been rejected.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowRejectDialog(false);
+                setAppointmentToReject(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => appointmentToReject && handleRejectAppointment(appointmentToReject)}
+              disabled={isRejecting === appointmentToReject}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              {isRejecting === appointmentToReject ? (
+                <>
+                  <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                  Rejecting...
+                </>
+              ) : (
+                'Reject Appointment'
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
