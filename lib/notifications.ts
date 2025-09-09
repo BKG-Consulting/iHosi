@@ -39,6 +39,7 @@ export enum NotificationStatus {
 // Import template system
 import { TemplateRegistry, TemplateContext } from './template-engine';
 import { EmailScheduler, EmailSchedulingPatterns, SchedulingStrategy } from './email-scheduler';
+import { emailConfig } from '../config/email-config';
 
 // Legacy template interface (deprecated - use TemplateRegistry instead)
 export interface NotificationTemplate {
@@ -242,7 +243,7 @@ export class NotificationService {
   // Initialize email service based on environment
   private initializeEmailService(): EmailService {
     try {
-      // Check if SendGrid is configured
+      // Check if SendGrid is configured and real emails are enabled
       if (process.env.SENDGRID_API_KEY && process.env.ENABLE_REAL_NOTIFICATIONS === 'true') {
         // Dynamic import to avoid build issues
         const { SendGridEmailService } = require('./email-service');
