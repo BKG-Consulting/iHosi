@@ -31,6 +31,7 @@ import { AvailabilityToggle } from '@/components/doctor/availability-toggle';
 import { EnhancedAppointmentRequests } from '@/components/doctor/enhanced-appointment-requests';
 import { RealTimeNotifications } from '@/components/doctor/real-time-notifications';
 import { ScheduleSetup } from '@/components/doctor/schedule-setup/ScheduleSetup';
+import { AppointmentSkeleton } from '@/components/doctor/appointment-skeleton';
 
 interface Doctor {
   id: string;
@@ -287,20 +288,30 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#5AC5C8] p-6">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/20 p-6">
+      <div className="max-w-7xl mx-auto space-y-8">
         {/* Header */}
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-          <div className="flex items-center gap-4">
-          
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-2xl flex items-center justify-center shadow-lg">
+              <span className="text-2xl font-bold text-white">D</span>
+            </div>
             <div>
-              <h1 className="text-3xl font-bold text-[#046658]">Doctor Dashboard</h1>
-              <p className="text-[#3E4C4B]">Welcome back, Dr. {doctor.name}</p>
-              <p className="text-sm text-[#2EB6B0]">{doctor.specialization} • {doctor.department}</p>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-800 to-slate-600 bg-clip-text text-transparent">
+                Doctor Dashboard
+              </h1>
+              <p className="text-slate-600 text-lg">Welcome back, Dr. {doctor.name}</p>
+              <div className="flex items-center gap-2 mt-1">
+                <span className="px-3 py-1 bg-[#046658]/10 text-[#046658] text-sm font-medium rounded-full">
+                  {doctor.specialization}
+                </span>
+                <span className="text-slate-400">•</span>
+                <span className="text-slate-500 text-sm">{doctor.department}</span>
+              </div>
             </div>
           </div>
           
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-4">
             <RealTimeNotifications 
               doctorId={doctor.id}
               doctorName={doctor.name}
@@ -309,16 +320,16 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
             <Button
               onClick={handleAvailabilityToggle}
               className={cn(
-                "flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200",
+                "flex items-center gap-2 px-6 py-3 rounded-xl font-semibold transition-all duration-200 shadow-lg",
                 isAvailable 
-                  ? "bg-green-500 hover:bg-green-600 text-white" 
-                  : "bg-red-500 hover:bg-red-600 text-white"
+                  ? "bg-emerald-500 hover:bg-emerald-600 text-white shadow-emerald-200" 
+                  : "bg-rose-500 hover:bg-rose-600 text-white shadow-rose-200"
               )}
             >
               {isAvailable ? <Play className="w-4 h-4" /> : <Pause className="w-4 h-4" />}
               {isAvailable ? 'Available' : 'Unavailable'}
             </Button>
-            <Button variant="outline" className="border-2 border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#D1F1F2]">
+            <Button variant="outline" className="border-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 shadow-sm">
               <Settings className="w-4 h-4 mr-2" />
               Settings
             </Button>
@@ -327,56 +338,60 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
 
         {/* Quick Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="bg-white/80 backdrop-blur-sm border-0 rounded-2xl shadow-lg">
+          <Card className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-[#3E4C4B]">Today's Appointments</p>
-                  <p className="text-3xl font-bold text-[#046658]">{todayAppointments.length}</p>
+                  <p className="text-sm font-medium text-slate-600 mb-1">Today's Appointments</p>
+                  <p className="text-3xl font-bold text-slate-800">{todayAppointments.length}</p>
+                  <p className="text-xs text-slate-500 mt-1">Scheduled for today</p>
                 </div>
-                <div className="w-12 h-12 bg-gradient-to-r from-[#046658] to-[#2EB6B0] rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 rounded-2xl shadow-lg">
+          <Card className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-[#3E4C4B]">Completed</p>
-                  <p className="text-3xl font-bold text-green-600">{analytics.completedAppointments}</p>
+                  <p className="text-sm font-medium text-slate-600 mb-1">Completed</p>
+                  <p className="text-3xl font-bold text-emerald-600">{analytics.completedAppointments}</p>
+                  <p className="text-xs text-slate-500 mt-1">This month</p>
                 </div>
-                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-green-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <CheckCircle className="w-6 h-6 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 rounded-2xl shadow-lg">
+          <Card className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-[#3E4C4B]">Total Patients</p>
-                  <p className="text-3xl font-bold text-[#2EB6B0]">{analytics.totalPatients}</p>
+                  <p className="text-sm font-medium text-slate-600 mb-1">Total Patients</p>
+                  <p className="text-3xl font-bold text-[#046658]">{analytics.totalPatients}</p>
+                  <p className="text-xs text-slate-500 mt-1">Under your care</p>
                 </div>
-                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-                  <Users className="w-6 h-6 text-blue-600" />
+                <div className="w-12 h-12 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
+                  <Users className="w-6 h-6 text-white" />
                 </div>
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-white/80 backdrop-blur-sm border-0 rounded-2xl shadow-lg">
+          <Card className="bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md transition-all duration-200 group">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-[#3E4C4B]">Completion Rate</p>
-                  <p className="text-3xl font-bold text-[#046658]">{analytics.completionRate.toFixed(1)}%</p>
+                  <p className="text-sm font-medium text-slate-600 mb-1">Completion Rate</p>
+                  <p className="text-3xl font-bold text-purple-600">{analytics.completionRate.toFixed(1)}%</p>
+                  <p className="text-xs text-slate-500 mt-1">Success rate</p>
                 </div>
-                <div className="w-12 h-12 bg-gradient-to-r from-[#046658] to-[#2EB6B0] rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-violet-600 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-105 transition-transform">
                   <Activity className="w-6 h-6 text-white" />
                 </div>
               </div>
@@ -386,22 +401,22 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
 
         {/* Next Appointment Alert */}
         {nextAppointment && (
-          <Card className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] border-0 rounded-2xl shadow-lg">
+          <Card className="bg-gradient-to-r from-slate-800 to-slate-700 border-0 rounded-2xl shadow-xl">
             <CardContent className="p-6">
               <div className="flex items-center justify-between text-white">
                 <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                    <Clock className="w-6 h-6" />
+                  <div className="w-14 h-14 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-2xl flex items-center justify-center shadow-lg">
+                    <Clock className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="text-lg font-semibold">Next Appointment</h3>
-                    <p className="text-white/90">
+                    <h3 className="text-xl font-bold">Next Appointment</h3>
+                    <p className="text-slate-200 text-lg">
                       {nextAppointment.patient.first_name} {nextAppointment.patient.last_name} at {nextAppointment.time}
                     </p>
-                    <p className="text-sm text-white/80">{nextAppointment.type} • {nextAppointment.reason}</p>
+                    <p className="text-sm text-slate-300">{nextAppointment.type} • {nextAppointment.reason}</p>
                   </div>
                 </div>
-                <Button variant="secondary" className="bg-white/20 hover:bg-white/30 text-white border-white/30">
+                <Button variant="secondary" className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm">
                   <Eye className="w-4 h-4 mr-2" />
                   View Details
                 </Button>
@@ -412,46 +427,46 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
 
         {/* Main Content Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7 bg-white/80 backdrop-blur-sm border-0 rounded-2xl p-2">
+          <TabsList className="grid w-full grid-cols-7 bg-white border border-slate-200 rounded-2xl p-2 shadow-sm">
             <TabsTrigger 
               value="overview" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
+              className="data-[state=active]:bg-slate-800 data-[state=active]:text-white data-[state=active]:shadow-md rounded-xl font-medium transition-all duration-200"
             >
               Overview
             </TabsTrigger>
             <TabsTrigger 
               value="appointments" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
+              className="data-[state=active]:bg-slate-800 data-[state=active]:text-white data-[state=active]:shadow-md rounded-xl font-medium transition-all duration-200"
             >
               Appointments
             </TabsTrigger>
             <TabsTrigger 
               value="requests" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
+              className="data-[state=active]:bg-slate-800 data-[state=active]:text-white data-[state=active]:shadow-md rounded-xl font-medium transition-all duration-200"
             >
               Requests
             </TabsTrigger>
             <TabsTrigger 
               value="scheduling" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
+              className="data-[state=active]:bg-slate-800 data-[state=active]:text-white data-[state=active]:shadow-md rounded-xl font-medium transition-all duration-200"
             >
               Scheduling
             </TabsTrigger>
             <TabsTrigger 
               value="schedule-setup" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
+              className="data-[state=active]:bg-slate-800 data-[state=active]:text-white data-[state=active]:shadow-md rounded-xl font-medium transition-all duration-200"
             >
               Schedule Setup
             </TabsTrigger>
             <TabsTrigger 
               value="patients" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
+              className="data-[state=active]:bg-slate-800 data-[state=active]:text-white data-[state=active]:shadow-md rounded-xl font-medium transition-all duration-200"
             >
               Patients
             </TabsTrigger>
             <TabsTrigger 
               value="records" 
-              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-[#046658] data-[state=active]:to-[#2EB6B0] data-[state=active]:text-white rounded-xl"
+              className="data-[state=active]:bg-slate-800 data-[state=active]:text-white data-[state=active]:shadow-md rounded-xl font-medium transition-all duration-200"
             >
               Medical Records
             </TabsTrigger>
@@ -473,106 +488,109 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
               </div>
               
               {/* Today's Schedule */}
-              <div className="lg:col-span-2">
-              <Card className="bg-white/80 backdrop-blur-sm border-0 rounded-2xl shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white rounded-t-2xl">
-                  <CardTitle className="text-xl font-bold">Today's Schedule</CardTitle>
-                  <CardDescription className="text-white/90">
-                    {todayAppointments.length} appointments scheduled
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="space-y-4">
-                    {todayAppointments.slice(0, 5).map((appointment) => (
-                      <div key={appointment.id} className="flex items-center justify-between p-4 bg-gradient-to-r from-[#D1F1F2] to-[#F5F7FA] rounded-xl">
-                        <div className="flex items-center gap-3">
-                          <Avatar className="w-10 h-10">
-                            <AvatarImage src={appointment.patient.img} />
-                            <AvatarFallback className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white">
-                              {appointment.patient.first_name[0]}{appointment.patient.last_name[0]}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-semibold text-[#046658]">
-                              {appointment.patient.first_name} {appointment.patient.last_name}
-                            </p>
-                            <p className="text-sm text-[#3E4C4B]">{appointment.time} • {appointment.type}</p>
+              <div className="lg:col-span-2 space-y-6">
+                <Card className="bg-white border border-slate-200 rounded-2xl shadow-sm">
+                  <CardHeader className="bg-slate-50 border-b border-slate-200 rounded-t-2xl">
+                    <CardTitle className="text-xl font-bold text-slate-800">Today's Schedule</CardTitle>
+                    <CardDescription className="text-slate-600">
+                      {todayAppointments.length} appointments scheduled for today
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="space-y-4">
+                      {todayAppointments.slice(0, 5).map((appointment) => (
+                        <div key={appointment.id} className="flex items-center justify-between p-4 bg-slate-50 border border-slate-100 rounded-xl hover:bg-slate-100 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <Avatar className="w-10 h-10 ring-2 ring-white">
+                              <AvatarImage src={appointment.patient.img} />
+                              <AvatarFallback className="bg-gradient-to-br from-[#046658] to-[#2EB6B0] text-white font-semibold">
+                                {appointment.patient.first_name[0]}{appointment.patient.last_name[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-semibold text-slate-800">
+                                {appointment.patient.first_name} {appointment.patient.last_name}
+                              </p>
+                              <p className="text-sm text-slate-600">{appointment.time} • {appointment.type}</p>
+                            </div>
                           </div>
+                          <Badge className={getStatusColor(appointment.status)}>
+                            {getStatusIcon(appointment.status)}
+                            <span className="ml-1">{appointment.status}</span>
+                          </Badge>
                         </div>
-                        <Badge className={getStatusColor(appointment.status)}>
-                          {getStatusIcon(appointment.status)}
-                          <span className="ml-1">{appointment.status}</span>
-                        </Badge>
-                      </div>
-                    ))}
-                    {todayAppointments.length === 0 && (
-                      <div className="text-center py-8 text-[#3E4C4B]">
-                        <Calendar className="w-12 h-12 mx-auto mb-4 text-[#2EB6B0]" />
-                        <p>No appointments scheduled for today</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                      ))}
+                      {todayAppointments.length === 0 && (
+                        <div className="text-center py-12">
+                          <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Calendar className="w-8 h-8 text-slate-400" />
+                          </div>
+                          <p className="text-slate-600 font-medium">No appointments scheduled for today</p>
+                          <p className="text-sm text-slate-500 mt-1">Your schedule is clear</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
 
-              {/* Quick Actions */}
-              <Card className="bg-white/80 backdrop-blur-sm border-0 rounded-2xl shadow-lg">
-                <CardHeader className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white rounded-t-2xl">
-                  <CardTitle className="text-xl font-bold">Quick Actions</CardTitle>
-                  <CardDescription className="text-white/90">
-                    Common tasks and shortcuts
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <div className="grid grid-cols-2 gap-4">
-                    <Button className="h-20 flex flex-col gap-2 bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#034a4a] hover:to-[#259a9a] text-white">
-                      <FileText className="w-6 h-6" />
-                      <span className="text-sm">New Patient</span>
-                    </Button>
-                    <Button variant="outline" className="h-20 flex flex-col gap-2 border-2 border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#D1F1F2]">
-                      <Search className="w-6 h-6" />
-                      <span className="text-sm">Search Patient</span>
-                    </Button>
-                    <Button variant="outline" className="h-20 flex flex-col gap-2 border-2 border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#D1F1F2]">
-                      <Calendar className="w-6 h-6" />
-                      <span className="text-sm">Schedule</span>
-                    </Button>
-                    <Button variant="outline" className="h-20 flex flex-col gap-2 border-2 border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#D1F1F2]">
-                      <Activity className="w-6 h-6" />
-                      <span className="text-sm">Vital Signs</span>
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
+                {/* Quick Actions */}
+                <Card className="bg-white border border-slate-200 rounded-2xl shadow-sm">
+                  <CardHeader className="bg-slate-50 border-b border-slate-200 rounded-t-2xl">
+                    <CardTitle className="text-xl font-bold text-slate-800">Quick Actions</CardTitle>
+                    <CardDescription className="text-slate-600">
+                      Common tasks and shortcuts
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-2 gap-4">
+                      <Button className="h-20 flex flex-col gap-2 bg-slate-800 hover:bg-slate-700 text-white shadow-lg">
+                        <FileText className="w-6 h-6" />
+                        <span className="text-sm font-medium">New Patient</span>
+                      </Button>
+                      <Button variant="outline" className="h-20 flex flex-col gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300">
+                        <Search className="w-6 h-6" />
+                        <span className="text-sm font-medium">Search Patient</span>
+                      </Button>
+                      <Button variant="outline" className="h-20 flex flex-col gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300">
+                        <Calendar className="w-6 h-6" />
+                        <span className="text-sm font-medium">Schedule</span>
+                      </Button>
+                      <Button variant="outline" className="h-20 flex flex-col gap-2 border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300">
+                        <Activity className="w-6 h-6" />
+                        <span className="text-sm font-medium">Vital Signs</span>
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </div>
           </TabsContent>
 
           {/* Appointments Tab */}
           <TabsContent value="appointments" className="space-y-6">
-            <Card className="bg-white/80 backdrop-blur-sm border-0 rounded-2xl shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white rounded-t-2xl">
+            <Card className="bg-white border border-slate-200 rounded-2xl shadow-sm">
+              <CardHeader className="bg-slate-50 border-b border-slate-200 rounded-t-2xl">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-xl font-bold">Today's Appointments</CardTitle>
-                    <CardDescription className="text-white/90">
-                      Manage your daily schedule
+                    <CardTitle className="text-2xl font-bold text-slate-800">Appointments</CardTitle>
+                    <CardDescription className="text-slate-600">
+                      Manage your daily schedule and patient appointments
                     </CardDescription>
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#5AC5C8] w-4 h-4" />
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-4 h-4" />
                       <Input
                         placeholder="Search patients..."
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10 w-64 border-2 border-[#D1F1F2] rounded-xl focus:border-[#2EB6B0]"
+                        className="pl-10 w-64 border-slate-200 rounded-xl focus:border-slate-400 focus:ring-slate-400"
                       />
                     </div>
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-4 py-2 border-2 border-[#D1F1F2] rounded-xl focus:border-[#2EB6B0] bg-white"
+                      className="px-4 py-2 border border-slate-200 rounded-xl focus:border-slate-400 focus:ring-slate-400 bg-white text-slate-700"
                     >
                       <option value="all">All Status</option>
                       <option value="scheduled">Scheduled</option>
@@ -585,82 +603,79 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
                       disabled={isLoadingAppointments}
                       variant="outline"
                       size="sm"
-                      className="border-[#2EB6B0] text-[#2EB6B0] hover:bg-[#2EB6B0] hover:text-white"
+                      className="border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300"
                     >
-                      {isLoadingAppointments ? (
-                        <>
-                          <div className="w-4 h-4 mr-2 animate-spin rounded-full border-2 border-[#2EB6B0] border-t-transparent" />
-                          Loading...
-                        </>
-                      ) : (
-                        <>
-                          <Activity className="w-4 h-4 mr-2" />
-                          Refresh
-                        </>
-                      )}
+                      <Activity className="w-4 h-4 mr-2" />
+                      Refresh
                     </Button>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="space-y-4">
-                  {filteredAppointments.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Calendar className="w-16 h-16 text-[#D1F1F2] mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold text-[#3E4C4B] mb-2">No Appointments Found</h3>
-                      <p className="text-[#3E4C4B]/70 mb-4">
-                        {currentAppointments.length === 0 
-                          ? "You don't have any appointments yet." 
-                          : "No appointments match your current filters."}
-                      </p>
-                      {currentAppointments.length === 0 && (
-                        <Button 
-                          onClick={fetchAppointments}
-                          className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#034a4a] hover:to-[#259a9a] text-white"
-                        >
-                          <Activity className="w-4 h-4 mr-2" />
-                          Refresh Appointments
-                        </Button>
-                      )}
-                    </div>
-                  ) : (
-                    filteredAppointments.map((appointment) => (
-                    <div key={appointment.id} className="flex items-center justify-between p-6 bg-gradient-to-r from-[#D1F1F2] to-[#F5F7FA] rounded-xl hover:shadow-md transition-shadow">
-                      <div className="flex items-center gap-4">
-                        <Avatar className="w-12 h-12">
-                          <AvatarImage src={appointment.patient.img} />
-                          <AvatarFallback className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white">
-                            {appointment.patient.first_name[0]}{appointment.patient.last_name[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div>
-                          <h3 className="font-semibold text-[#046658] text-lg">
-                            {appointment.patient.first_name} {appointment.patient.last_name}
-                          </h3>
-                          <p className="text-[#3E4C4B]">{appointment.time} • {appointment.type}</p>
-                          {appointment.reason && (
-                            <p className="text-sm text-[#2EB6B0] mt-1">{appointment.reason}</p>
-                          )}
+                {isLoadingAppointments ? (
+                  <AppointmentSkeleton />
+                ) : (
+                  <div className="space-y-4">
+                    {filteredAppointments.length === 0 ? (
+                      <div className="text-center py-16">
+                        <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                          <Calendar className="w-10 h-10 text-slate-400" />
                         </div>
+                        <h3 className="text-xl font-semibold text-slate-800 mb-2">No Appointments Found</h3>
+                        <p className="text-slate-600 mb-6 max-w-md mx-auto">
+                          {currentAppointments.length === 0 
+                            ? "You don't have any appointments yet. They will appear here once scheduled." 
+                            : "No appointments match your current filters. Try adjusting your search criteria."}
+                        </p>
+                        {currentAppointments.length === 0 && (
+                          <Button 
+                            onClick={fetchAppointments}
+                            className="bg-slate-800 hover:bg-slate-700 text-white"
+                          >
+                            <Activity className="w-4 h-4 mr-2" />
+                            Refresh Appointments
+                          </Button>
+                        )}
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Badge className={getStatusColor(appointment.status)}>
-                          {getStatusIcon(appointment.status)}
-                          <span className="ml-1">{appointment.status}</span>
-                        </Badge>
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" className="border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#D1F1F2]">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          <Button size="sm" variant="outline" className="border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#D1F1F2]">
-                            <Edit className="w-4 h-4" />
-                          </Button>
+                    ) : (
+                      filteredAppointments.map((appointment) => (
+                        <div key={appointment.id} className="flex items-center justify-between p-6 bg-white border border-slate-200 rounded-xl hover:shadow-md transition-all duration-200 group">
+                          <div className="flex items-center gap-4">
+                            <Avatar className="w-12 h-12 ring-2 ring-slate-100">
+                              <AvatarImage src={appointment.patient.img} />
+                              <AvatarFallback className="bg-gradient-to-br from-[#046658] to-[#2EB6B0] text-white font-semibold">
+                                {appointment.patient.first_name[0]}{appointment.patient.last_name[0]}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <h3 className="font-semibold text-slate-800 text-lg group-hover:text-[#046658] transition-colors">
+                                {appointment.patient.first_name} {appointment.patient.last_name}
+                              </h3>
+                              <p className="text-slate-600">{appointment.time} • {appointment.type}</p>
+                              {appointment.reason && (
+                                <p className="text-sm text-[#046658] mt-1 font-medium">{appointment.reason}</p>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Badge className={getStatusColor(appointment.status)}>
+                              {getStatusIcon(appointment.status)}
+                              <span className="ml-1">{appointment.status}</span>
+                            </Badge>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline" className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300">
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              <Button size="sm" variant="outline" className="border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300">
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                    ))
-                  )}
-                </div>
+                      ))
+                    )}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
@@ -697,18 +712,20 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
 
           {/* Patients Tab */}
           <TabsContent value="patients" className="space-y-6">
-            <Card className="bg-white/80 backdrop-blur-sm border-0 rounded-2xl shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white rounded-t-2xl">
-                <CardTitle className="text-xl font-bold">Patient Management</CardTitle>
-                <CardDescription className="text-white/90">
+            <Card className="bg-white border border-slate-200 rounded-2xl shadow-sm">
+              <CardHeader className="bg-slate-50 border-b border-slate-200 rounded-t-2xl">
+                <CardTitle className="text-2xl font-bold text-slate-800">Patient Management</CardTitle>
+                <CardDescription className="text-slate-600">
                   View and manage your patients
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="text-center py-12 text-[#3E4C4B]">
-                  <Users className="w-16 h-16 mx-auto mb-4 text-[#2EB6B0]" />
-                  <p className="text-lg font-medium">Patient Management</p>
-                  <p className="text-sm">This feature will be implemented in the next phase</p>
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <Users className="w-10 h-10 text-slate-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-800 mb-2">Patient Management</h3>
+                  <p className="text-slate-600 max-w-md mx-auto">This feature will be implemented in the next phase. You'll be able to view detailed patient information, medical history, and more.</p>
                 </div>
               </CardContent>
             </Card>
@@ -716,18 +733,20 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
 
           {/* Medical Records Tab */}
           <TabsContent value="records" className="space-y-6">
-            <Card className="bg-white/80 backdrop-blur-sm border-0 rounded-2xl shadow-lg">
-              <CardHeader className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white rounded-t-2xl">
-                <CardTitle className="text-xl font-bold">Medical Records</CardTitle>
-                <CardDescription className="text-white/90">
+            <Card className="bg-white border border-slate-200 rounded-2xl shadow-sm">
+              <CardHeader className="bg-slate-50 border-b border-slate-200 rounded-t-2xl">
+                <CardTitle className="text-2xl font-bold text-slate-800">Medical Records</CardTitle>
+                <CardDescription className="text-slate-600">
                   Access and manage patient medical records
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="text-center py-12 text-[#3E4C4B]">
-                  <FileText className="w-16 h-16 mx-auto mb-4 text-[#2EB6B0]" />
-                  <p className="text-lg font-medium">Medical Records</p>
-                  <p className="text-sm">This feature will be implemented in the next phase</p>
+                <div className="text-center py-16">
+                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <FileText className="w-10 h-10 text-slate-400" />
+                  </div>
+                  <h3 className="text-xl font-semibold text-slate-800 mb-2">Medical Records</h3>
+                  <p className="text-slate-600 max-w-md mx-auto">This feature will be implemented in the next phase. You'll have access to comprehensive patient medical records and documentation.</p>
                 </div>
               </CardContent>
             </Card>
