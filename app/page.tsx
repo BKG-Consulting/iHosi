@@ -32,7 +32,18 @@ import {
   ChevronRight,
   Play,
   Mail,
-  Phone
+  Phone,
+  Sparkles,
+  ArrowUpRight,
+  LineChart,
+  Cpu,
+  Network,
+  Microscope,
+  Pill,
+  Activity as ActivityIcon,
+  Monitor,
+  Smartphone as Mobile,
+  Laptop
 } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -50,39 +61,31 @@ export default async function Home() {
   const coreFeatures = [
     {
       icon: CalendarCheck,
-      title: "Intelligent Appointment Scheduling",
-      description: "Real-time availability with smart algorithms that optimize resource utilization and reduce no-show rates.",
-      color: "from-teal-500 to-cyan-500"
+      title: "Smart Scheduling",
+      description: "AI-powered appointment optimization",
+      gradient: "from-blue-500 to-indigo-600",
+      bgColor: "bg-blue-50"
     },
     {
       icon: FileText,
-      title: "Comprehensive Health Records",
-      description: "Unified patient records with encrypted storage, vital signs tracking, and treatment plan documentation.",
-      color: "from-cyan-500 to-teal-500"
-    },
-    {
-      icon: Building2,
-      title: "Department & Staff Management",
-      description: "Hierarchical organization with role-based access controls and performance analytics.",
-      color: "from-teal-600 to-cyan-600"
-    },
-    {
-      icon: Bed,
-      title: "Ward & Bed Management",
-      description: "Real-time bed availability with patient placement optimization and capacity planning.",
-      color: "from-cyan-600 to-teal-600"
+      title: "Digital Records",
+      description: "Comprehensive patient management",
+      gradient: "from-emerald-500 to-teal-600",
+      bgColor: "bg-emerald-50"
     },
     {
       icon: Shield,
-      title: "HIPAA Compliant Security",
-      description: "Enterprise-grade security with end-to-end encryption and comprehensive audit trails.",
-      color: "from-teal-700 to-cyan-700"
+      title: "HIPAA Security",
+      description: "Enterprise-grade protection",
+      gradient: "from-purple-500 to-violet-600",
+      bgColor: "bg-purple-50"
     },
     {
       icon: BarChart3,
-      title: "Business Intelligence",
-      description: "Predictive analytics and comprehensive reporting for data-driven healthcare decisions.",
-      color: "from-cyan-700 to-teal-700"
+      title: "Analytics",
+      description: "Data-driven insights",
+      gradient: "from-orange-500 to-red-500",
+      bgColor: "bg-orange-50"
     }
   ];
 
@@ -174,38 +177,38 @@ export default async function Home() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#F5F7FA]">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
       {/* Navigation */}
-      <nav className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+      <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-4">
             <div className="flex items-center space-x-3">
-              <div className="relative w-12 h-12">
-                <Image
-                  src="/logo.png"
-                  alt="Ihosi Logo"
-                  fill
-                  className="object-contain"
-                  priority
+              <div className="relative w-10 h-10">
+                <Image 
+                  src="/logo.png" 
+                  alt="iHosi Logo" 
+                  width={40} 
+                  height={40} 
+                  className="w-10 h-10 rounded-xl"
                 />
               </div>
               <div>
-                <span className="text-2xl font-bold text-[#3E4C4B]">Ihosi</span>
-                <p className="text-xs text-[#5AC5C8] font-medium">Healthcare Management</p>
+                <span className="text-2xl font-bold text-slate-800">iHosi</span>
+                <p className="text-xs text-slate-500 font-medium">Healthcare Management</p>
               </div>
             </div>
             
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="#features" className="text-[#3E4C4B] hover:text-[#046658] transition-colors font-medium">
+              <Link href="#features" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
                 Features
               </Link>
-              <Link href="#capabilities" className="text-[#3E4C4B] hover:text-[#046658] transition-colors font-medium">
-                Capabilities
+              <Link href="#solutions" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
+                Solutions
               </Link>
-              <Link href="#benefits" className="text-[#3E4C4B] hover:text-[#046658] transition-colors font-medium">
-                Benefits
+              <Link href="#about" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
+                About
               </Link>
-              <Link href="#contact" className="text-[#3E4C4B] hover:text-[#046658] transition-colors font-medium">
+              <Link href="#contact" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
                 Contact
               </Link>
             </div>
@@ -213,24 +216,17 @@ export default async function Home() {
             <div className="flex items-center space-x-4">
               {userId ? (
                 <Link href={`/${role}`}>
-                  <Button className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#034A4A] hover:to-[#259A95] text-white shadow-lg">
+                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-lg">
                     <UserCheck className="h-4 w-4 mr-2" />
                     Dashboard
                   </Button>
                 </Link>
               ) : (
-                <>
-                  <Link href="/sign-in">
-                    <Button variant="ghost" className="text-[#3E4C4B] hover:text-[#046658] hover:bg-[#D1F1F2]">
-                      Sign In
-                    </Button>
-                  </Link>
-                  <Link href="/sign-up">
-                    <Button className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#034A4A] hover:to-[#259A95] text-white shadow-lg">
-                      Get Started
-                    </Button>
-                  </Link>
-                </>
+                <Link href="/sign-in">
+                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-lg">
+                    Sign In
+                  </Button>
+                </Link>
               )}
             </div>
           </div>
@@ -238,57 +234,74 @@ export default async function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-r from-[#046658]/5 to-[#2EB6B0]/5"></div>
-        <div className="max-w-7xl mx-auto relative">
+      <section className="py-20 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+        {/* Dynamic Animated Background */}
+        <div className="absolute inset-0 overflow-hidden">
+          {/* Floating geometric shapes */}
+          <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-blue-500/30 to-indigo-600/30 rounded-full blur-2xl animate-bounce" style={{ animationDuration: '8s' }}></div>
+          <div className="absolute top-40 right-20 w-24 h-24 bg-gradient-to-br from-emerald-500/30 to-teal-600/30 rounded-full blur-2xl animate-bounce" style={{ animationDuration: '6s', animationDelay: '2s' }}></div>
+          <div className="absolute bottom-20 left-1/4 w-40 h-40 bg-gradient-to-br from-purple-500/30 to-pink-600/30 rounded-full blur-2xl animate-bounce" style={{ animationDuration: '10s', animationDelay: '4s' }}></div>
+          <div className="absolute bottom-40 right-1/3 w-28 h-28 bg-gradient-to-br from-orange-500/30 to-red-500/30 rounded-full blur-2xl animate-bounce" style={{ animationDuration: '7s', animationDelay: '1s' }}></div>
+          
+          {/* Grid pattern overlay */}
+          <div className="absolute inset-0 opacity-30">
+            <div className="absolute inset-0" style={{
+              backgroundImage: `radial-gradient(circle at 1px 1px, rgba(148, 163, 184, 0.15) 1px, transparent 0)`,
+              backgroundSize: '20px 20px'
+            }}></div>
+          </div>
+          
+          {/* Animated lines */}
+          <div className="absolute top-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-blue-500/30 to-transparent animate-pulse"></div>
+          <div className="absolute bottom-1/4 left-0 w-full h-px bg-gradient-to-r from-transparent via-purple-500/30 to-transparent animate-pulse" style={{ animationDelay: '2s' }}></div>
+        </div>
+        
+        <div className="max-w-6xl mx-auto relative">
           <div className="text-center">
-            <div className="inline-flex items-center px-6 py-3 bg-white rounded-full border border-[#D1F1F2] shadow-lg text-[#046658] text-sm font-semibold mb-8">
-              <Award className="h-4 w-4 mr-2" />
-              Trusted by Healthcare Professionals Worldwide
+            {/* Trust Badge */}
+            <div className="inline-flex items-center px-6 py-3 bg-white/90 backdrop-blur-sm rounded-full border border-slate-200 shadow-lg text-slate-700 text-sm font-semibold mb-8 animate-in fade-in duration-800">
+              <Sparkles className="h-4 w-4 mr-2 text-blue-600" />
+              Trusted by Healthcare Professionals
             </div>
             
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-[#3E4C4B] mb-6 leading-tight">
-              Transforming Healthcare Delivery
-              <span className="block bg-gradient-to-r from-[#046658] to-[#2EB6B0] bg-clip-text text-transparent">
-                Through Intelligent Technology
+            {/* Main Headline - Reduced font sizes */}
+            <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-slate-900 mb-6 leading-tight animate-in fade-in slide-in-from-bottom-4 duration-800">
+              Modern Healthcare
+              <span className="block bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 bg-clip-text text-transparent">
+                Management
               </span>
             </h1>
             
-            <p className="text-xl text-[#3E4C4B]/80 max-w-4xl mx-auto mb-12 leading-relaxed">
-              The Ihosi Healthcare Management System represents a comprehensive, modern solution designed to 
-              revolutionize healthcare delivery and management. Built with enterprise-grade security, regulatory 
-              compliance, and operational efficiency at its core.
+            {/* Subtitle - Reduced font size */}
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto mb-10 leading-relaxed animate-in fade-in slide-in-from-bottom-4 duration-800 delay-200">
+              Streamline operations, enhance patient care, and drive better outcomes with our comprehensive healthcare management platform.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20">
+            {/* CTA Buttons */}
+            <div className="flex flex-col sm:flex-row gap-6 justify-center items-center mb-20 animate-in fade-in slide-in-from-bottom-4 duration-800 delay-300">
               {!userId && (
-                <>
-                  <Link href="/sign-up">
-                    <Button size="lg" className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#034A4A] hover:to-[#259A95] text-white text-lg px-10 py-5 shadow-xl">
-                      Start Free Trial
-                      <ArrowRight className="h-5 w-5 ml-2" />
-                    </Button>
-                  </Link>
-                  <Link href="/sign-in">
-                    <Button size="lg" variant="outline" className="border-2 border-[#046658] text-[#046658] hover:bg-[#046658] hover:text-white text-lg px-10 py-5">
-                      <Play className="h-5 w-5 mr-2" />
-                      Watch Demo
-                    </Button>
-                  </Link>
-                </>
+                <Link href="/sign-in">
+                  <Button size="lg" className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white text-lg px-10 py-5 shadow-xl hover:shadow-2xl transition-all duration-300 group">
+                    Get Started
+                    <ArrowUpRight className="h-5 w-5 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
+                  </Button>
+                </Link>
               )}
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 max-w-5xl mx-auto">
-              {stats.map((stat, index) => (
-                <div key={index} className="text-center bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#D1F1F2]">
-                  <div className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-[#046658] to-[#2EB6B0] bg-clip-text text-transparent mb-2">
-                    {stat.number}
+            {/* Floating Feature Cards */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-6xl mx-auto">
+              {coreFeatures.map((feature, index) => (
+                <div 
+                  key={index} 
+                  className={`${feature.bgColor} backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-white/50 hover:shadow-xl transition-all duration-300 hover:-translate-y-2 animate-in fade-in slide-in-from-bottom-4 duration-800`}
+                  style={{ animationDelay: `${400 + index * 100}ms` }}
+                >
+                  <div className={`bg-gradient-to-r ${feature.gradient} text-white w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-4 shadow-lg`}>
+                    <feature.icon className="h-6 w-6" />
                   </div>
-                  <div className="text-[#3E4C4B] text-sm font-semibold">
-                    {stat.label}
-                  </div>
+                  <h3 className="text-lg font-semibold text-slate-800 mb-2">{feature.title}</h3>
+                  <p className="text-sm text-slate-600">{feature.description}</p>
                 </div>
               ))}
             </div>
@@ -296,261 +309,266 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* Core Features Section */}
-      <section id="features" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
+      {/* Solutions Showcase */}
+      <section id="solutions" className="py-32 px-4 sm:px-6 lg:px-8 bg-white">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold text-[#3E4C4B] mb-6">
-              Complete Healthcare Management Solution
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6">
+              Comprehensive Healthcare Solutions
             </h2>
-            <p className="text-xl text-[#3E4C4B]/80 max-w-3xl mx-auto">
-              From patient registration to discharge, our comprehensive platform provides all the tools 
-              healthcare professionals need to deliver exceptional patient care.
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Everything you need to manage your healthcare practice efficiently and effectively.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {coreFeatures.map((feature, index) => (
-              <Card key={index} className="group border-0 shadow-lg hover:shadow-2xl transition-all duration-300 rounded-2xl overflow-hidden bg-gradient-to-br from-white to-[#F5F7FA]">
-                <CardHeader className="text-center pb-6 pt-8">
-                  <div className={`bg-gradient-to-r ${feature.color} text-white w-20 h-20 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                    <feature.icon className="h-10 w-10" />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+            {/* Left Side - Visual */}
+            <div className="relative">
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-100 rounded-3xl p-8 shadow-2xl">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="bg-white rounded-2xl p-6 shadow-lg">
+                    <CalendarCheck className="h-8 w-8 text-blue-600 mb-4" />
+                    <h3 className="font-semibold text-slate-800 mb-2">Smart Scheduling</h3>
+                    <p className="text-sm text-slate-600">AI-powered appointment optimization</p>
                   </div>
-                  <CardTitle className="text-xl font-bold text-[#3E4C4B] mb-4">
-                    {feature.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="text-center px-8 pb-8">
-                  <CardDescription className="text-[#3E4C4B]/70 leading-relaxed text-base">
-                    {feature.description}
-                  </CardDescription>
-                </CardContent>
-              </Card>
-            ))}
+                  <div className="bg-white rounded-2xl p-6 shadow-lg mt-8">
+                    <FileText className="h-8 w-8 text-emerald-600 mb-4" />
+                    <h3 className="font-semibold text-slate-800 mb-2">Digital Records</h3>
+                    <p className="text-sm text-slate-600">Comprehensive patient management</p>
+                  </div>
+                  <div className="bg-white rounded-2xl p-6 shadow-lg">
+                    <Shield className="h-8 w-8 text-purple-600 mb-4" />
+                    <h3 className="font-semibold text-slate-800 mb-2">HIPAA Security</h3>
+                    <p className="text-sm text-slate-600">Enterprise-grade protection</p>
+                  </div>
+                  <div className="bg-white rounded-2xl p-6 shadow-lg -mt-8">
+                    <BarChart3 className="h-8 w-8 text-orange-600 mb-4" />
+                    <h3 className="font-semibold text-slate-800 mb-2">Analytics</h3>
+                    <p className="text-sm text-slate-600">Data-driven insights</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Side - Content */}
+            <div className="space-y-8">
+              <div className="space-y-6">
+                <div className="flex items-start space-x-4">
+                  <div className="bg-blue-100 p-3 rounded-xl">
+                    <Users className="h-6 w-6 text-blue-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-800 mb-2">Patient Management</h3>
+                    <p className="text-slate-600">Complete patient lifecycle management from registration to discharge with comprehensive health records.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <div className="bg-emerald-100 p-3 rounded-xl">
+                    <Stethoscope className="h-6 w-6 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-800 mb-2">Clinical Operations</h3>
+                    <p className="text-slate-600">Streamlined workflows for doctors, nurses, and support staff with real-time collaboration tools.</p>
+                  </div>
+                </div>
+                
+                <div className="flex items-start space-x-4">
+                  <div className="bg-purple-100 p-3 rounded-xl">
+                    <TrendingUp className="h-6 w-6 text-purple-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold text-slate-800 mb-2">Business Intelligence</h3>
+                    <p className="text-slate-600">Advanced analytics and reporting to optimize operations and improve patient outcomes.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* System Capabilities Section */}
-      <section id="capabilities" className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-[#F5F7FA] to-[#D1F1F2]">
+      {/* Technology Stack */}
+      <section id="about" className="py-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-slate-50 to-slate-100">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold text-[#3E4C4B] mb-6">
-              Comprehensive System Capabilities
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-slate-900 mb-6">
+              Built for Modern Healthcare
             </h2>
-            <p className="text-xl text-[#3E4C4B]/80 max-w-3xl mx-auto">
-              Our platform covers every aspect of healthcare management, from patient care to financial operations.
+            <p className="text-lg text-slate-600 max-w-2xl mx-auto">
+              Leveraging cutting-edge technology to deliver secure, scalable, and intuitive healthcare solutions.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            {systemCapabilities.map((capability, index) => (
-              <Card key={index} className="bg-white/80 backdrop-blur-sm border-0 shadow-xl rounded-2xl overflow-hidden">
-                <CardHeader className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white p-8">
-                  <div className="flex items-center space-x-4">
-                    <div className="bg-white/20 p-3 rounded-xl">
-                      <capability.icon className="h-8 w-8" />
-                    </div>
-                    <CardTitle className="text-2xl font-bold">
-                      {capability.category}
-                    </CardTitle>
-                  </div>
-                </CardHeader>
-                <CardContent className="p-8">
-                  <ul className="space-y-4">
-                    {capability.features.map((feature, featureIndex) => (
-                      <li key={featureIndex} className="flex items-start space-x-3">
-                        <CheckCircle className="h-5 w-5 text-[#046658] mt-0.5 flex-shrink-0" />
-                        <span className="text-[#3E4C4B] font-medium">{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Benefits Section */}
-      <section id="benefits" className="py-24 px-4 sm:px-6 lg:px-8 bg-white">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-20">
-            <h2 className="text-4xl md:text-5xl font-bold text-[#3E4C4B] mb-6">
-              Benefits for Every Stakeholder
-            </h2>
-            <p className="text-xl text-[#3E4C4B]/80 max-w-3xl mx-auto">
-              Our system delivers value across all levels of healthcare organizations.
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {benefits.map((benefit, index) => (
-              <Card key={index} className="bg-gradient-to-br from-white to-[#F5F7FA] border-0 shadow-xl rounded-2xl overflow-hidden group hover:shadow-2xl transition-all duration-300">
-                <CardHeader className="text-center p-8">
-                  <div className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg group-hover:scale-110 transition-transform duration-300">
-                    <benefit.icon className="h-8 w-8" />
-                  </div>
-                  <CardTitle className="text-2xl font-bold text-[#3E4C4B] mb-4">
-                    {benefit.title}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="p-8 pt-0">
-                  <ul className="space-y-4">
-                    {benefit.points.map((point, pointIndex) => (
-                      <li key={pointIndex} className="flex items-start space-x-3">
-                        <div className="w-2 h-2 bg-gradient-to-r from-[#046658] to-[#2EB6B0] rounded-full mt-2 flex-shrink-0"></div>
-                        <span className="text-[#3E4C4B] leading-relaxed">{point}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </CardContent>
-              </Card>
-            ))}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="text-center group">
+              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:-translate-y-2">
+                <div className="bg-blue-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Shield className="h-8 w-8 text-blue-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">HIPAA Compliant</h3>
+                <p className="text-sm text-slate-600">Enterprise-grade security</p>
+              </div>
+            </div>
+            
+            <div className="text-center group">
+              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:-translate-y-2">
+                <div className="bg-emerald-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Zap className="h-8 w-8 text-emerald-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">Real-time</h3>
+                <p className="text-sm text-slate-600">Instant updates & notifications</p>
+              </div>
+            </div>
+            
+            <div className="text-center group">
+              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:-translate-y-2">
+                <div className="bg-purple-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Cpu className="h-8 w-8 text-purple-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">AI-Powered</h3>
+                <p className="text-sm text-slate-600">Smart automation & insights</p>
+              </div>
+            </div>
+            
+            <div className="text-center group">
+              <div className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 group-hover:-translate-y-2">
+                <div className="bg-orange-100 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Globe className="h-8 w-8 text-orange-600" />
+                </div>
+                <h3 className="text-lg font-semibold text-slate-800 mb-2">Cloud Native</h3>
+                <p className="text-sm text-slate-600">Scalable & accessible</p>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       {/* CTA Section */}
-      <section className="py-24 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-[#046658] to-[#2EB6B0] relative overflow-hidden">
-        <div className="absolute inset-0 bg-black/10"></div>
+      <section className="py-32 px-4 sm:px-6 lg:px-8 bg-gradient-to-r from-blue-600 via-indigo-700 to-purple-800 relative overflow-hidden">
+        <div className="absolute inset-0 bg-black/20"></div>
         <div className="max-w-6xl mx-auto text-center relative">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Transform Your Healthcare Delivery?
+          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-8">
+            Ready to Transform Healthcare?
           </h2>
-          <p className="text-xl text-white/90 mb-12 max-w-3xl mx-auto">
-            The Ihosi Healthcare Management System is more than just software—it's a comprehensive solution 
-            that transforms how healthcare is delivered, managed, and experienced.
+          <p className="text-lg text-white/90 mb-12 max-w-2xl mx-auto">
+            Join healthcare professionals who trust iHosi to streamline their operations and deliver exceptional patient care.
           </p>
           
           {!userId && (
             <div className="flex flex-col sm:flex-row gap-6 justify-center">
-              <Link href="/sign-up">
-                <Button size="lg" className="bg-white text-[#046658] hover:bg-gray-50 text-lg px-10 py-5 shadow-xl font-semibold">
-                  Get Started Today
-                  <ArrowRight className="h-5 w-5 ml-2" />
-                </Button>
-              </Link>
               <Link href="/sign-in">
-                <Button size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-[#046658] text-lg px-10 py-5 font-semibold">
-                  <Mail className="h-5 w-5 mr-2" />
-                  Contact Us
+                <Button size="lg" className="bg-white text-blue-600 hover:bg-gray-50 text-lg px-10 py-5 shadow-xl font-semibold group">
+                  Get Started
+                  <ArrowUpRight className="h-5 w-5 ml-2 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                 </Button>
               </Link>
             </div>
           )}
 
-          <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-              <Globe className="h-8 w-8 text-white mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Flexible Deployment</h3>
-              <p className="text-white/80 text-sm">On-premise, cloud, or hybrid options</p>
+          <div className="mt-20 grid grid-cols-1 md:grid-cols-3 gap-8 text-center">
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 hover:bg-white/20 transition-all duration-300">
+              <Globe className="h-10 w-10 text-white mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">Flexible Deployment</h3>
+              <p className="text-white/80">Cloud, on-premise, or hybrid solutions</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-              <Lock className="h-8 w-8 text-white mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">Enterprise Security</h3>
-              <p className="text-white/80 text-sm">HIPAA compliant with SOC 2 certification</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 hover:bg-white/20 transition-all duration-300">
+              <Shield className="h-10 w-10 text-white mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">Enterprise Security</h3>
+              <p className="text-white/80">HIPAA compliant with SOC 2 certification</p>
             </div>
-            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-6">
-              <Zap className="h-8 w-8 text-white mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-white mb-2">24/7 Support</h3>
-              <p className="text-white/80 text-sm">Dedicated support and maintenance</p>
+            <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-8 hover:bg-white/20 transition-all duration-300">
+              <Zap className="h-10 w-10 text-white mx-auto mb-4" />
+              <h3 className="text-xl font-semibold text-white mb-2">24/7 Support</h3>
+              <p className="text-white/80">Dedicated support and maintenance</p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer id="contact" className="bg-[#3E4C4B] text-white py-16 px-4 sm:px-6 lg:px-8">
+      <footer id="contact" className="bg-slate-900 text-white py-20 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 mb-12">
             <div className="col-span-1 md:col-span-2">
-              <div className="flex items-center space-x-4 mb-6">
-                <div className="relative w-16 h-16">
-                  <Image
-                    src="/logo.png"
-                    alt="Ihosi Logo"
-                    fill
-                    className="object-contain"
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="w-10 h-10 rounded-xl overflow-hidden">
+                  <Image 
+                    src="/logo.png" 
+                    alt="iHosi Logo" 
+                    width={40} 
+                    height={40} 
+                    className="w-10 h-10"
                   />
                 </div>
                 <div>
-                  <span className="text-3xl font-bold text-white">Ihosi</span>
-                  <p className="text-[#5AC5C8] font-medium">Healthcare Management System</p>
+                  <span className="text-2xl font-bold text-white">iHosi</span>
+                  <p className="text-slate-400 text-sm">Healthcare Management</p>
                 </div>
               </div>
-              <p className="text-white/80 max-w-lg text-lg leading-relaxed mb-6">
-                Transforming healthcare delivery through intelligent technology. Where technology meets healthcare excellence.
+              <p className="text-slate-300 max-w-lg text-lg leading-relaxed mb-8">
+                Transforming healthcare delivery through intelligent technology. Where innovation meets healthcare excellence.
               </p>
-              <div className="space-y-3">
-                <div className="flex items-center space-x-3 text-white/80">
-                  <Mail className="h-5 w-5 text-[#5AC5C8]" />
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3 text-slate-300">
+                  <Mail className="h-5 w-5 text-blue-400" />
                   <span>services@bkgconsultants.com</span>
                 </div>
-                <div className="flex items-center space-x-3 text-white/80">
-                  <Globe className="h-5 w-5 text-[#5AC5C8]" />
+                <div className="flex items-center space-x-3 text-slate-300">
+                  <Globe className="h-5 w-5 text-blue-400" />
                   <span>www.ihosi.com</span>
                 </div>
               </div>
             </div>
             
             <div>
-              <h3 className="text-white font-bold text-lg mb-6">System Capabilities</h3>
-              <ul className="space-y-3">
-                <li><Link href="#features" className="text-white/80 hover:text-[#5AC5C8] transition-colors flex items-center group">
-                  <ChevronRight className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
+              <h3 className="text-white font-bold text-lg mb-6">Solutions</h3>
+              <ul className="space-y-4">
+                <li><Link href="#solutions" className="text-slate-300 hover:text-blue-400 transition-colors">
                   Patient Management
                 </Link></li>
-                <li><Link href="#capabilities" className="text-white/80 hover:text-[#5AC5C8] transition-colors flex items-center group">
-                  <ChevronRight className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
+                <li><Link href="#solutions" className="text-slate-300 hover:text-blue-400 transition-colors">
                   Clinical Operations
                 </Link></li>
-                <li><Link href="#benefits" className="text-white/80 hover:text-[#5AC5C8] transition-colors flex items-center group">
-                  <ChevronRight className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
-                  Financial Management
+                <li><Link href="#solutions" className="text-slate-300 hover:text-blue-400 transition-colors">
+                  Business Intelligence
                 </Link></li>
-                <li><Link href="#contact" className="text-white/80 hover:text-[#5AC5C8] transition-colors flex items-center group">
-                  <ChevronRight className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
+                <li><Link href="#solutions" className="text-slate-300 hover:text-blue-400 transition-colors">
                   Security & Compliance
                 </Link></li>
               </ul>
             </div>
             
             <div>
-              <h3 className="text-white font-bold text-lg mb-6">Contact & Support</h3>
-              <ul className="space-y-3">
-                <li><Link href="/sign-up" className="text-white/80 hover:text-[#5AC5C8] transition-colors flex items-center group">
-                  <ChevronRight className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
-                  Get Started
-                </Link></li>
-                <li><Link href="/sign-in" className="text-white/80 hover:text-[#5AC5C8] transition-colors flex items-center group">
-                  <ChevronRight className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
+              <h3 className="text-white font-bold text-lg mb-6">Company</h3>
+              <ul className="space-y-4">
+                <li><Link href="/sign-in" className="text-slate-300 hover:text-blue-400 transition-colors">
                   Sign In
                 </Link></li>
-                <li><Link href="#" className="text-white/80 hover:text-[#5AC5C8] transition-colors flex items-center group">
-                  <ChevronRight className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
-                  Technical Support
+                <li><Link href="#about" className="text-slate-300 hover:text-blue-400 transition-colors">
+                  About Us
                 </Link></li>
-                <li><Link href="#" className="text-white/80 hover:text-[#5AC5C8] transition-colors flex items-center group">
-                  <ChevronRight className="h-4 w-4 mr-2 group-hover:translate-x-1 transition-transform" />
+                <li><Link href="#contact" className="text-slate-300 hover:text-blue-400 transition-colors">
+                  Contact
+                </Link></li>
+                <li><Link href="#" className="text-slate-300 hover:text-blue-400 transition-colors">
                   Privacy Policy
                 </Link></li>
               </ul>
             </div>
           </div>
           
-          <div className="border-t border-white/20 pt-8">
+          <div className="border-t border-slate-700 pt-8">
             <div className="flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
-              <p className="text-white/60 text-center md:text-left">
-                &copy; 2025 Ihosi Healthcare Management System. All rights reserved. 
-                <span className="block md:inline">Built with care for healthcare professionals.</span>
+              <p className="text-slate-400 text-center md:text-left">
+                &copy; 2025 iHosi Healthcare Management System. All rights reserved.
               </p>
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-2 text-white/60">
+              <div className="flex items-center space-x-8">
+                <div className="flex items-center space-x-2 text-slate-400">
                   <Shield className="h-4 w-4" />
                   <span className="text-sm">HIPAA Compliant</span>
                 </div>
-                <div className="flex items-center space-x-2 text-white/60">
+                <div className="flex items-center space-x-2 text-slate-400">
                   <Award className="h-4 w-4" />
                   <span className="text-sm">SOC 2 Certified</span>
                 </div>
