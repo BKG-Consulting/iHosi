@@ -96,7 +96,11 @@ export async function getDoctorDashboardStats() {
         db.patient.count(),
         db.staff.count({ where: { role: "NURSE" } }),
         db.appointment.findMany({
-          where: { doctor_id: userId!, appointment_date: { lte: new Date() } },
+          where: { 
+            doctor_id: userId!, 
+            status: { in: ['PENDING', 'SCHEDULED'] },
+            appointment_date: { gte: new Date() }
+          },
           include: {
             patient: {
               select: {
@@ -119,7 +123,7 @@ export async function getDoctorDashboardStats() {
               },
             },
           },
-          orderBy: { appointment_date: "desc" },
+          orderBy: { appointment_date: "asc" }, // Show earliest appointments first
         }),
         db.doctor.findMany({
           where: {

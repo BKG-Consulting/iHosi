@@ -226,12 +226,12 @@ export class TemplateRegistry {
   private initializeDefaultTemplates(): void {
     this.registerTemplate({
       id: 'appointment-booked-email',
-      name: 'Appointment Confirmation Email',
-      description: 'Email sent when appointment is booked',
+      name: 'Appointment Request Submitted Email',
+      description: 'Email sent when appointment request is submitted by patient',
       version: '1.0.0',
       type: NotificationType.APPOINTMENT_BOOKED,
       channel: NotificationChannel.EMAIL,
-      subject: 'Appointment Confirmation - {{appointmentType}}',
+      subject: 'Appointment Request Submitted - {{appointmentType}}',
       body: this.getDefaultAppointmentBookedEmail(),
       variables: ['recipientName', 'appointmentType', 'appointmentDate', 'appointmentTime', 'doctorName'],
       fallbacks: {
@@ -486,16 +486,19 @@ export class TemplateRegistry {
   private getDefaultAppointmentBookedEmail(): string {
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #2563eb;">Appointment Confirmation</h2>
+        <h2 style="color: #2563eb;">Appointment Request Submitted</h2>
         <p>Dear {{recipientName}},</p>
-        <p>Your appointment has been successfully booked. Here are the details:</p>
+        <p>Thank you! Your appointment request has been successfully submitted. Here are the details:</p>
         <div style="background-color: #f8fafc; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <p><strong>Appointment Type:</strong> {{appointmentType}}</p>
-          <p><strong>Date:</strong> {{appointmentDate}}</p>
-          <p><strong>Time:</strong> {{appointmentTime}}</p>
+          <p><strong>Requested Date:</strong> {{appointmentDate}}</p>
+          <p><strong>Requested Time:</strong> {{appointmentTime}}</p>
           <p><strong>Doctor:</strong> {{doctorName}}</p>
         </div>
-        <p>Please arrive 15 minutes before your scheduled time. If you need to reschedule or cancel, please contact us at least 24 hours in advance.</p>
+        <div style="background-color: #fff3cd; padding: 15px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #ffc107;">
+          <p style="margin: 0; color: #856404;"><strong>⏳ Pending Confirmation:</strong> Your appointment request is currently pending doctor approval. You will receive a confirmation email once the doctor reviews and schedules your appointment.</p>
+        </div>
+        <p>We will notify you as soon as your appointment is confirmed. If you need to modify or cancel your request, please contact us at least 24 hours in advance.</p>
         <p>Best regards,<br>{{facilityName}} Team</p>
       </div>
     `;

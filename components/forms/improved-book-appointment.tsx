@@ -164,7 +164,7 @@ export const ImprovedBookAppointment = ({
         form.reset({});
         setIsOpen(false); // Close the modal
         router.refresh(); // Refresh the page to show the new appointment
-        toast.success("Appointment created successfully");
+        toast.success("Appointment request submitted successfully! You will receive a confirmation email once the doctor reviews your request.");
       } else {
         toast.error(res.msg || "Failed to create appointment");
       }

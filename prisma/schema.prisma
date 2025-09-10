@@ -175,6 +175,11 @@ model Patient {
   payments                 Payment[]
   ratings                  Rating[]
   consents                 PatientConsent[]
+  granular_consents        GranularConsent[]
+  consent_workflows        ConsentWorkflow[]
+  consent_access_logs      ConsentAccessLog[]
+  consent_preferences      PatientConsentPreferences?
+  doctor_consents          DoctorPatientConsent[]
   beds                     Bed[]  // New: Bed assignments
   admissions               Admission[]  // Patient admissions
   
@@ -235,6 +240,11 @@ model Doctor {
   // Calendar integrations
   calendar_integrations CalendarIntegration[]
   schedule_notifications ScheduleNotification[]
+  
+  // Granular consent relations
+  granular_consents     GranularConsent[]
+  consent_access_logs   ConsentAccessLog[]
+  doctor_consents       DoctorPatientConsent[]
 
   created_at            DateTime @default(now())
   updated_at            DateTime @updatedAt
@@ -349,6 +359,9 @@ model Appointment {
   // Calendar events relation
   calendar_events   CalendarEvent[]
   schedule_notifications ScheduleNotification[]
+  
+  // Consent workflow relation
+  consent_workflows ConsentWorkflow[]
   
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
@@ -712,6 +725,161 @@ model PatientConsent {
   @@index([consent_type])
   @@index([status])
   @@index([expires_at])
+}
+
+// Enhanced Granular Consent Management System
+enum DataCategory {
+  DEMOGRAPHICS
+  CONTACT_INFO
+  MEDICAL_HISTORY
+  ALLERGIES
+  MEDICATIONS
+  VITAL_SIGNS
+  LAB_RESULTS
+  IMAGING_RESULTS
+  DIAGNOSES
+  TREATMENT_PLANS
+  PRESCRIPTIONS
+  BILLING_INFO
+  INSURANCE_INFO
+  EMERGENCY_CONTACTS
+  FAMILY_HISTORY
+  SOCIAL_HISTORY
+  MENTAL_HEALTH
+  SUBSTANCE_USE
+  SEXUAL_HEALTH
+  GENETIC_INFO
+}
+
+enum MedicalActionType {
+  VIEW_MEDICAL_RECORDS
+  WRITE_DIAGNOSIS
+  PRESCRIBE_MEDICATION
+  ORDER_LAB_TESTS
+  ORDER_IMAGING
+  REFER_TO_SPECIALIST
+  SHARE_WITH_OTHER_DOCTORS
+  USE_FOR_RESEARCH
+  MARKETING_COMMUNICATIONS
+  EMERGENCY_ACCESS
+}
+
+model GranularConsent {
+  id                        String            @id @default(cuid())
+  patient_id                String
+  doctor_id                 String?
+  consent_type              ConsentType
+  data_categories           DataCategory[]
+  medical_actions           MedicalActionType[]
+  status                    ConsentStatus
+  consent_text              String
+  version                   String
+  granted_at                DateTime?
+  revoked_at                DateTime?
+  expires_at                DateTime?
+  granted_by                String
+  ip_address                String
+  user_agent                String
+  digital_signature         String?
+  witness_id                String?
+  legal_basis               String
+  purpose_of_use            String[]           @default([])
+  restrictions              String[]           @default([])
+  auto_revoke_after_appointment Boolean         @default(false)
+  auto_revoke_days          Int?
+  metadata                  Json               @default("{}")
+  created_at                DateTime           @default(now())
+  updated_at                DateTime           @updatedAt
+
+  patient                   Patient            @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  doctor                    Doctor?            @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+  access_logs               ConsentAccessLog[]
+
+  @@index([patient_id])
+  @@index([doctor_id])
+  @@index([status])
+  @@index([expires_at])
+}
+
+model ConsentWorkflow {
+  id                String   @id @default(cuid())
+  patient_id        String
+  appointment_id    Int?
+  workflow_type     String
+  status            String
+  required_consents String[] @default([])
+  granted_consents  String[] @default([])
+  expires_at        DateTime?
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  patient           Patient     @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  appointment       Appointment? @relation(fields: [appointment_id], references: [id], onDelete: Cascade)
+
+  @@index([patient_id])
+  @@index([appointment_id])
+}
+
+model ConsentAccessLog {
+  id              String           @id @default(cuid())
+  patient_id      String
+  doctor_id       String
+  consent_id      String
+  access_type     String
+  data_category   DataCategory
+  medical_action  MedicalActionType?
+  access_reason   String
+  ip_address      String
+  user_agent      String
+  timestamp       DateTime         @default(now())
+  success         Boolean
+  denial_reason   String?
+
+  patient         Patient          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  doctor          Doctor           @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+  consent         GranularConsent  @relation(fields: [consent_id], references: [id], onDelete: Cascade)
+
+  @@index([patient_id])
+  @@index([doctor_id])
+  @@index([timestamp])
+}
+
+model PatientConsentPreferences {
+  id                              String  @id @default(cuid())
+  patient_id                      String  @unique
+  default_consent_duration_days   Int     @default(365)
+  auto_revoke_after_appointment   Boolean @default(true)
+  allow_emergency_access          Boolean @default(true)
+  allow_research_use              Boolean @default(false)
+  allow_marketing                 Boolean @default(false)
+  preferred_consent_method        String  @default("digital")
+  consent_notification_preferences Json   @default("{}")
+  created_at                      DateTime @default(now())
+  updated_at                      DateTime @updatedAt
+
+  patient                         Patient @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+}
+
+model DoctorPatientConsent {
+  id                      String           @id @default(cuid())
+  patient_id              String
+  doctor_id               String
+  consent_granted_at      DateTime
+  consent_expires_at      DateTime?
+  status                  String
+  data_categories_allowed DataCategory[]
+  medical_actions_allowed MedicalActionType[]
+  restrictions            String[]         @default([])
+  created_at              DateTime         @default(now())
+  updated_at              DateTime         @updatedAt
+
+  patient                 Patient          @relation(fields: [patient_id], references: [id], onDelete: Cascade)
+  doctor                  Doctor           @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+
+  @@unique([patient_id, doctor_id])
+  @@index([patient_id])
+  @@index([doctor_id])
+  @@index([status])
 }
 
 model UserSession {

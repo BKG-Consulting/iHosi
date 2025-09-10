@@ -17,6 +17,7 @@ import {
   Filter
 } from 'lucide-react';
 import { format } from 'date-fns';
+import { useRouter } from 'next/navigation';
 import { ProfileImage } from '@/components/profile-image';
 
 interface DoctorPatient {
@@ -54,6 +55,7 @@ interface PatientListProps {
 }
 
 export function PatientList({ doctorId }: PatientListProps) {
+  const router = useRouter();
   const [patients, setPatients] = useState<DoctorPatient[]>([]);
   const [filteredPatients, setFilteredPatients] = useState<DoctorPatient[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -283,7 +285,12 @@ export function PatientList({ doctorId }: PatientListProps) {
                     </div>
                   </div>
                   
-                  <Button variant="outline" size="sm">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => router.push(`/doctor/patient/${patient.id}`)}
+                    aria-label={`Open profile for ${patient.first_name} ${patient.last_name}`}
+                  >
                     <ChevronRight className="w-4 h-4" />
                   </Button>
                 </div>

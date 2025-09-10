@@ -94,18 +94,20 @@ const buildQuery = (id?: string, search?: string) => {
       }
     : {};
 
-  // Combine both conditions with AND if both exist
-  const combinedQuery: Prisma.AppointmentWhereInput =
-    id || search
-      ? {
-          AND: [
-            ...(Object.keys(searchConditions).length > 0
-              ? [searchConditions]
-              : []),
-            ...(Object.keys(idConditions).length > 0 ? [idConditions] : []),
-          ],
-        }
-      : {};
+  // Filter for upcoming appointments only (PENDING, SCHEDULED status and future dates)
+  const upcomingConditions: Prisma.AppointmentWhereInput = {
+    status: { in: ['PENDING', 'SCHEDULED'] },
+    appointment_date: { gte: new Date() }
+  };
+
+  // Combine all conditions with AND
+  const combinedQuery: Prisma.AppointmentWhereInput = {
+    AND: [
+      upcomingConditions, // Always filter for upcoming appointments
+      ...(Object.keys(searchConditions).length > 0 ? [searchConditions] : []),
+      ...(Object.keys(idConditions).length > 0 ? [idConditions] : []),
+    ],
+  };
 
   return combinedQuery;
 };

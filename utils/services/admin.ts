@@ -12,6 +12,10 @@ export async function getAdminDashboardStats() {
         db.patient.count(),
         db.doctor.count(),
         db.appointment.findMany({
+          where: {
+            status: { in: ['PENDING', 'SCHEDULED'] },
+            appointment_date: { gte: new Date() }
+          },
           include: {
             patient: {
               select: {
@@ -33,7 +37,7 @@ export async function getAdminDashboardStats() {
               },
             },
           },
-          orderBy: { appointment_date: "desc" },
+          orderBy: { appointment_date: "asc" }, // Show earliest appointments first
         }),
         db.doctor.findMany({
           where: {

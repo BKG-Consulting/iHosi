@@ -1,5 +1,5 @@
 import db from "@/lib/db";
-import { getMonth, format, startOfYear, endOfMonth, isToday } from "date-fns";
+import { getMonth, format, startOfYear, endOfMonth } from "date-fns";
 import { daysOfWeek } from "..";
 import { PHIEncryption } from "@/lib/encryption";
 import { logAudit } from "@/lib/audit";
@@ -119,7 +119,11 @@ export async function getPatientDashboardStatistics(id: string) {
     }
 
     const appointments = await db.appointment.findMany({
-      where: { patient_id: data?.id },
+      where: { 
+        patient_id: data?.id,
+        status: { in: ['PENDING', 'SCHEDULED'] },
+        appointment_date: { gte: new Date() }
+      },
       include: {
         doctor: {
           select: {
@@ -141,8 +145,7 @@ export async function getPatientDashboardStatistics(id: string) {
           },
         },
       },
-
-      orderBy: { appointment_date: "desc" },
+      orderBy: { appointment_date: "asc" }, // Show earliest appointments first
     });
 
     const { appointmentCounts, monthlyData } = await processAppointments(

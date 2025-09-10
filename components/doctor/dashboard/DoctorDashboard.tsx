@@ -29,7 +29,6 @@ import { useScheduling } from '@/hooks/useScheduling';
 import { CreateAppointmentRequest, UpdateAppointmentRequest } from '@/types/scheduling';
 import { AvailabilityToggle } from '@/components/doctor/availability-toggle';
 import { EnhancedAppointmentRequests } from '@/components/doctor/enhanced-appointment-requests';
-import { RealTimeNotifications } from '@/components/doctor/real-time-notifications';
 import { ScheduleSetup } from '@/components/doctor/schedule-setup/ScheduleSetup';
 import { AppointmentSkeleton } from '@/components/doctor/appointment-skeleton';
 import { PatientList } from '@/components/doctor/patient-list';
@@ -313,11 +312,6 @@ export const DoctorDashboard: React.FC<DashboardProps> = ({
           </div>
           
           <div className="flex items-center gap-4">
-            <RealTimeNotifications 
-              doctorId={doctor.id}
-              doctorName={doctor.name}
-              doctorEmail={doctor.email}
-            />
             <Button
               onClick={handleAvailabilityToggle}
               className={cn(

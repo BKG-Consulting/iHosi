@@ -85,7 +85,7 @@ export const BookAppointment = ({
       if (res.success) {
         form.reset({});
         router.refresh();
-        toast.success("Appointment created successfully");
+        toast.success("Appointment request submitted successfully! You will receive a confirmation email once the doctor reviews your request.");
       }
     } catch (error) {
       console.log(error);

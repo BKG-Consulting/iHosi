@@ -344,19 +344,53 @@ export class EmailService {
   }
 
   /**
-   * Send email (placeholder - integrate with actual email service)
+   * Send email using SendGrid
    */
   private static async sendEmail(options: EmailOptions): Promise<void> {
-    // TODO: Integrate with email service (SendGrid, AWS SES, etc.)
-    console.log('📧 Email would be sent:', {
-      to: options.to,
-      subject: options.template.subject,
-      category: options.category
-    });
-    
-    // In development, log the email content
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Email HTML:', options.template.html);
+    try {
+      // Initialize SendGrid if not already done
+      const apiKey = process.env.SENDGRID_API_KEY;
+      if (!apiKey) {
+        console.error('❌ SENDGRID_API_KEY not found, falling back to console logging');
+        console.log('📧 Email would be sent:', {
+          to: options.to,
+          subject: options.template.subject,
+          category: options.category
+        });
+        return;
+      }
+
+      sgMail.setApiKey(apiKey);
+
+      const msg = {
+        to: options.to,
+        from: {
+          email: process.env.FROM_EMAIL || 'noreply@ihosi.com',
+          name: process.env.FROM_NAME || 'iHosi Healthcare System'
+        },
+        subject: options.template.subject,
+        html: options.template.html,
+        text: options.template.text,
+        categories: [options.category || 'notification']
+      };
+
+      console.log(`📤 Sending email via SendGrid:`, {
+        to: msg.to,
+        from: msg.from,
+        subject: msg.subject,
+        category: msg.categories
+      });
+
+      await sgMail.send(msg);
+      console.log(`✅ REAL EMAIL SENT via SendGrid to: ${options.to}`);
+      
+    } catch (error) {
+      console.error('❌ SendGrid email failed:', error);
+      console.log('📧 Email would be sent (fallback):', {
+        to: options.to,
+        subject: options.template.subject,
+        category: options.category
+      });
     }
   }
 
@@ -365,6 +399,18 @@ export class EmailService {
    */
   static async sendSimpleEmail(to: string, subject: string, body: string): Promise<boolean> {
     try {
+      // Validate email format
+      if (!to || typeof to !== 'string' || !to.includes('@')) {
+        console.error('❌ Invalid email address format:', to);
+        return false;
+      }
+
+      // Check if email is encrypted (should not happen after our fix)
+      if (to.startsWith('{"encrypted":')) {
+        console.error('❌ Attempting to send to encrypted email address:', to);
+        return false;
+      }
+
       const template: EmailTemplate = {
         subject,
         html: body,
