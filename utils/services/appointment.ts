@@ -95,9 +95,12 @@ const buildQuery = (id?: string, search?: string) => {
     : {};
 
   // Filter for upcoming appointments only (PENDING, SCHEDULED status and future dates)
+  const currentDate = new Date();
+  const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+  
   const upcomingConditions: Prisma.AppointmentWhereInput = {
     status: { in: ['PENDING', 'SCHEDULED'] },
-    appointment_date: { gte: new Date() }
+    appointment_date: { gte: todayStart }
   };
 
   // Combine all conditions with AND

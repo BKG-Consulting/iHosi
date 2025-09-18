@@ -17,8 +17,8 @@ export async function POST(request: NextRequest) {
     const ipAddress = request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown';
     const userAgent = request.headers.get('user-agent') || 'unknown';
 
-    // Verify MFA code
-    const result = await HIPAAAuthService.verifyMFA(userId, code, ipAddress, userAgent);
+    // Verify MFA code with rate limiting
+    const result = await HIPAAAuthService.verifyMFA(userId, code, ipAddress, userAgent, request);
 
     if (!result.success) {
       return NextResponse.json(

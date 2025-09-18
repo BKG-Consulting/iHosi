@@ -1,375 +1,311 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
+import { HIPAAAuthService } from '@/lib/auth/hipaa-auth';
+import { WorkingDayConfig, ApiResponse, ScheduleData, } from '@/types/schedule-types';
+import { scheduleService } from '@/services/scheduling/schedule-service';
+import { errorHandler } from '@/services/scheduling/error-handler';
 import db from '@/lib/db';
 import { logAudit } from '@/lib/audit';
-import { getCurrentUser } from '@/lib/auth-helpers';
 
-// Schema for schedule validation
-const WorkingHoursSchema = z.object({
+const workingDaySchema = z.object({
   day: z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
   isWorking: z.boolean(),
-  startTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-  endTime: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/),
-  breakStart: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
-  breakEnd: z.string().regex(/^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/).optional(),
-  maxAppointments: z.number().min(1).max(50).optional(),
+  startTime: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:MM)'),
+  endTime: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:MM)'),
+  breakStart: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:MM)').optional(),
+  breakEnd: z.string().regex(/^([01]?\d|2[0-3]):[0-5]\d$/, 'Invalid time format (HH:MM)').optional(),
+  maxAppointments: z.number().min(1).max(32).default(20),
+  appointmentDuration: z.number().min(15).max(480).default(30),
+  bufferTime: z.number().min(0).max(60).default(5),
+  timezone: z.string().default('UTC')
 });
 
-const ScheduleSchema = z.object({
-  workingHours: z.array(WorkingHoursSchema),
-  appointmentDuration: z.number().min(15).max(240), // 15 minutes to 4 hours
-  bufferTime: z.number().min(0).max(60), // 0 to 60 minutes
-  templates: z.array(z.object({
-    id: z.string(),
-    name: z.string().min(1).max(100),
-    description: z.string().max(500).optional(),
-    workingHours: z.array(WorkingHoursSchema),
-    appointmentDuration: z.number().min(15).max(240),
-    bufferTime: z.number().min(0).max(60),
-    isDefault: z.boolean().optional(),
-  })).optional(),
+const updateScheduleSchema = z.object({
+  workingHours: z.array(workingDaySchema),
+  aiOptimization: z.boolean().optional(),
+  recurrenceType: z.enum(['WEEKLY', 'DAILY', 'BIWEEKLY', 'MONTHLY', 'CUSTOM']).optional(),
+  effectiveFrom: z.string().optional(),
+  effectiveUntil: z.string().optional(),
+  customPattern: z.string().optional(),
+  isTemplate: z.boolean().optional()
 });
 
-// GET - Fetch doctor's schedule
+// GET /api/doctors/[id]/schedule - Get doctor's schedule
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const doctorId = resolvedParams.id;
-
-    // Verify user authentication
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
+    // Verify authentication - check both token formats
+    const oldToken = request.cookies.get('auth-token')?.value;
+    const accessToken = request.cookies.get('access-token')?.value;
+    const token = accessToken || oldToken;
+    
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required' },
+        { status: 401 }
+      );
     }
 
-    // Check if user has permission to view this doctor's schedule
-    if (user.role?.toLowerCase() !== 'admin' && user.id !== doctorId) {
-      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    const sessionResult = await HIPAAAuthService.verifySession(token);
+    if (!sessionResult.valid || !sessionResult.user) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid session' },
+        { status: 401 }
+      );
     }
 
-    // Fetch doctor's working days and profile
-    const [workingDays, doctor] = await Promise.all([
-      db.workingDays.findMany({
-        where: { doctor_id: doctorId },
-        orderBy: { day_of_week: 'asc' }
-      }),
-      db.doctor.findUnique({
-        where: { id: doctorId },
-        select: {
-          appointment_duration: true,
-          buffer_time: true
-        }
-      })
-    ]);
+    const user = sessionResult.user;
+    const { id: doctorId } = await params;
 
-    // Fetch doctor's availability updates
-    const availabilityUpdates = await db.availabilityUpdate.findMany({
-      where: { doctor_id: doctorId },
-      orderBy: { created_at: 'desc' },
-      take: 10
-    });
+    // Use enterprise service to get schedule
+    const result = await scheduleService.getDoctorSchedule(doctorId);
 
-    // Fetch leave requests
-    const leaveRequests = await db.leaveRequest.findMany({
-      where: { doctor_id: doctorId },
-      orderBy: { start_date: 'desc' }
-    });
+    if (!result.success) {
+      const error = await errorHandler.handleError(
+        new Error(result.error || 'Failed to fetch schedule'),
+        { userId: user.id, doctorId, operation: 'getSchedule' }
+      );
 
-    // Transform data to match frontend format
-    const workingHours = [
-      'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'
-    ].map(day => {
-      const workingDay = workingDays.find(wd => wd.day_of_week === day);
-      return {
-        day,
-        isWorking: workingDay?.is_working || false,
-        startTime: workingDay?.start_time || '09:00',
-        endTime: workingDay?.end_time || '17:00',
-        breakStart: workingDay?.break_start_time || undefined,
-        breakEnd: workingDay?.break_end_time || undefined,
-        maxAppointments: workingDay?.max_appointments || 20
-      };
-    });
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.userMessage,
+          errors: result.errors?.map(e => e.message) || [error.message]
+        },
+        { status: 500 }
+      );
+    }
 
-    const schedule = {
-      workingHours,
-      appointmentDuration: doctor?.appointment_duration || 30,
-      bufferTime: doctor?.buffer_time || 5,
-      availabilityUpdates,
-      leaveRequests: leaveRequests.map(leave => ({
-        id: leave.id.toString(),
-        startDate: leave.start_date.toISOString().split('T')[0],
-        endDate: leave.end_date.toISOString().split('T')[0],
-        reason: leave.reason,
-        status: leave.status,
-        type: leave.leave_type
-      }))
+    const response: ApiResponse<ScheduleData> = {
+      success: true,
+      data: result.data!,
+      message: 'Schedule retrieved successfully'
     };
 
-    // Log audit
-    await logAudit({
-      action: 'READ',
-      resourceType: 'SCHEDULE',
-      resourceId: doctorId,
-      reason: 'Doctor schedule accessed',
-      success: true,
-      metadata: {
-        userId: user.id,
-        userRole: user.role
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: schedule
-    });
+    return NextResponse.json(response);
 
   } catch (error) {
-    console.error('Error fetching doctor schedule:', error);
-    
-    // Log audit
-    await logAudit({
-      action: 'READ',
-      resourceType: 'SCHEDULE',
-      resourceId: 'unknown',
-      reason: 'Failed to fetch doctor schedule',
-      success: false,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error'
-    });
+    const handledError = await errorHandler.handleError(
+      error as Error,
+      { operation: 'getSchedule' }
+    );
 
-    return NextResponse.json({
-      success: false,
-      message: 'Failed to fetch schedule'
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        success: false,
+        message: handledError.userMessage,
+        errors: [handledError.message]
+      },
+      { status: 500 }
+    );
   }
 }
 
-// PUT - Update doctor's schedule
+// PUT /api/doctors/[id]/schedule - Update doctor's schedule
 export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const resolvedParams = await params;
-    const doctorId = resolvedParams.id;
+    // Verify authentication - check both token formats
+    const oldToken = request.cookies.get('auth-token')?.value;
+    const accessToken = request.cookies.get('access-token')?.value;
+    const token = accessToken || oldToken;
+    
+    if (!token) {
+      return NextResponse.json(
+        { success: false, message: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const sessionResult = await HIPAAAuthService.verifySession(token);
+    if (!sessionResult.valid || !sessionResult.user) {
+      return NextResponse.json(
+        { success: false, message: 'Invalid session' },
+        { status: 401 }
+      );
+    }
+
+    const user = sessionResult.user;
+    const { id: doctorId } = await params;
     const body = await request.json();
+    
+    // Validate request
+    const validatedData = updateScheduleSchema.parse(body);
 
-    // Verify user authentication
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
+    // Convert WorkingDayFormData to WorkingDayConfig format for processing
+    const workingDaysConfig: WorkingDayConfig[] = validatedData.workingHours.map(day => ({
+      day: day.day,
+      isWorking: day.isWorking,
+      startTime: day.startTime,
+      endTime: day.endTime,
+      breakStart: day.breakStart,
+      breakEnd: day.breakEnd,
+      maxAppointments: day.maxAppointments,
+      appointmentDuration: day.appointmentDuration || 30,
+      bufferTime: day.bufferTime || 5,
+      timezone: day.timezone || 'UTC',
+      recurrenceType: validatedData.recurrenceType || 'WEEKLY',
+      effectiveFrom: validatedData.effectiveFrom ? new Date(validatedData.effectiveFrom) : undefined,
+      effectiveUntil: validatedData.effectiveUntil ? new Date(validatedData.effectiveUntil) : undefined,
+      isTemplate: validatedData.isTemplate || false
+    }));
 
-    // Check if user has permission to update this doctor's schedule
-    if (user.role?.toLowerCase() !== 'admin' && user.id !== doctorId) {
-      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
-    }
+    // Convert WorkingDayConfig to Prisma WorkingDay format for database
+    const workingDaysForDB = workingDaysConfig.map(day => ({
+      doctor_id: doctorId,
+      day_of_week: day.day,
+      start_time: day.startTime,
+      end_time: day.endTime,
+      is_working: day.isWorking,
+      break_start_time: day.breakStart || null,
+      break_end_time: day.breakEnd || null,
+      max_appointments: day.maxAppointments,
+      appointment_duration: day.appointmentDuration || 30,
+      buffer_time: day.bufferTime || 5,
+      recurrence_type: day.recurrenceType || 'WEEKLY',
+      recurrence_pattern: null,
+      effective_from: day.effectiveFrom || null,
+      effective_until: day.effectiveUntil || null,
+      timezone: day.timezone || 'UTC',
+      is_template: day.isTemplate || false
+    }));
 
-    // Validate request body
-    const validatedData = ScheduleSchema.parse(body);
+    // Use enterprise service to update working days
+    const result = await scheduleService.updateWorkingDays(
+      doctorId,
+      workingDaysForDB as any, // Type assertion for now
+      user.id
+    );
 
-    // Start transaction
-    await db.$transaction(async (tx) => {
-      // Update working days
-      for (const dayHours of validatedData.workingHours) {
-        await tx.workingDays.upsert({
-          where: {
-            doctor_id_day_of_week: {
-              doctor_id: doctorId,
-              day_of_week: dayHours.day
-            }
-          },
-          update: {
-            is_working: dayHours.isWorking,
-            start_time: dayHours.startTime,
-            end_time: dayHours.endTime,
-            break_start_time: dayHours.breakStart || null,
-            break_end_time: dayHours.breakEnd || null,
-            max_appointments: dayHours.maxAppointments || 20,
-            updated_at: new Date()
-          },
-          create: {
+    // If this is marked as a template, create a template record
+    if (validatedData.isTemplate) {
+      const templateName = `Schedule Template - ${new Date().toLocaleDateString()}`;
+      
+      try {
+        await db.scheduleTemplates.create({
+          data: {
             doctor_id: doctorId,
-            day_of_week: dayHours.day,
-            is_working: dayHours.isWorking,
-            start_time: dayHours.startTime,
-            end_time: dayHours.endTime,
-            break_start_time: dayHours.breakStart || null,
-            break_end_time: dayHours.breakEnd || null,
-            max_appointments: dayHours.maxAppointments || 20,
-            created_at: new Date(),
-            updated_at: new Date()
+            name: templateName,
+            description: `Template created on ${new Date().toLocaleDateString()}`,
+            template_type: validatedData.recurrenceType || 'WEEKLY',
+            working_days: workingDaysConfig.map(day => ({
+              day: day.day,
+              isWorking: day.isWorking,
+              startTime: day.startTime,
+              endTime: day.endTime,
+              breakStart: day.breakStart,
+              breakEnd: day.breakEnd,
+              maxAppointments: day.maxAppointments,
+              appointmentDuration: day.appointmentDuration,
+              bufferTime: day.bufferTime,
+              timezone: day.timezone
+            })),
+            recurrence_rules: {
+              recurrenceType: validatedData.recurrenceType || 'WEEKLY',
+              effectiveFrom: validatedData.effectiveFrom ? validatedData.effectiveFrom : null,
+              effectiveUntil: validatedData.effectiveUntil ? validatedData.effectiveUntil : null,
+              customPattern: validatedData.customPattern || null
+            },
+            timezone: workingDaysConfig[0]?.timezone || 'UTC'
           }
         });
+
+        // Log template creation
+        await logAudit({
+          action: 'CREATE',
+          resourceType: 'SCHEDULE',
+          resourceId: doctorId,
+          reason: `Created schedule template: ${templateName}`,
+          metadata: {
+            templateName,
+            workingDaysCount: workingDaysConfig.length,
+            recurrenceType: validatedData.recurrenceType
+          }
+        }, {
+          userId: user.id,
+          userRole: user.role,
+          ipAddress: request.headers.get('x-forwarded-for') || request.headers.get('x-real-ip') || 'unknown',
+          userAgent: request.headers.get('user-agent') || 'unknown'
+        });
+
+      } catch (templateError) {
+        console.error('Error creating template:', templateError);
+        console.error('Template creation details:', {
+          doctorId,
+          templateName,
+          workingDaysCount: workingDaysConfig.length,
+          recurrenceType: validatedData.recurrenceType
+        });
+        // Don't fail the main operation if template creation fails
+      }
+    }
+
+    if (!result.success) {
+      // If we have specific validation errors, return them directly
+      if (result.errors && result.errors.length > 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: 'Validation failed',
+            errors: result.errors.map(e => e.message)
+          },
+          { status: 400 }
+        );
       }
 
-      // Update doctor profile with appointment settings
-      await tx.doctor.update({
-        where: { id: doctorId },
-        data: {
-          appointment_duration: validatedData.appointmentDuration,
-          buffer_time: validatedData.bufferTime,
-          updated_at: new Date()
-        }
-      });
-    });
+      // Otherwise, handle as a general error
+      const error = await errorHandler.handleError(
+        new Error(result.error || 'Failed to update schedule'),
+        { userId: user.id, doctorId, operation: 'updateSchedule' }
+      );
 
-    // Log audit
-    await logAudit({
-      action: 'UPDATE',
-      resourceType: 'SCHEDULE',
-      resourceId: doctorId,
-      reason: 'Doctor schedule updated',
+      return NextResponse.json(
+        {
+          success: false,
+          message: error.userMessage,
+          errors: [error.message]
+        },
+        { status: 500 }
+      );
+    }
+
+    const response: ApiResponse<{ doctorId: string; workingDaysCount: number; aiOptimization: boolean }> = {
       success: true,
-      metadata: {
-        userId: user.id,
-        userRole: user.role
+      message: 'Schedule updated successfully',
+      data: {
+        doctorId,
+        workingDaysCount: result.data!.updatedCount,
+        aiOptimization: validatedData.aiOptimization || false
       }
-    });
+    };
 
-    return NextResponse.json({
-      success: true,
-      message: 'Schedule updated successfully'
-    });
-
-  } catch (error) {
-    console.error('Error updating doctor schedule:', error);
+    return NextResponse.json(response);
     
+  } catch (error) {
+    const handledError = await errorHandler.handleError(
+      error as Error,
+      { operation: 'updateSchedule' }
+    );
+
     if (error instanceof z.ZodError) {
       return NextResponse.json({
         success: false,
-        message: 'Invalid schedule data',
-        errors: error.errors
+        message: 'Validation error',
+        errors: error.errors.map(e => e.message),
       }, { status: 400 });
     }
-
-    // Log audit
-    await logAudit({
-      action: 'UPDATE',
-      resourceType: 'SCHEDULE',
-      resourceId: 'unknown',
-      reason: 'Failed to update doctor schedule',
-      success: false,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error'
-    });
-
-    return NextResponse.json({
-      success: false,
-      message: 'Failed to update schedule'
-    }, { status: 500 });
-  }
-}
-
-// POST - Create leave request
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
-  try {
-    const resolvedParams = await params;
-    const doctorId = resolvedParams.id;
-    const body = await request.json();
-
-    // Verify user authentication
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ success: false, message: 'Unauthorized' }, { status: 401 });
-    }
-
-    // Check if user has permission to create leave request for this doctor
-    if (user.role?.toLowerCase() !== 'admin' && user.id !== doctorId) {
-      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
-    }
-
-    // Validate leave request data
-    const LeaveRequestSchema = z.object({
-      startDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      endDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-      reason: z.string().min(1).max(500),
-      type: z.enum(['VACATION', 'SICK_LEAVE', 'PERSONAL', 'CONFERENCE', 'OTHER'])
-    });
-
-    const validatedData = LeaveRequestSchema.parse(body);
-
-    // Check for date conflicts
-    const startDate = new Date(validatedData.startDate);
-    const endDate = new Date(validatedData.endDate);
-
-    if (startDate > endDate) {
-      return NextResponse.json({
-        success: false,
-        message: 'Start date cannot be after end date'
-      }, { status: 400 });
-    }
-
-    // Create leave request
-    const leaveRequest = await db.leaveRequest.create({
-      data: {
-        doctor_id: doctorId,
-        start_date: startDate,
-        end_date: endDate,
-        reason: validatedData.reason,
-        leave_type: validatedData.type,
-        status: 'PENDING',
-        created_at: new Date(),
-        updated_at: new Date()
-      }
-    });
-
-    // Log audit
-    await logAudit({
-      action: 'CREATE',
-      resourceType: 'LEAVE_REQUEST',
-      resourceId: leaveRequest.id.toString(),
-      reason: 'Leave request created',
-      success: true,
-      metadata: {
-        userId: user.id,
-        userRole: user.role
-      }
-    });
-
-    return NextResponse.json({
-      success: true,
-      message: 'Leave request created successfully',
-      data: {
-        id: leaveRequest.id.toString(),
-        startDate: leaveRequest.start_date.toISOString().split('T')[0],
-        endDate: leaveRequest.end_date.toISOString().split('T')[0],
-        reason: leaveRequest.reason,
-        status: leaveRequest.status,
-        type: leaveRequest.leave_type
-      }
-    });
-
-  } catch (error) {
-    console.error('Error creating leave request:', error);
     
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({
+    return NextResponse.json(
+      {
         success: false,
-        message: 'Invalid leave request data',
-        errors: error.errors
-      }, { status: 400 });
-    }
-
-    // Log audit
-    await logAudit({
-      action: 'CREATE',
-      resourceType: 'LEAVE_REQUEST',
-      resourceId: 'unknown',
-      reason: 'Failed to create leave request',
-      success: false,
-      errorMessage: error instanceof Error ? error.message : 'Unknown error'
-    });
-
-    return NextResponse.json({
-      success: false,
-      message: 'Failed to create leave request'
-    }, { status: 500 });
+        message: handledError.userMessage,
+        errors: [handledError.message]
+      },
+      { status: 500 }
+    );
   }
 }
-

@@ -11,14 +11,15 @@
  * - JWT Token Management
  */
 
-import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 import { NextRequest } from 'next/server';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import db from '@/lib/db';
-import { PHIEncryption } from '@/lib/encryption';
 import { logAudit } from '@/lib/audit';
+import { TOTPService } from '@/lib/mfa/totp-service';
+import { TokenManager } from '@/lib/auth/token-manager';
+import { RateLimiter } from '@/lib/security/rate-limiter';
 
 // Types
 export interface User {
@@ -59,24 +60,45 @@ const MFA_SESSION_DURATION = 30 * 60 * 1000; // 30 minutes for MFA
 const MAX_LOGIN_ATTEMPTS = 5;
 const LOCKOUT_DURATION = 30 * 60 * 1000; // 30 minutes
 
+// Validate required environment variables
+if (!process.env.JWT_ACCESS_SECRET) {
+  throw new Error('JWT_ACCESS_SECRET environment variable is required');
+}
+if (!process.env.JWT_REFRESH_SECRET) {
+  throw new Error('JWT_REFRESH_SECRET environment variable is required');
+}
+
 export class HIPAAAuthService {
   /**
    * Authenticate user with email and password
    */
-  static async authenticate(email: string, password: string, ipAddress: string, userAgent: string): Promise<{
+  static async authenticate(email: string, password: string, ipAddress: string, userAgent: string, request?: NextRequest): Promise<{
     success: boolean;
     user?: User;
     mfaRequired?: boolean;
+    accessToken?: string;
+    refreshToken?: string;
     error?: string;
   }> {
     try {
+      // Apply rate limiting
+      if (request) {
+        const rateLimitResult = await RateLimiter.applyRateLimit(request, 'auth_login');
+        if (!rateLimitResult.allowed) {
+          return {
+            success: false,
+            error: 'RATE_LIMIT_EXCEEDED'
+          };
+        }
+      }
+
       // Check for account lockout
       const lockout = await this.checkAccountLockout(email, ipAddress);
       if (lockout.locked) {
         await this.logLoginAttempt(email, ipAddress, userAgent, false, 'Account locked');
         return {
           success: false,
-          error: `Account locked until ${lockout.unlockAt}`
+          error: 'ACCOUNT_LOCKED'
         };
       }
 
@@ -86,7 +108,7 @@ export class HIPAAAuthService {
         await this.logLoginAttempt(email, ipAddress, userAgent, false, 'User not found');
         return {
           success: false,
-          error: 'Invalid credentials'
+          error: 'USER_NOT_FOUND'
         };
       }
 
@@ -95,7 +117,7 @@ export class HIPAAAuthService {
         await this.handleFailedLogin(email, ipAddress, userAgent);
         return {
           success: false,
-          error: 'Invalid credentials'
+          error: 'INVALID_CREDENTIALS'
         };
       }
       
@@ -104,7 +126,7 @@ export class HIPAAAuthService {
         await this.handleFailedLogin(email, ipAddress, userAgent);
         return {
           success: false,
-          error: 'Invalid credentials'
+          error: 'INVALID_CREDENTIALS'
         };
       }
 
@@ -113,7 +135,7 @@ export class HIPAAAuthService {
         await this.logLoginAttempt(email, ipAddress, userAgent, false, 'Account inactive');
         return {
           success: false,
-          error: 'Account is inactive'
+          error: 'ACCOUNT_INACTIVE'
         };
       }
 
@@ -124,7 +146,8 @@ export class HIPAAAuthService {
       await this.logLoginAttempt(email, ipAddress, userAgent, true);
 
       // Check if MFA is required
-      if (user.mfaEnabled) {
+      const mfaEnabled = await TOTPService.isMFAEnabled(user.id);
+      if (mfaEnabled) {
         return {
           success: true,
           mfaRequired: true,
@@ -135,15 +158,15 @@ export class HIPAAAuthService {
             firstName: user.firstName,
             lastName: user.lastName,
             departmentId: user.departmentId,
-            mfaEnabled: user.mfaEnabled,
+            mfaEnabled: mfaEnabled,
             lastLoginAt: user.lastLoginAt,
             isActive: user.isActive
           }
         };
       }
 
-      // Create session
-      const session = await this.createSession(user, ipAddress, userAgent);
+      // Create session with new token management
+      const sessionId = await this.createSession(user, ipAddress, userAgent);
 
       // Update last login
       await this.updateLastLogin(user.id);
@@ -161,6 +184,16 @@ export class HIPAAAuthService {
         }
       });
 
+      // Get the token pair for the response
+      const tokenPair = await TokenManager.createTokenPair(
+        user.id,
+        user.email,
+        user.role,
+        sessionId, // Use the sessionId returned from createSession
+        ipAddress,
+        userAgent
+      );
+
       return {
         success: true,
         user: {
@@ -173,7 +206,9 @@ export class HIPAAAuthService {
           mfaEnabled: user.mfaEnabled,
           lastLoginAt: user.lastLoginAt,
           isActive: user.isActive
-        }
+        },
+        accessToken: tokenPair.accessToken,
+        refreshToken: tokenPair.refreshToken
       };
 
     } catch (error) {
@@ -188,12 +223,23 @@ export class HIPAAAuthService {
   /**
    * Verify MFA code
    */
-  static async verifyMFA(userId: string, code: string, ipAddress: string, userAgent: string): Promise<{
+  static async verifyMFA(userId: string, code: string, ipAddress: string, userAgent: string, request?: NextRequest): Promise<{
     success: boolean;
     user?: User;
     error?: string;
   }> {
     try {
+      // Apply rate limiting for MFA
+      if (request) {
+        const rateLimitResult = await RateLimiter.applyRateLimit(request, 'auth_mfa');
+        if (!rateLimitResult.allowed) {
+          return {
+            success: false,
+            error: 'Too many MFA attempts. Please try again later.'
+          };
+        }
+      }
+
       // Get user
       const user = await this.findUserById(userId);
       if (!user) {
@@ -203,18 +249,18 @@ export class HIPAAAuthService {
         };
       }
 
-      // Verify MFA code (implement your MFA logic here)
-      const mfaValid = await this.verifyMFACode(userId, code);
-      if (!mfaValid) {
+      // Verify MFA code using TOTP service
+      const mfaResult = await TOTPService.verifyTOTPCode(userId, code);
+      if (!mfaResult.valid) {
         await this.logLoginAttempt(user.email, ipAddress, userAgent, false, 'Invalid MFA code');
         return {
           success: false,
-          error: 'Invalid MFA code'
+          error: mfaResult.error || 'Invalid MFA code'
         };
       }
 
       // Create session
-      const session = await this.createSession(user, ipAddress, userAgent);
+      await this.createSession(user, ipAddress, userAgent);
 
       // Update last login
       await this.updateLastLogin(user.id);
@@ -257,7 +303,7 @@ export class HIPAAAuthService {
   }
 
   /**
-   * Create user session
+   * Create user session with token pair
    */
   static async createSession(user: any, ipAddress: string, userAgent: string): Promise<string> {
     const sessionId = crypto.randomUUID();
@@ -275,24 +321,21 @@ export class HIPAAAuthService {
       }
     });
 
-    // Create JWT token
-    const token = await new SignJWT({
-      userId: user.id,
-      email: user.email,
-      role: user.role,
-      sessionId,
-      iat: Math.floor(Date.now() / 1000)
-    })
-      .setProtectedHeader({ alg: 'HS256' })
-      .setExpirationTime('8h')
-      .setIssuedAt()
-      .sign(JWT_SECRET);
+    // Create token pair using TokenManager
+    await TokenManager.createTokenPair(
+      user.id,
+      user.email,
+      user.role,
+      sessionId, // This sessionId will be stored in the token payload
+      ipAddress,
+      userAgent
+    );
 
-    return token;
+    return sessionId; // Return the sessionId for use in token creation
   }
 
   /**
-   * Verify session token
+   * Verify session token using TokenManager
    */
   static async verifySession(token: string): Promise<{
     valid: boolean;
@@ -301,30 +344,21 @@ export class HIPAAAuthService {
     error?: string;
   }> {
     try {
-      // Verify JWT token
-      const { payload } = await jwtVerify(token, JWT_SECRET);
-      const { userId, sessionId } = payload;
-
-      // Check session in database
-      const session = await db.userSession.findFirst({
-        where: {
-          session_token: sessionId as string,
-          user_id: userId as string,
-          is_active: true,
-          expires_at: { gt: new Date() }
-        }
-      });
-
-      if (!session) {
+      // Verify access token using TokenManager
+      const tokenResult = await TokenManager.verifyAccessToken(token);
+      
+      if (!tokenResult.valid || !tokenResult.payload) {
         return {
           valid: false,
-          error: 'Invalid or expired session'
+          error: tokenResult.error || 'Invalid token'
         };
       }
 
+      const { userId, sessionId } = tokenResult.payload;
+
       // Get user data
-      const user = await this.findUserById(userId as string);
-      if (!user || !user.isActive) {
+      const user = await this.findUserById(userId);
+      if (!user?.isActive) {
         return {
           valid: false,
           error: 'User not found or inactive'
@@ -332,8 +366,12 @@ export class HIPAAAuthService {
       }
 
       // Update last activity
-      await db.userSession.update({
-        where: { id: session.id },
+      await db.userSession.updateMany({
+        where: { 
+          session_token: sessionId,
+          user_id: userId,
+          is_active: true
+        },
         data: { last_activity: new Date() }
       });
 
@@ -350,7 +388,7 @@ export class HIPAAAuthService {
           lastLoginAt: user.lastLoginAt,
           isActive: user.isActive
         },
-        sessionId: sessionId as string
+        sessionId: sessionId
       };
 
     } catch (error) {
@@ -363,25 +401,34 @@ export class HIPAAAuthService {
   }
 
   /**
-   * Logout user
+   * Logout user with token revocation
    */
-  static async logout(sessionId: string, reason: string = 'User logout'): Promise<void> {
+  static async logout(sessionId: string, userId?: string, reason: string = 'User logout'): Promise<void> {
     try {
-      // Deactivate session
-      await db.userSession.updateMany({
-        where: { session_token: sessionId },
-        data: {
-          is_active: false,
-          logout_reason: reason
-        }
-      });
+      // Revoke all tokens for the user
+      if (userId) {
+        await TokenManager.revokeAllUserTokens(userId, sessionId, reason);
+      } else {
+        // Fallback to session-only deactivation
+        await db.userSession.updateMany({
+          where: { session_token: sessionId },
+          data: {
+            is_active: false,
+            logout_reason: reason
+          }
+        });
+      }
 
       // Audit log
       await logAudit({
         action: 'LOGOUT',
         resourceType: 'AUTH',
         resourceId: sessionId,
-        reason: reason
+        reason: reason,
+        metadata: {
+          userId,
+          tokenRevocation: !!userId
+        }
       });
 
     } catch (error) {
@@ -486,23 +533,39 @@ export class HIPAAAuthService {
    * Find user by email
    */
   private static async findUserByEmail(email: string): Promise<User | null> {
+    console.log('🔍 Searching for user with email:', email);
+    console.log('🔗 Database URL:', process.env.DATABASE_URL?.substring(0, 50) + '...');
+    
     // Check in Patient table
-    const patient = await db.patient.findUnique({
-      where: { email },
-      select: {
-        id: true,
-        email: true,
-        first_name: true,
-        last_name: true,
-        phone: true,
-        address: true,
-        password: true,
-        mfa_enabled: true,
-        last_login_at: true,
-        created_at: true,
-        updated_at: true
-      }
-    });
+    let patient;
+    try {
+      patient = await db.patient.findUnique({
+        where: { email },
+        select: {
+          id: true,
+          email: true,
+          first_name: true,
+          last_name: true,
+          phone: true,
+          address: true,
+          password: true,
+          mfa_enabled: true,
+          last_login_at: true,
+          created_at: true,
+          updated_at: true
+        }
+      });
+    } catch (error) {
+      console.error('❌ Database error in patient lookup:', error);
+      throw error;
+    }
+    
+    console.log('👥 Patient lookup result:', patient ? {
+      id: patient.id,
+      email: patient.email,
+      name: `${patient.first_name} ${patient.last_name}`,
+      hasPassword: !!patient.password
+    } : 'NOT FOUND');
 
     if (patient) {
       return {
@@ -536,6 +599,13 @@ export class HIPAAAuthService {
         updated_at: true
       }
     });
+    
+    console.log('👨‍⚕️ Doctor lookup result:', doctor ? {
+      id: doctor.id,
+      email: doctor.email,
+      name: doctor.name,
+      hasPassword: !!doctor.password
+    } : 'NOT FOUND');
 
     if (doctor) {
       return {
@@ -571,6 +641,15 @@ export class HIPAAAuthService {
         updated_at: true
       }
     });
+    
+    console.log('👨‍💼 Staff lookup result:', staff ? {
+      id: staff.id,
+      email: staff.email,
+      name: staff.name,
+      role: staff.role,
+      status: staff.status,
+      hasPassword: !!staff.password
+    } : 'NOT FOUND');
 
     if (staff) {
       return {
@@ -587,6 +666,7 @@ export class HIPAAAuthService {
       };
     }
 
+    console.log('❌ No user found with email:', email);
     return null;
   }
 
@@ -695,12 +775,24 @@ export class HIPAAAuthService {
   }
 
   /**
-   * Verify MFA code (implement based on your MFA provider)
+   * Refresh access token using refresh token
    */
-  private static async verifyMFACode(userId: string, code: string): Promise<boolean> {
-    // Implement your MFA verification logic here
-    // This could be TOTP, SMS, email, etc.
-    return true; // Placeholder
+  static async refreshToken(refreshToken: string, ipAddress: string, userAgent: string): Promise<{
+    success: boolean;
+    accessToken?: string;
+    newRefreshToken?: string;
+    expiresAt?: Date;
+    error?: string;
+  }> {
+    try {
+      return await TokenManager.refreshAccessToken(refreshToken, ipAddress, userAgent);
+    } catch (error) {
+      console.error('Token refresh failed:', error);
+      return {
+        success: false,
+        error: 'Token refresh failed'
+      };
+    }
   }
 }
 

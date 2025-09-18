@@ -47,8 +47,10 @@ export async function middleware(request: NextRequest) {
   }
 
   try {
-    // Get auth token from cookie
-    const token = request.cookies.get('auth-token')?.value;
+    // Get auth token from cookie (check both old and new formats)
+    const oldToken = request.cookies.get('auth-token')?.value;
+    const accessToken = request.cookies.get('access-token')?.value;
+    const token = accessToken || oldToken;
 
     if (!token) {
       // Redirect to sign-in page

@@ -118,11 +118,51 @@ export async function getPatientDashboardStatistics(id: string) {
       };
     }
 
+    console.log("=== APPOINTMENT QUERY DEBUG ===");
+    console.log("Patient ID for query:", data?.id);
+    console.log("Current date:", new Date().toISOString());
+    console.log("Current date (local):", new Date().toLocaleDateString());
+    console.log("Querying appointments for patient...");
+    
+    // First, let's check what appointments exist for this patient
+    const allAppointments = await db.appointment.findMany({
+      where: { 
+        patient_id: data?.id
+      },
+      select: {
+        id: true,
+        appointment_date: true,
+        status: true,
+        type: true,
+        time: true
+      }
+    });
+    
+    console.log("All appointments for patient:", allAppointments);
+    
+    // Check if any appointments are for today
+    const currentDate = new Date();
+    const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+    const todayEnd = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1);
+    
+    console.log("Today start:", todayStart.toISOString());
+    console.log("Today end:", todayEnd.toISOString());
+    
+    const todayAppointments = allAppointments.filter(apt => {
+      const aptDate = new Date(apt.appointment_date);
+      return aptDate >= todayStart && aptDate < todayEnd;
+    });
+    
+    console.log("Appointments for today:", todayAppointments);
+    
+    // Use a more flexible date range for today's appointments
     const appointments = await db.appointment.findMany({
       where: { 
         patient_id: data?.id,
-        status: { in: ['PENDING', 'SCHEDULED'] },
-        appointment_date: { gte: new Date() }
+        appointment_date: {
+          gte: todayStart,
+          lt: todayEnd
+        }
       },
       include: {
         doctor: {
@@ -147,8 +187,26 @@ export async function getPatientDashboardStatistics(id: string) {
       },
       orderBy: { appointment_date: "asc" }, // Show earliest appointments first
     });
+    
+    console.log("Appointments found:", appointments.length);
+    console.log("Appointments data:", appointments);
 
-    const { appointmentCounts, monthlyData } = await processAppointments(
+    // Filter appointments by status for counting
+    const pendingAppointments = appointments.filter(apt => apt.status === 'PENDING');
+    const scheduledAppointments = appointments.filter(apt => apt.status === 'SCHEDULED');
+    const completedAppointments = appointments.filter(apt => apt.status === 'COMPLETED');
+    const cancelledAppointments = appointments.filter(apt => apt.status === 'CANCELLED');
+    
+    const appointmentCounts = {
+      PENDING: pendingAppointments.length,
+      SCHEDULED: scheduledAppointments.length,
+      COMPLETED: completedAppointments.length,
+      CANCELLED: cancelledAppointments.length
+    };
+    
+    console.log("Appointment counts:", appointmentCounts);
+    
+    const { monthlyData } = await processAppointments(
       appointments
     );
     

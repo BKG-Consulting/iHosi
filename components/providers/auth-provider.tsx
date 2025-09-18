@@ -123,17 +123,24 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const logout = async () => {
     try {
+      // Clear user state immediately to prevent race conditions
+      setUser(null);
+      
+      // Call logout API
       await fetch('/api/auth/logout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
       });
+      
+      // Force reload to clear any cached state
+      window.location.href = '/sign-in';
     } catch (error) {
       console.error('Logout error:', error);
-    } finally {
+      // Even if API fails, clear local state and redirect
       setUser(null);
-      router.push('/sign-in');
+      window.location.href = '/sign-in';
     }
   };
 

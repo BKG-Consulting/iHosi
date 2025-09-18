@@ -44,6 +44,8 @@ export interface TemplateContext {
   previousDate?: string;
   previousTime?: string;
   reason?: string;
+  cancellationReason?: string;
+  reschedulingReason?: string;
 }
 
 // Template configuration interface

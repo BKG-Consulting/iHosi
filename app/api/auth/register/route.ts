@@ -2,18 +2,69 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import db from '@/lib/db';
-import { PHIEncryption } from '@/lib/encryption';
 import { logAudit } from '@/lib/audit';
 import { EmailService } from '@/lib/email-service';
+import { SecurityMiddleware } from '@/lib/security/security-middleware';
+import { InputSanitizer } from '@/lib/security/input-sanitizer';
 
 export async function POST(request: NextRequest) {
   try {
-    const { firstName, lastName, email, phone, password, role = 'PATIENT' } = await request.json();
+    const registrationData = await request.json();
+    const { firstName, lastName, email, phone, password, role = 'PATIENT' } = registrationData;
 
-    if (!firstName || !lastName || !email || !phone || !password) {
+    // Apply comprehensive security checks
+    const securityCheck = await SecurityMiddleware.protectRegistration(request, registrationData);
+    if (!securityCheck.allowed) {
+      return securityCheck.response || NextResponse.json(
+        { error: 'Security check failed', details: securityCheck.error },
+        { status: 403 }
+      );
+    }
+
+    // Sanitize and validate input data
+    const sanitizedData = InputSanitizer.validatePatientRegistrationData({
+      first_name: firstName,
+      last_name: lastName,
+      email: email,
+      phone: phone,
+      address: '', // Will be filled during registration
+      date_of_birth: new Date('1990-01-01'), // Default date
+      gender: 'MALE', // Default gender
+      marital_status: 'single',
+      emergency_contact_name: '',
+      emergency_contact_number: '',
+      relation: 'mother',
+      blood_group: '',
+      allergies: '',
+      medical_conditions: '',
+      medical_history: '',
+      insurance_provider: '',
+      insurance_number: '',
+      privacy_consent: true,
+      service_consent: true,
+      medical_consent: true
+    });
+
+    if (!sanitizedData.isValid) {
       return NextResponse.json(
-        { error: 'All fields are required' },
+        { 
+          error: 'Input validation failed', 
+          details: sanitizedData.errors,
+          fieldErrors: sanitizedData.errors
+        },
         { status: 400 }
+      );
+    }
+
+    // Check if user already exists
+    const existingUser = await db.patient.findUnique({
+      where: { email: sanitizedData.sanitizedData.email }
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'User with this email already exists' },
+        { status: 409 }
       );
     }
 
@@ -33,18 +84,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if user already exists
-    const existingUser = await db.patient.findUnique({
-      where: { email }
-    });
-
-    if (existingUser) {
-      return NextResponse.json(
-        { error: 'User with this email already exists' },
-        { status: 409 }
-      );
-    }
-
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 12);
 
@@ -54,10 +93,10 @@ export async function POST(request: NextRequest) {
       user = await db.patient.create({
         data: {
           id: crypto.randomUUID(),
-          first_name: firstName,
-          last_name: lastName,
-          email: email,
-          phone: phone,
+          first_name: sanitizedData.sanitizedData.first_name,
+          last_name: sanitizedData.sanitizedData.last_name,
+          email: sanitizedData.sanitizedData.email,
+          phone: sanitizedData.sanitizedData.phone,
           password: hashedPassword,
           date_of_birth: new Date('1990-01-01'), // Default date, will be updated during registration
           gender: 'MALE', // Default gender, will be updated during registration
@@ -86,7 +125,7 @@ export async function POST(request: NextRequest) {
     const userAgent = request.headers.get('user-agent') || 'unknown';
     
     const emailResult = await EmailService.sendVerificationEmail(
-      email,
+      sanitizedData.sanitizedData.email,
       'REGISTRATION',
       ipAddress,
       userAgent
@@ -107,11 +146,13 @@ export async function POST(request: NextRequest) {
         email: user.email,
         role: role,
         registrationMethod: 'self_registration',
-        emailSent: emailResult.success
+        emailSent: emailResult.success,
+        securityCheck: securityCheck.metadata
       }
     });
 
-    return NextResponse.json({
+    // Apply security headers to response
+    const response = NextResponse.json({
       success: true,
       user: {
         id: user.id,
@@ -125,6 +166,8 @@ export async function POST(request: NextRequest) {
         : 'Account created successfully, but verification email could not be sent. Please contact support.',
       emailSent: emailResult.success
     }, { status: 201 });
+
+    return SecurityMiddleware.applySecurityHeaders(response);
 
   } catch (error) {
     console.error('Registration error:', error);

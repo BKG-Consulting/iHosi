@@ -30,18 +30,15 @@ export async function getDoctors(includeUnavailable: boolean = false) {
 
 export async function getAvailableDoctorsForBooking(selectedDate?: string, selectedTime?: string) {
   try {
-    // Get doctors who are marked as available
+    // Get all doctors (not just those marked as available)
     const doctors = await db.doctor.findMany({
-      where: {
-        availability_status: 'AVAILABLE' as const
-      },
       include: {
-        working_days: true
+        working_days: true // Use the correct relationship name
       }
     });
 
     if (!selectedDate || !selectedTime) {
-      // If no specific date/time, return all available doctors
+      // If no specific date/time, return all doctors with their schedules
       const decryptedData = doctors.map(doctor => PHIEncryption.decryptDoctorData(doctor));
       return { success: true, data: decryptedData, status: 200 };
     }
@@ -51,7 +48,7 @@ export async function getAvailableDoctorsForBooking(selectedDate?: string, selec
     const dayOfWeek = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
     
     const availableDoctors = doctors.filter(doctor => {
-      // Check if doctor works on this day
+      // Check if doctor works on this day using the WorkingDays table
       const workingDay = doctor.working_days.find(day => 
         day.day_of_week.toLowerCase() === dayOfWeek.toLowerCase() && 
         day.is_working
@@ -97,9 +94,9 @@ export async function getDoctorDashboardStats() {
         db.staff.count({ where: { role: "NURSE" } }),
         db.appointment.findMany({
           where: { 
-            doctor_id: userId!, 
-            status: { in: ['PENDING', 'SCHEDULED'] },
-            appointment_date: { gte: new Date() }
+            doctor_id: userId!
+            // Show ALL appointments for this doctor (past, present, future)
+            // Remove date filter to see all appointments
           },
           include: {
             patient: {
@@ -146,6 +143,11 @@ export async function getDoctorDashboardStats() {
     // Decrypt the doctor data before returning
     const decryptedDoctors = doctors.map(doctor => PHIEncryption.decryptDoctorData(doctor));
 
+    // Debug logging
+    console.log('Doctor ID:', userId);
+    console.log('Found appointments:', appointments.length);
+    console.log('Appointments data:', appointments);
+
     const { appointmentCounts, monthlyData } = await processAppointments(
       appointments
     );
@@ -153,11 +155,26 @@ export async function getDoctorDashboardStats() {
     const last5Records = appointments.slice(0, 5);
     // const availableDoctors = doctors.slice(0, 5);
 
+    // Extract unique patients from appointments
+    const uniquePatients = appointments.reduce((acc: any[], appointment: any) => {
+      const existingPatient = acc.find(p => p.id === appointment.patient.id);
+      if (!existingPatient) {
+        acc.push({
+          ...appointment.patient,
+          phone: '', // Add missing phone field
+          email: '', // Add missing email field
+        });
+      }
+      return acc;
+    }, []);
+
     return {
       totalNurses,
       totalPatient,
       appointmentCounts,
       last5Records,
+      allAppointments: appointments, // Return ALL appointments, not just last 5
+      patients: uniquePatients, // Return unique patients
       availableDoctors: decryptedDoctors,
       totalAppointment: appointments?.length,
       monthlyData,

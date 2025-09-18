@@ -21,7 +21,7 @@ export interface CurrentUser {
 export async function getCurrentUser(): Promise<CurrentUser | null> {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
+    const token = cookieStore.get('access-token')?.value;
     
     if (!token) {
       return null;
@@ -30,6 +30,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
     const sessionResult = await HIPAAAuthService.verifySession(token);
     
     if (!sessionResult.valid || !sessionResult.user) {
+      // Token is invalid or expired - client should handle refresh
       return null;
     }
 

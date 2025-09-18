@@ -3,7 +3,10 @@ import { HIPAAAuthService } from '@/lib/auth/hipaa-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const token = request.cookies.get('auth-token')?.value;
+    // Check for both old and new token formats for backward compatibility
+    const oldToken = request.cookies.get('auth-token')?.value;
+    const accessToken = request.cookies.get('access-token')?.value;
+    const token = accessToken || oldToken;
     
     if (!token) {
       return NextResponse.json(
@@ -24,12 +27,18 @@ export async function GET(request: NextRequest) {
     const user = sessionResult.user;
     
     return NextResponse.json({
-      id: user.id,
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phone: (user as any).phone || null,
-      role: user.role,
+      user: {
+        id: user.id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        phone: (user as any).phone || null,
+        role: user.role,
+        departmentId: user.departmentId,
+        mfaEnabled: user.mfaEnabled,
+        lastLoginAt: user.lastLoginAt,
+        isActive: user.isActive,
+      }
     });
   } catch (error) {
     console.error('Error fetching current user:', error);

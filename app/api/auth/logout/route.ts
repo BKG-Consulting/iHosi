@@ -5,7 +5,14 @@ import { cookies } from 'next/headers';
 export async function POST(request: NextRequest) {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
+    
+    // Check for both old and new token formats
+    const oldToken = cookieStore.get('auth-token')?.value;
+    const accessToken = cookieStore.get('access-token')?.value;
+    const refreshToken = cookieStore.get('refresh-token')?.value;
+
+    // Use the available token for logout
+    const token = accessToken || oldToken;
 
     if (token) {
       // Verify session to get session ID
@@ -15,13 +22,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Clear the auth cookie
-    cookieStore.delete('auth-token');
-
-    return NextResponse.json({
+    // Create response with cleared cookies
+    const response = NextResponse.json({
       success: true,
       message: 'Logout successful'
     });
+
+    // Clear all auth cookies (both old and new)
+    response.cookies.delete('auth-token');
+    response.cookies.delete('access-token');
+    response.cookies.delete('refresh-token');
+
+    return response;
 
   } catch (error) {
     console.error('Logout error:', error);

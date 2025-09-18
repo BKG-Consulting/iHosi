@@ -5,7 +5,9 @@ import { cookies } from "next/headers";
 export const checkRole = async (role: Roles) => {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
+    const accessToken = cookieStore.get('access-token')?.value;
+    const oldToken = cookieStore.get('auth-token')?.value;
+    const token = accessToken || oldToken;
     
     if (!token) {
       return false;
@@ -26,7 +28,9 @@ export const checkRole = async (role: Roles) => {
 export const getRole = async () => {
   try {
     const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
+    const accessToken = cookieStore.get('access-token')?.value;
+    const oldToken = cookieStore.get('auth-token')?.value;
+    const token = accessToken || oldToken;
     
     if (!token) {
       console.log("No auth token found, defaulting to patient");

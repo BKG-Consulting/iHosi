@@ -1,19 +1,17 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Eye, EyeOff, Lock, Mail, User, Phone, MapPin, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
+import { Eye, EyeOff, Lock, Mail, User, Phone, AlertCircle, Loader2, CheckCircle } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface SignupFormProps {
-  onSuccess?: (user: any) => void;
-  redirectTo?: string;
+  readonly onSuccess?: (user: any) => void;
+  readonly redirectTo?: string;
 }
 
 export function SignupForm({ onSuccess, redirectTo = '/patient/registration' }: SignupFormProps) {
@@ -31,28 +29,93 @@ export function SignupForm({ onSuccess, redirectTo = '/patient/registration' }: 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState(1);
+  const [csrfToken, setCsrfToken] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   const router = useRouter();
 
+  // Initialize CSRF token
+  useEffect(() => {
+    const initCSRF = async () => {
+      try {
+        const response = await fetch('/api/auth/csrf-token', {
+          method: 'GET',
+          credentials: 'include'
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setCsrfToken(data.token);
+        }
+      } catch (error) {
+        console.error('Failed to initialize CSRF token:', error);
+      }
+    };
+    initCSRF();
+  }, []);
+
   const validateForm = () => {
+    const errors: Record<string, string> = {};
+    
+    // Clear previous errors
+    setFieldErrors({});
+    setError(null);
+
     if (!formData.firstName || !formData.lastName || !formData.email || !formData.phone) {
       setError('Please fill in all required fields');
       return false;
     }
 
-    if (formData.password.length < 12) {
-      setError('Password must be at least 12 characters long');
-      return false;
+    // Validate first name
+    if (formData.firstName.length < 2) {
+      errors.firstName = 'First name must be at least 2 characters long';
+    }
+    if (formData.firstName.length > 50) {
+      errors.firstName = 'First name must be less than 50 characters';
+    }
+    if (!/^[a-zA-Z\s\-']+$/.test(formData.firstName)) {
+      errors.firstName = 'First name contains invalid characters';
     }
 
-    if (formData.password !== formData.confirmPassword) {
-      setError('Passwords do not match');
-      return false;
+    // Validate last name
+    if (formData.lastName.length < 2) {
+      errors.lastName = 'Last name must be at least 2 characters long';
+    }
+    if (formData.lastName.length > 50) {
+      errors.lastName = 'Last name must be less than 50 characters';
+    }
+    if (!/^[a-zA-Z\s\-']+$/.test(formData.lastName)) {
+      errors.lastName = 'Last name contains invalid characters';
+    }
+
+    // Validate email
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(formData.email)) {
+      errors.email = 'Invalid email format';
+    }
+
+    // Validate phone
+    const phoneRegex = /^[+]?[1-9]\d{0,15}$/;
+    const cleanedPhone = formData.phone.replace(/[\s\-()]/g, '');
+    if (!phoneRegex.test(cleanedPhone)) {
+      errors.phone = 'Invalid phone number format. Use format: +1XXXXXXXXXX or XXXXXXXXXX';
+    }
+
+    // Validate password
+    if (formData.password.length < 12) {
+      errors.password = 'Password must be at least 12 characters long';
     }
 
     const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/;
     if (!passwordRegex.test(formData.password)) {
-      setError('Password must contain uppercase, lowercase, number, and special character');
+      errors.password = 'Password must contain uppercase, lowercase, number, and special character';
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return false;
     }
 
@@ -66,6 +129,12 @@ export function SignupForm({ onSuccess, redirectTo = '/patient/registration' }: 
       return;
     }
 
+    if (!csrfToken) {
+      setError('Security token not available. Please refresh the page and try again.');
+      toast.error('Security token not available. Please refresh the page and try again.');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
@@ -74,7 +143,9 @@ export function SignupForm({ onSuccess, redirectTo = '/patient/registration' }: 
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-CSRF-Token': csrfToken,
         },
+        credentials: 'include',
         body: JSON.stringify(formData),
       });
 
@@ -90,7 +161,12 @@ export function SignupForm({ onSuccess, redirectTo = '/patient/registration' }: 
           router.push(redirectTo);
         }
       } else {
-        setError(data.error || 'Registration failed');
+        if (data.fieldErrors) {
+          setFieldErrors(data.fieldErrors);
+          setError('Please correct the errors below');
+        } else {
+          setError(data.error || 'Registration failed');
+        }
         toast.error(data.error || 'Registration failed');
       }
     } catch (error) {
@@ -253,11 +329,11 @@ export function SignupForm({ onSuccess, redirectTo = '/patient/registration' }: 
               {formData.password && (
                 <div className="space-y-2">
                   <div className="flex space-x-1">
-                    {[...Array(5)].map((_, i) => (
+                    {[...Array(5)].map((_, index) => (
                       <div
-                        key={i}
+                        key={`strength-${index}`}
                         className={`h-2 flex-1 rounded-full ${
-                          i < strength ? strengthColors[strength - 1] : 'bg-gray-200'
+                          index < strength ? strengthColors[strength - 1] : 'bg-gray-200'
                         }`}
                       />
                     ))}

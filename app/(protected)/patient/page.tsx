@@ -3,8 +3,7 @@ import { Button } from "@/components/ui/button";
 import { AvailableDoctorProps } from "@/types/data-types";
 import { getPatientDashboardStatistics } from "@/utils/services/patient";
 import { UserButton } from "@/components/user-button";
-import { HIPAAAuthService } from "@/lib/auth/hipaa-auth";
-import { cookies } from "next/headers";
+import { verifyAuth } from "@/lib/auth/auth-helper";
 import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, User } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -77,21 +76,14 @@ const RecentAppointments = dynamic(() => import("@/components/tables/recent-appo
 });
 
 const PatientDashboard = async ({ searchParams }: { searchParams?: Promise<{ success?: string }> }) => {
-  // Get user from our custom authentication system
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
+  // Get user from our custom authentication system using centralized helper
+  const authResult = await verifyAuth();
   
-  if (!token) {
+  if (!authResult.isValid || !authResult.user) {
     redirect("/sign-in");
   }
 
-  const sessionResult = await HIPAAAuthService.verifySession(token);
-  
-  if (!sessionResult.valid || !sessionResult.user) {
-    redirect("/sign-in");
-  }
-
-  const user = sessionResult.user;
+  const user = authResult.user;
 
   // Show success transition if coming from registration
   const resolvedSearchParams = await searchParams;

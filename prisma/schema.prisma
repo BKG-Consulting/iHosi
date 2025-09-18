@@ -241,6 +241,14 @@ model Doctor {
   calendar_integrations CalendarIntegration[]
   schedule_notifications ScheduleNotification[]
   
+  // Robust scheduling relations
+  schedule_templates     ScheduleTemplates[]
+  schedule_exceptions    ScheduleExceptions[]
+  calendar_integrations_new CalendarIntegrations[]
+  schedule_conflicts     ScheduleConflicts[]
+  schedule_analytics     ScheduleAnalytics[]
+  schedule_notifications_new ScheduleNotifications[]
+  
   // Granular consent relations
   granular_consents     GranularConsent[]
   consent_access_logs   ConsentAccessLog[]
@@ -261,6 +269,16 @@ model WorkingDays {
   break_start_time String?
   break_end_time  String?
   max_appointments Int @default(20)
+  
+  // Enhanced scheduling fields
+  recurrence_type    String @default("WEEKLY")
+  recurrence_pattern Json?
+  effective_from     DateTime?
+  effective_until    DateTime?
+  timezone           String @default("UTC")
+  appointment_duration Int @default(30)
+  buffer_time        Int @default(5)
+  is_template        Boolean @default(false)
 
   doctor          Doctor  @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
 
@@ -269,6 +287,7 @@ model WorkingDays {
 
   @@unique([doctor_id, day_of_week])
   @@index([doctor_id])
+  @@index([doctor_id, effective_from, effective_until])
 }
 
 model LeaveRequest {
@@ -362,6 +381,19 @@ model Appointment {
   
   // Consent workflow relation
   consent_workflows ConsentWorkflow[]
+  
+  // Schedule conflict relations
+  appointment_conflicts ScheduleConflicts[] @relation("AppointmentConflicts")
+  conflicting_appointments ScheduleConflicts[] @relation("ConflictingAppointments")
+  
+  // Schedule notifications relation
+  schedule_notifications_new ScheduleNotifications[]
+  
+  // AI Enhancement fields (optional for backward compatibility)
+  ai_confidence_score Float?   // AI confidence in scheduling recommendation (0.0-1.0)
+  priority_score      Int?     // Priority level (1-5, 5 being highest)
+  auto_scheduled      Boolean? @default(false) // Whether appointment was auto-scheduled by AI
+  ai_suggestions      Json?    // AI-generated suggestions and insights
   
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
@@ -1399,5 +1431,198 @@ model ScheduleNotification {
   appointment       Appointment? @relation(fields: [appointment_id], references: [id], onDelete: SetNull)
 }
 
+// Security Tables for Authentication
+model UserMFA {
+  id              String   @id @default(cuid())
+  user_id         String   @unique
+  secret          String?
+  is_enabled      Boolean  @default(false)
+  backup_codes    String[]
+  setup_at        DateTime @default(now())
+  verified_at     DateTime?
 
+  created_at      DateTime @default(now())
+  updated_at      DateTime @updatedAt
+
+  @@map("user_mfa")
+}
+
+model RefreshToken {
+  id              String   @id @default(cuid())
+  token           String   @unique
+  user_id         String
+  session_id      String
+  token_family_id String
+  ip_address      String
+  user_agent      String
+  expires_at      DateTime
+  is_revoked      Boolean  @default(false)
+  revoked_at      DateTime?
+  revoke_reason   String?
+  created_at      DateTime @default(now())
+
+  @@index([user_id])
+  @@index([token_family_id])
+  @@index([expires_at])
+
+  @@map("refresh_tokens")
+}
+
+// Rate Limiting Table
+model RateLimit {
+  id              Int      @id @default(autoincrement())
+  rate_limit_key  String
+  ip_address      String
+  user_agent      String?
+  created_at      DateTime @default(now())
+
+  @@index([rate_limit_key])
+  @@index([ip_address])
+  @@index([created_at])
+
+  @@map("rate_limits")
+}
+
+// ========================================
+// ROBUST SCHEDULING SYSTEM MODELS
+// ========================================
+
+// Schedule Templates for different patterns
+model ScheduleTemplates {
+  id                Int      @id @default(autoincrement())
+  doctor_id         String
+  name              String
+  description       String?
+  template_type     String   // 'WEEKLY', 'MONTHLY', 'CUSTOM'
+  is_default        Boolean  @default(false)
+  working_days      Json     // Array of working day configurations
+  recurrence_rules  Json?    // Complex recurrence patterns
+  timezone          String   @default("UTC")
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  doctor            Doctor   @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+
+  @@index([doctor_id])
+  @@map("schedule_templates")
+}
+
+// Schedule Exceptions for holidays, vacations, special days
+model ScheduleExceptions {
+  id                    Int      @id @default(autoincrement())
+  doctor_id             String
+  exception_type        String   // 'HOLIDAY', 'VACATION', 'SICK_LEAVE', 'EMERGENCY', 'CUSTOM'
+  title                 String
+  description           String?
+  start_date            DateTime
+  end_date              DateTime
+  is_all_day            Boolean  @default(true)
+  start_time            String?  // Only if not all day
+  end_time              String?  // Only if not all day
+  is_recurring          Boolean  @default(false)
+  recurrence_pattern    Json?    // For recurring exceptions
+  affects_appointments  Boolean  @default(true) // Whether to cancel/reschedule appointments
+  created_at            DateTime @default(now())
+  updated_at            DateTime @updatedAt
+
+  doctor                Doctor   @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+
+  @@index([doctor_id, start_date, end_date])
+  @@map("schedule_exceptions")
+}
+
+// Calendar Integration for external calendar sync
+model CalendarIntegrations {
+  id                Int      @id @default(autoincrement())
+  doctor_id         String
+  provider          String   // 'GOOGLE', 'OUTLOOK', 'APPLE', 'CUSTOM'
+  provider_id       String
+  calendar_id       String
+  sync_enabled      Boolean  @default(true)
+  sync_direction    String   @default("BIDIRECTIONAL") // 'INBOUND', 'OUTBOUND', 'BIDIRECTIONAL'
+  last_sync         DateTime?
+  sync_token        String?
+  credentials       Json     // Encrypted credentials
+  settings          Json?    // Sync settings and filters
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
+
+  doctor            Doctor   @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+
+  @@unique([doctor_id, provider, calendar_id])
+  @@map("calendar_integrations")
+}
+
+// Schedule Conflicts and Resolutions
+model ScheduleConflicts {
+  id                        Int      @id @default(autoincrement())
+  doctor_id                 String
+  conflict_type             String   // 'DOUBLE_BOOKING', 'OVERLAP', 'EXCEPTION_VIOLATION', 'CALENDAR_SYNC'
+  appointment_id            Int?
+  conflicting_appointment_id Int?
+  conflict_start            DateTime
+  conflict_end              DateTime
+  severity                  String   @default("MEDIUM") // 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
+  status                    String   @default("PENDING") // 'PENDING', 'RESOLVED', 'IGNORED'
+  resolution_method         String?  // 'AUTO_RESCHEDULE', 'MANUAL_RESOLUTION', 'CANCEL_APPOINTMENT'
+  resolution_notes          String?
+  resolved_at               DateTime?
+  resolved_by               String?  // User ID who resolved
+  created_at                DateTime @default(now())
+
+  doctor                    Doctor     @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+  appointment               Appointment? @relation("AppointmentConflicts", fields: [appointment_id], references: [id], onDelete: Cascade)
+  conflicting_appointment   Appointment? @relation("ConflictingAppointments", fields: [conflicting_appointment_id], references: [id], onDelete: Cascade)
+
+  @@index([doctor_id, status, created_at])
+  @@map("schedule_conflicts")
+}
+
+// Schedule Analytics for AI optimization
+model ScheduleAnalytics {
+  id                          Int      @id @default(autoincrement())
+  doctor_id                   String
+  date                        DateTime @db.Date
+  total_appointments          Int      @default(0)
+  completed_appointments      Int      @default(0)
+  cancelled_appointments      Int      @default(0)
+  no_show_appointments        Int      @default(0)
+  average_appointment_duration Float?
+  utilization_rate            Float?   // Percentage of available time used
+  patient_satisfaction_score  Float?
+  ai_optimization_score       Float?
+  peak_hours                  Json?    // Array of peak hours
+  low_utilization_hours       Json?    // Array of low utilization hours
+  recommendations             Json?    // AI-generated recommendations
+  created_at                  DateTime @default(now())
+
+  doctor                      Doctor   @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+
+  @@unique([doctor_id, date])
+  @@index([doctor_id, date])
+  @@map("schedule_analytics")
+}
+
+// Schedule Notifications for reminders and alerts
+model ScheduleNotifications {
+  id                Int      @id @default(autoincrement())
+  doctor_id         String
+  appointment_id    Int?
+  notification_type String   // 'APPOINTMENT_REMINDER', 'SCHEDULE_CONFLICT', 'EXCEPTION_ALERT', 'SYNC_ERROR'
+  title             String
+  message           String
+  scheduled_for     DateTime
+  is_sent           Boolean  @default(false)
+  sent_at           DateTime?
+  delivery_method   String   @default("IN_APP") // 'IN_APP', 'EMAIL', 'SMS', 'PUSH'
+  priority          String   @default("MEDIUM") // 'LOW', 'MEDIUM', 'HIGH', 'URGENT'
+  metadata          Json?    // Additional data for the notification
+  created_at        DateTime @default(now())
+
+  doctor            Doctor     @relation(fields: [doctor_id], references: [id], onDelete: Cascade)
+  appointment       Appointment? @relation(fields: [appointment_id], references: [id], onDelete: Cascade)
+
+  @@index([doctor_id, scheduled_for, is_sent])
+  @@map("schedule_notifications")
+}
 

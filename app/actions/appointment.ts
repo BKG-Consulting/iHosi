@@ -10,6 +10,7 @@ import { notificationService } from "@/lib/notifications";
 import { reminderScheduler } from "@/lib/reminder-scheduler";
 import { logAudit } from "@/lib/audit";
 import { SchedulingStrategy } from "@/lib/email-scheduler";
+import { createAppointmentSafely } from "@/lib/scheduling/safe-appointment-creation";
 
 // Helper function to get current user ID
 async function getCurrentUserId(): Promise<string | null> {
@@ -43,6 +44,9 @@ export async function createNewAppointment(data: any) {
     }
     const validated = validatedData.data;
 
+    // Check if AI scheduling is enabled
+    const enableAI = data.enableAI !== false; // Default to true unless explicitly disabled
+
     // Check if doctor exists and is available
     const doctor = await db.doctor.findUnique({
       where: { id: validated.doctor_id },
@@ -53,25 +57,38 @@ export async function createNewAppointment(data: any) {
     }
 
     // Check if doctor is available for new appointments
-    if (doctor.availability_status !== 'AVAILABLE') {
+    // Only block if explicitly set to unavailable statuses
+    const unavailableStatuses = ['UNAVAILABLE', 'ON_LEAVE', 'EMERGENCY_ONLY'];
+    const willBlock = doctor.availability_status && unavailableStatuses.includes(doctor.availability_status);
+    
+    console.log(`👨‍⚕️ Doctor availability check:`, {
+      doctorId: validated.doctor_id,
+      availabilityStatus: doctor.availability_status,
+      willBlock,
+      unavailableStatuses
+    });
+    
+    if (willBlock) {
+      console.log(`❌ Blocking appointment - doctor status: ${doctor.availability_status}`);
       return { success: false, msg: "Doctor is not available for new appointments" };
     }
+    
+    console.log(`✅ Doctor availability check passed - status: ${doctor.availability_status || 'not set'}`);
 
-    // Check if doctor works on the selected date
+    // Enhanced schedule validation using our comprehensive scheduling system
     const appointmentDate = new Date(validated.appointment_date);
     const dayOfWeek = appointmentDate.toLocaleDateString('en-US', { weekday: 'long' });
     
-    console.log(`🔍 Checking doctor availability for ${validated.doctor_id} on ${dayOfWeek} (${validated.appointment_date})`);
-    
-    // First, let's check what working days this doctor has
-    const allWorkingDays = await db.workingDays.findMany({
-      where: {
-        doctor_id: validated.doctor_id
-      }
+    console.log(`🔍 APPOINTMENT CREATION DEBUG`);
+    console.log(`📋 Request details:`, {
+      doctorId: validated.doctor_id,
+      date: validated.appointment_date,
+      time: validated.time,
+      dayOfWeek,
+      appointmentDate: appointmentDate.toISOString()
     });
     
-    console.log(`📅 Doctor's working days:`, allWorkingDays.map((wd: any) => `${wd.day_of_week}: ${wd.is_working ? 'working' : 'not working'} (${wd.start_time}-${wd.end_time})`));
-    
+    // Get doctor's comprehensive working schedule
     const workingDay = await db.workingDays.findFirst({
       where: {
         doctor_id: validated.doctor_id,
@@ -83,60 +100,142 @@ export async function createNewAppointment(data: any) {
       }
     });
 
+    console.log(`👨‍⚕️ Doctor working day lookup:`, {
+      doctorId: validated.doctor_id,
+      dayOfWeek,
+      found: workingDay ? 'YES' : 'NO',
+      workingDay: workingDay ? {
+        day: workingDay.day_of_week,
+        isWorking: workingDay.is_working,
+        startTime: workingDay.start_time,
+        endTime: workingDay.end_time,
+        breakStart: workingDay.break_start_time,
+        breakEnd: workingDay.break_end_time,
+        appointmentDuration: workingDay.appointment_duration,
+        bufferTime: workingDay.buffer_time
+      } : null
+    });
+
     if (!workingDay) {
       console.log(`❌ No working day found for ${dayOfWeek}`);
       return { success: false, msg: `Doctor is not available on ${dayOfWeek}. Please check the doctor's schedule.` };
     }
+
+    // If doctor has a working schedule but availability_status is not set, update it
+    if (!doctor.availability_status) {
+      await db.doctor.update({
+        where: { id: validated.doctor_id },
+        data: { availability_status: 'AVAILABLE' }
+      });
+      console.log(`✅ Set doctor ${validated.doctor_id} as available (has working schedule)`);
+    }
     
     console.log(`✅ Found working day: ${workingDay.day_of_week} (${workingDay.start_time}-${workingDay.end_time})`);
 
-    // Check if selected time is within working hours
+    // Enhanced time validation with break times and buffer time
     const [timeHours, timeMinutes] = validated.time.split(':').map(Number);
     const [workStartHours, workStartMinutes] = workingDay.start_time.split(':').map(Number);
     const [workEndHours, workEndMinutes] = workingDay.end_time.split(':').map(Number);
+    const [breakStartHours, breakStartMinutes] = workingDay.break_start_time?.split(':').map(Number) || [0, 0];
+    const [breakEndHours, breakEndMinutes] = workingDay.break_end_time?.split(':').map(Number) || [0, 0];
 
     const appointmentTime = timeHours * 60 + timeMinutes;
     const workStartTime = workStartHours * 60 + workStartMinutes;
     const workEndTime = workEndHours * 60 + workEndMinutes;
+    const breakStartTime = workingDay.break_start_time ? breakStartHours * 60 + breakStartMinutes : 0;
+    const breakEndTime = workingDay.break_end_time ? breakEndHours * 60 + breakEndMinutes : 0;
 
+    console.log(`⏰ Time validation details:`, {
+      requestedTime: validated.time,
+      appointmentTimeMinutes: appointmentTime,
+      workStartTime: workingDay.start_time,
+      workStartTimeMinutes: workStartTime,
+      workEndTime: workingDay.end_time,
+      workEndTimeMinutes: workEndTime,
+      breakStartTime: workingDay.break_start_time,
+      breakStartTimeMinutes: breakStartTime,
+      breakEndTime: workingDay.break_end_time,
+      breakEndTimeMinutes: breakEndTime,
+      appointmentDuration: workingDay.appointment_duration,
+      bufferTime: workingDay.buffer_time
+    });
+
+    // Check if time is within working hours
     if (appointmentTime < workStartTime || appointmentTime >= workEndTime) {
       return { success: false, msg: "Selected time is outside doctor's working hours" };
     }
 
-    // Check for existing appointments at the same time
-    const existingAppointment = await db.appointment.findFirst({
+    // Check if time conflicts with break time
+    if (workingDay.break_start_time && workingDay.break_end_time && 
+        appointmentTime >= breakStartTime && appointmentTime < breakEndTime) {
+      return { success: false, msg: "Selected time conflicts with doctor's break time" };
+    }
+
+    // Check appointment duration and buffer time
+    const appointmentDuration = workingDay.appointment_duration || 30;
+    const bufferTime = workingDay.buffer_time || 5;
+    const totalSlotTime = appointmentDuration + bufferTime;
+    
+    if (appointmentTime + totalSlotTime > workEndTime) {
+      return { success: false, msg: "Selected time doesn't allow for complete appointment duration" };
+    }
+
+    // Enhanced conflict detection with buffer time consideration
+    const startOfDay = new Date(appointmentDate);
+    startOfDay.setHours(0, 0, 0, 0);
+    
+    const endOfDay = new Date(appointmentDate);
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const conflictingAppointments = await db.appointment.findMany({
       where: {
         doctor_id: validated.doctor_id,
         appointment_date: {
-          gte: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate()),
-          lt: new Date(appointmentDate.getFullYear(), appointmentDate.getMonth(), appointmentDate.getDate() + 1),
+          gte: startOfDay,
+          lte: endOfDay
         },
-        time: validated.time,
         status: { in: ['PENDING', 'SCHEDULED'] }
+      },
+      select: {
+        time: true,
+        status: true
       }
     });
 
-    if (existingAppointment) {
-      return { success: false, msg: "Time slot is already booked" };
+    // Check for time conflicts considering buffer time
+    for (const existingApt of conflictingAppointments) {
+      const [existingHours, existingMinutes] = existingApt.time.split(':').map(Number);
+      const existingTime = existingHours * 60 + existingMinutes;
+      
+      // Check if there's overlap considering buffer time
+      const timeOverlap = (appointmentTime < existingTime + totalSlotTime) && 
+                         (appointmentTime + totalSlotTime > existingTime);
+      
+      if (timeOverlap) {
+        return { success: false, msg: `Time slot conflicts with existing appointment at ${existingApt.time}` };
+      }
     }
 
-    // Create the appointment request (PENDING status)
-    const appointment = await db.appointment.create({
-      data: {
-        patient_id: data.patient_id,
-        doctor_id: validated.doctor_id,
-        time: validated.time,
-        type: validated.type,
-        appointment_date: new Date(validated.appointment_date),
-        note: validated.note,
-        status: 'PENDING',
-        reason: data.reason || 'General consultation',
-      },
-      include: {
-        patient: true,
-        doctor: true,
-      },
+    // Create the appointment request (PENDING status) using safe creation
+    const appointmentResult = await createAppointmentSafely({
+      patient_id: data.patient_id,
+      doctor_id: validated.doctor_id,
+      time: validated.time,
+      type: validated.type,
+      appointment_date: new Date(validated.appointment_date),
+      note: validated.note,
+      reason: data.reason || 'General consultation',
+      enableAI: enableAI
     });
+
+    if (!appointmentResult.success) {
+      return { success: false, msg: "Failed to create appointment" };
+    }
+
+    const appointment = appointmentResult.appointment;
+    if (!appointment) {
+      return { success: false, msg: "Failed to create appointment - no appointment returned" };
+    }
 
     // Send notifications using dynamic templates
     try {
@@ -236,7 +335,7 @@ export async function appointmentAction(
     }
 
     // Update the appointment status
-    const updatedAppointment = await db.appointment.update({
+    await db.appointment.update({
       where: { id: Number(id) },
       data: {
         status: status as any,

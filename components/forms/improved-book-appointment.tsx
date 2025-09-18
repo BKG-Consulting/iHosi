@@ -56,7 +56,6 @@ export const ImprovedBookAppointment = ({
   const [loading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [availableDoctors, setAvailableDoctors] = useState<Doctor[]>(doctors);
   const [availableTimes, setAvailableTimes] = useState<{label: string, value: string}[]>([]);
   const router = useRouter();
 
@@ -76,78 +75,72 @@ export const ImprovedBookAppointment = ({
     setIsOpen(open);
     if (!open) {
       form.reset();
-      setAvailableDoctors(doctors);
       setAvailableTimes([]);
     }
   };
 
   const patientName = `${data?.first_name} ${data?.last_name}`;
 
-  // Watch for date changes to filter doctors and times
+  // Watch for doctor and date changes
+  const selectedDoctor = form.watch("doctor_id");
   const selectedDate = form.watch("appointment_date");
   const selectedTime = form.watch("time");
 
   // Helper function for placeholder text
   const getPlaceholderText = () => {
+    if (!selectedDoctor) return "Select doctor first";
     if (!selectedDate) return "Select date first";
-    if (!selectedTime) return "Select time first";
-    return "Select a physician";
+    return "Select time";
   };
 
   // Helper function for step indicator color
   const getStepIndicatorColor = () => {
-    return selectedDate && selectedTime ? 'bg-[#046658]' : 'bg-[#D1F1F2]';
+    return selectedDoctor && selectedDate ? 'bg-[#046658]' : 'bg-[#D1F1F2]';
   };
 
   // Helper function for step indicator text
   const getStepIndicatorText = () => {
-    if (!selectedDate || !selectedTime) {
+    if (!selectedDoctor || !selectedDate) {
       return <span className="text-xs text-[#3E4C4B]/60">(Complete previous steps)</span>;
     }
     return null;
   };
 
-  // Filter available doctors based on selected date
+  // Load available times when doctor and date are selected
   useEffect(() => {
-    if (selectedDate) {
-      filterAvailableDoctors(selectedDate);
+    if (selectedDoctor && selectedDate) {
+      loadAvailableTimes(selectedDoctor, selectedDate);
     } else {
-      setAvailableDoctors(doctors);
+      setAvailableTimes([]);
     }
-  }, [selectedDate, doctors]);
+  }, [selectedDoctor, selectedDate]);
 
-  // Filter available times based on selected date and doctor
-  useEffect(() => {
-    if (selectedDate && selectedTime) {
-      filterAvailableTimes(selectedDate, selectedTime);
-    } else {
-      setAvailableTimes(generateTimes(8, 17, 30));
-    }
-  }, [selectedDate, selectedTime]);
-
-  const filterAvailableDoctors = async (date: string) => {
+  const loadAvailableTimes = async (doctorId: string, date: string) => {
     try {
-      const response = await fetch(`/api/doctors/available?date=${date}`);
+      console.log('🔍 Loading available times for:', { doctorId, date });
+      
+      const response = await fetch(`/api/scheduling/availability/slots?doctorId=${doctorId}&date=${date}`);
+      console.log('📡 API Response status:', response.status);
+      
       if (response.ok) {
         const result = await response.json();
-        setAvailableDoctors(result.data || []);
+        console.log('📅 Raw API response:', result);
+        
+        const timeSlots = result.data?.filter((slot: any) => slot.available) || [];
+        console.log('✅ Available time slots:', timeSlots);
+        console.log('📊 Total available slots:', timeSlots.length);
+        
+        setAvailableTimes(timeSlots.map((slot: any) => ({
+          label: slot.time,
+          value: slot.time
+        })));
+      } else {
+        console.log('❌ API Error:', response.status, response.statusText);
+        setAvailableTimes([]);
       }
     } catch (error) {
-      console.error('Error filtering doctors:', error);
-      setAvailableDoctors(doctors);
-    }
-  };
-
-  const filterAvailableTimes = async (date: string, time: string) => {
-    try {
-      const response = await fetch(`/api/doctors/available-times?date=${date}&time=${time}`);
-      if (response.ok) {
-        const result = await response.json();
-        setAvailableTimes(result.data || generateTimes(8, 17, 30));
-      }
-    } catch (error) {
-      console.error('Error filtering times:', error);
-      setAvailableTimes(generateTimes(8, 17, 30));
+      console.error('💥 Error loading available times:', error);
+      setAvailableTimes([]);
     }
   };
 
@@ -237,93 +230,88 @@ export const ImprovedBookAppointment = ({
                   placeholder="Select a appointment type"
                 />
 
-                {/* STEP 1: Select Date First */}
-                <div className="space-y-2">
-                  <CustomInput
-                    type="input"
-                    control={form.control}
-                    name="appointment_date"
-                    placeholder=""
-                    label="Select Date"
-                    inputType="date"
-                  />
-                </div>
-
-                {/* STEP 2: Select Time */}
-                <div className="space-y-2">
-                  <CustomInput
-                    type="select"
-                    control={form.control}
-                    name="time"
-                    placeholder="Select time"
-                    label={`Select Time${!selectedDate ? ' (Select date first)' : ''}`}
-                    selectList={availableTimes}
-                    disabled={!selectedDate}
-                  />
-                </div>
-
-                {/* STEP 3: Select Doctor (filtered by date/time) */}
+                {/* STEP 1: Select Doctor First */}
                 <FormField
                   control={form.control}
                   name="doctor_id"
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel className="text-sm font-medium text-[#3E4C4B] flex items-center gap-2">
-                        <div className={`w-2 h-2 rounded-full ${getStepIndicatorColor()}`}></div>
-                        Available Physicians
-                        {getStepIndicatorText()}
+                        <div className="w-2 h-2 rounded-full bg-[#046658]"></div>
+                        Select Doctor First
                       </FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
-                        disabled={isSubmitting || !selectedDate || !selectedTime}
+                        disabled={isSubmitting}
                       >
                         <FormControl>
                           <SelectTrigger className="border-[#D1F1F2] focus:border-[#2EB6B0] focus:ring-[#2EB6B0]/20">
-                            <SelectValue placeholder={getPlaceholderText()} />
+                            <SelectValue placeholder="Choose a doctor to see their available times" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="border-[#D1F1F2] bg-white/95 backdrop-blur-sm">
-                          {availableDoctors?.length === 0 ? (
-                            <div className="p-6 text-center">
-                              <div className="w-12 h-12 bg-[#D1F1F2] rounded-full flex items-center justify-center mx-auto mb-3">
-                                <UserPen className="w-6 h-6 text-[#3E4C4B]/60" />
-                              </div>
-                              <p className="text-[#3E4C4B]/70 font-medium">No doctors available</p>
-                              <p className="text-[#3E4C4B]/50 text-sm">for selected date/time</p>
-                            </div>
-                          ) : (
-                            availableDoctors?.map((doctor) => (
-                              <SelectItem key={doctor.id} value={doctor.id} className="p-3 hover:bg-[#D1F1F2]/50 focus:bg-[#D1F1F2]/50">
-                                <div className="flex flex-row gap-3 p-2">
-                                  <ProfileImage
-                                    url={doctor?.img || undefined}
-                                    name={doctor?.name}
-                                    bgColor={doctor?.colorCode || undefined}
-                                    textClassName="text-black"
-                                    className="border border-[#D1F1F2]"
-                                  />
-                                  <div className="flex-1">
-                                    <p className="font-medium text-start text-[#3E4C4B]">
-                                      {doctor.name}
-                                    </p>
-                                    <span className="text-sm text-[#3E4C4B]/70">
-                                      {doctor?.specialization}
-                                    </span>
-                                  </div>
-                                  <div className="flex items-center">
-                                    <div className="w-2 h-2 bg-[#046658] rounded-full"></div>
-                                  </div>
+                          {doctors?.map((doctor) => (
+                            <SelectItem key={doctor.id} value={doctor.id} className="p-3 hover:bg-[#D1F1F2]/50 focus:bg-[#D1F1F2]/50">
+                              <div className="flex flex-row gap-3 p-2">
+                                <ProfileImage
+                                  url={doctor?.img || undefined}
+                                  name={doctor?.name}
+                                  bgColor={doctor?.colorCode || undefined}
+                                  textClassName="text-black"
+                                  className="border border-[#D1F1F2]"
+                                />
+                                <div className="flex-1">
+                                  <p className="font-medium text-start text-[#3E4C4B]">
+                                    {doctor.name}
+                                  </p>
+                                  <span className="text-sm text-[#3E4C4B]/70">
+                                    {doctor?.specialization}
+                                  </span>
                                 </div>
-                              </SelectItem>
-                            ))
-                          )}
+                                <div className="flex items-center">
+                                  <div className="w-2 h-2 bg-[#046658] rounded-full"></div>
+                                </div>
+                              </div>
+                            </SelectItem>
+                          ))}
                         </SelectContent>
                       </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                {/* STEP 2: Select Date */}
+                <div className="space-y-2">
+                  <CustomInput
+                    type="input"
+                    control={form.control}
+                    name="appointment_date"
+                    placeholder=""
+                    label={`Select Date${!selectedDoctor ? ' (Select doctor first)' : ''}`}
+                    inputType="date"
+                    disabled={!selectedDoctor}
+                  />
+                </div>
+
+                {/* STEP 3: Select Time */}
+                <div className="space-y-2">
+                  <CustomInput
+                    type="select"
+                    control={form.control}
+                    name="time"
+                    placeholder="Select time"
+                    label={`Select Time${!selectedDoctor || !selectedDate ? ' (Complete previous steps)' : ''}`}
+                    selectList={availableTimes}
+                    disabled={!selectedDoctor || !selectedDate}
+                  />
+                  {selectedDoctor && selectedDate && availableTimes.length === 0 && (
+                    <p className="text-xs text-[#3E4C4B]/60">
+                      No available time slots for this doctor on the selected date
+                    </p>
+                  )}
+                </div>
 
                 <CustomInput
                   type="textarea"
@@ -334,7 +322,7 @@ export const ImprovedBookAppointment = ({
                 />
 
                 <Button
-                  disabled={isSubmitting || !selectedDate || !selectedTime || !form.watch("doctor_id")}
+                  disabled={isSubmitting || !selectedDoctor || !selectedDate || !selectedTime}
                   type="submit"
                   className="w-full bg-gradient-to-r from-[#046658] to-[#2EB6B0] hover:from-[#046658]/90 hover:to-[#2EB6B0]/90 text-white font-medium py-3 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >

@@ -6,23 +6,14 @@ import { logAudit } from "./audit";
 // Helper function to get current user using custom HIPAA authentication
 async function getCurrentUser() {
   try {
-    const { cookies } = await import('next/headers');
-    const { HIPAAAuthService } = await import('./auth/hipaa-auth');
+    const { verifyAuth } = await import('./auth/auth-helper');
+    const authResult = await verifyAuth();
     
-    const cookieStore = await cookies();
-    const token = cookieStore.get('auth-token')?.value;
-    
-    if (!token) {
+    if (!authResult.isValid || !authResult.user) {
       return null;
     }
 
-    const sessionResult = await HIPAAAuthService.verifySession(token);
-    
-    if (!sessionResult.valid || !sessionResult.user) {
-      return null;
-    }
-
-    return sessionResult.user;
+    return authResult.user;
   } catch (error) {
     console.error('Failed to get current user:', error);
     return null;

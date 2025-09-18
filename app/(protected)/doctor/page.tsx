@@ -1,26 +1,19 @@
-import { DoctorDashboard as DoctorDashboardComponent } from "@/components/doctor/dashboard/DoctorDashboard";
+import { ComprehensiveDoctorDashboard } from "@/components/doctor/comprehensive-doctor-dashboard";
 import { getDoctorDashboardStats } from "@/utils/services/doctor";
 import { redirect } from "next/navigation";
 import React from "react";
-import { HIPAAAuthService } from "@/lib/auth/hipaa-auth";
-import { cookies } from "next/headers";
+import { verifyAuth } from "@/lib/auth/auth-helper";
+import db from "@/lib/db";
 
 const DoctorDashboard = async () => {
-  // Get user from our custom authentication system
-  const cookieStore = await cookies();
-  const token = cookieStore.get('auth-token')?.value;
+  // Get user from our custom authentication system using centralized helper
+  const authResult = await verifyAuth();
   
-  if (!token) {
+  if (!authResult.isValid || !authResult.user) {
     redirect("/sign-in");
   }
 
-  const sessionResult = await HIPAAAuthService.verifySession(token);
-  
-  if (!sessionResult.valid || !sessionResult.user) {
-    redirect("/sign-in");
-  }
-
-  const user = sessionResult.user;
+  const user = authResult.user;
 
   // Get dashboard data
   const {
@@ -31,10 +24,32 @@ const DoctorDashboard = async () => {
     availableDoctors,
     monthlyData,
     last5Records,
+    allAppointments,
+    patients,
   } = await getDoctorDashboardStats();
 
-  // Transform data to match new interface
-  const transformedAppointments: any[] = (last5Records || []).map((apt: any) => ({
+  // Fetch the actual doctor data from database to get real availability status
+  const actualDoctor = await db.doctor.findUnique({
+    where: { id: user.id },
+    include: {
+      working_days: true
+    }
+  });
+
+  console.log('🏥 ACTUAL DOCTOR DATA FROM DATABASE:', {
+    id: actualDoctor?.id,
+    name: actualDoctor?.name,
+    availability_status: actualDoctor?.availability_status,
+    working_days_count: actualDoctor?.working_days?.length || 0
+  });
+
+  // Debug logging
+  console.log('Doctor page - allAppointments:', allAppointments?.length || 0);
+  console.log('Doctor page - patients:', patients?.length || 0);
+  console.log('Doctor page - user ID:', user.id);
+
+  // Transform data to match new interface - use ALL appointments, not just last 5
+  const transformedAppointments: any[] = (allAppointments || []).map((apt: any) => ({
     ...apt,
     appointment_date: apt.appointment_date instanceof Date ? apt.appointment_date.toISOString() : apt.appointment_date,
     note: apt.note || undefined, // Convert null to undefined
@@ -75,33 +90,33 @@ const DoctorDashboard = async () => {
 
   const dashboardData = {
     doctor: {
-      id: user.id,
-      name: user.firstName || 'Doctor',
-      email: user.email || '',
-      specialization: 'General Practice', // This should come from doctor profile
-      department: 'General Medicine',
-      phone: '',
-      address: '',
-      img: undefined, // No image in our custom user object
-      colorCode: '#3b82f6',
-      availability_status: 'AVAILABLE',
-      working_days: [],
-      created_at: new Date(),
-      updated_at: new Date(),
+      id: actualDoctor?.id || user.id,
+      name: actualDoctor?.name || user.firstName || 'Doctor',
+      email: actualDoctor?.email || user.email || '',
+      specialization: actualDoctor?.specialization || 'General Practice',
+      department: actualDoctor?.department || 'General Medicine',
+      phone: actualDoctor?.phone || '',
+      address: actualDoctor?.address || '',
+      img: actualDoctor?.img || undefined,
+      colorCode: actualDoctor?.colorCode || '#3b82f6',
+      availability_status: actualDoctor?.availability_status || 'AVAILABLE', // Use real database value
+      working_days: actualDoctor?.working_days || [],
+      created_at: actualDoctor?.created_at || new Date(),
+      updated_at: actualDoctor?.updated_at || new Date(),
     },
     appointments: transformedAppointments,
-    patients: [], // This should be fetched from a separate API
+    patients: patients || [], // Use patients from appointments
     analytics: transformedAnalytics,
   };
 
-  return (
-    <DoctorDashboardComponent
-      doctor={dashboardData.doctor}
-      appointments={dashboardData.appointments}
-      patients={dashboardData.patients}
-      analytics={dashboardData.analytics}
-    />
-  );
+    return (
+      <ComprehensiveDoctorDashboard
+        doctor={dashboardData.doctor}
+        appointments={dashboardData.appointments}
+        patients={dashboardData.patients}
+        analytics={dashboardData.analytics}
+      />
+    );
 };
 
 export default DoctorDashboard;

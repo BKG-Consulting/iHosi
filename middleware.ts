@@ -46,17 +46,29 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Get auth token from cookie
-  const token = request.cookies.get('auth-token')?.value;
+  // Get auth token from cookie (check both old and new formats)
+  const oldToken = request.cookies.get('auth-token')?.value;
+  const accessToken = request.cookies.get('access-token')?.value;
+  const token = accessToken || oldToken;
+
+  // Debug cookie information
+  console.log('Middleware cookie debug:', {
+    pathname,
+    hasOldToken: !!oldToken,
+    hasAccessToken: !!accessToken,
+    tokenUsed: accessToken ? 'access-token' : oldToken ? 'auth-token' : 'none',
+    tokenPreview: token ? token.substring(0, 50) + '...' : 'none',
+    allCookies: Object.fromEntries(request.cookies.getAll().map(c => [c.name, c.value.substring(0, 20) + '...']))
+  });
 
   if (!token) {
     // Redirect to sign-in page
     return NextResponse.redirect(new URL('/sign-in', request.url));
   }
 
-  // For now, just check if token exists
-  // In production, you would verify the JWT token here
-  // This is a simplified version to avoid Edge Runtime issues
+  // Note: We can't verify JWT tokens in Edge Runtime middleware
+  // The actual verification happens in the page components
+  // This middleware only checks for token presence
 
   // Add security headers
   const response = NextResponse.next();
