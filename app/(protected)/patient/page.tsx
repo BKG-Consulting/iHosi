@@ -2,7 +2,7 @@ import { StatCard } from "@/components/stat-card";
 import { Button } from "@/components/ui/button";
 import { AvailableDoctorProps } from "@/types/data-types";
 import { getPatientDashboardStatistics } from "@/utils/services/patient";
-import { UserButton } from "@/components/user-button";
+
 import { verifyAuth } from "@/lib/auth/auth-helper";
 import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, User } from "lucide-react";
 import Link from "next/link";
@@ -211,13 +211,7 @@ const PatientDashboard = async ({ searchParams }: { searchParams?: Promise<{ suc
             </p>
           </div>
           <div className="flex items-center gap-4">
-            <Button size="sm" variant="outline" className="border-[#D1F1F2] text-[#3E4C4B] hover:bg-[#D1F1F2] hover:text-[#046658]">
-              <Link href="/patient/self" className="flex items-center gap-2">
-                <User className="w-4 h-4" />
-                View Profile
-              </Link>
-            </Button>
-            <UserButton />
+            
           </div>
         </div>
         
