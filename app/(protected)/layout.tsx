@@ -1,18 +1,17 @@
-import { Navbar } from "@/components/navbar";
 import { Sidebar } from "@/components/sidebar";
 import React from "react";
 
 const ProtectedLayout = ({ children }: { children: React.ReactNode }) => {
   return (
-    <div className="w-full h-screen flex bg-gray-50">
-      <div className="w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] h-full">
+    <div className="w-full h-screen flex bg-gradient-to-br from-slate-50 via-white to-slate-100">
+      {/* Sidebar - All navigation and user controls */}
+      <div className="w-[280px] h-full flex-shrink-0">
         <Sidebar />
       </div>
 
-      <div className="w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%] flex flex-col">
-        <Navbar />
-
-        <div className="h-full w-full overflow-y-auto">{children}</div>
+      {/* Main Content Area - Full height, no redundant header */}
+      <div className="flex-1 h-full overflow-y-auto">
+        {children}
       </div>
     </div>
   );

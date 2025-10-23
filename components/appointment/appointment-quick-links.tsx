@@ -2,72 +2,140 @@ import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { checkRole } from "@/utils/roles";
 import { ReviewForm } from "../dialogs/review-form";
+import { 
+  Calendar, 
+  Activity, 
+  Stethoscope, 
+  FileText, 
+  DollarSign, 
+  CreditCard, 
+  TestTube,
+  BarChart3
+} from "lucide-react";
+
+interface TabLink {
+  href: string;
+  label: string;
+  color: string;
+  icon: React.ReactNode;
+}
 
 const AppointmentQuickLinks = async ({ staffId }: { staffId: string }) => {
   const isPatient = await checkRole("PATIENT");
+  const isDoctor = await checkRole("DOCTOR");
+  const isNurse = await checkRole("NURSE");
+  
+  const isClinicalStaff = isDoctor || isNurse;
+
+  // Define tabs based on role
+  const patientTabs: TabLink[] = [
+    { 
+      href: "?cat=appointments", 
+      label: "Appointment Details", 
+      color: "violet",
+      icon: <Calendar className="h-4 w-4" />
+    },
+    { 
+      href: "?cat=billing", 
+      label: "Billing", 
+      color: "green",
+      icon: <DollarSign className="h-4 w-4" />
+    },
+    { 
+      href: "?cat=payments", 
+      label: "Payments", 
+      color: "purple",
+      icon: <CreditCard className="h-4 w-4" />
+    },
+  ];
+
+  const clinicalTabs: TabLink[] = [
+    { 
+      href: "?cat=appointments", 
+      label: "Appointment & Vitals", 
+      color: "violet",
+      icon: <Calendar className="h-4 w-4" />
+    },
+    { 
+      href: "?cat=diagnosis", 
+      label: "Diagnosis", 
+      color: "blue",
+      icon: <Stethoscope className="h-4 w-4" />
+    },
+    { 
+      href: "?cat=medical-history", 
+      label: "Medical History", 
+      color: "red",
+      icon: <FileText className="h-4 w-4" />
+    },
+    { 
+      href: "?cat=charts", 
+      label: "Charts", 
+      color: "gray",
+      icon: <BarChart3 className="h-4 w-4" />
+    },
+    { 
+      href: "?cat=lab-test", 
+      label: "Lab Tests", 
+      color: "indigo",
+      icon: <TestTube className="h-4 w-4" />
+    },
+    { 
+      href: "?cat=billing", 
+      label: "Billing", 
+      color: "green",
+      icon: <DollarSign className="h-4 w-4" />
+    },
+    { 
+      href: "?cat=payments", 
+      label: "Payments", 
+      color: "purple",
+      icon: <CreditCard className="h-4 w-4" />
+    },
+  ];
+
+  const tabs = isPatient ? patientTabs : clinicalTabs;
 
   return (
     <Card className="w-full rounded-xl bg-white shadow-none">
       <CardHeader>
-        <CardTitle>Quick Links</CardTitle>
+        <CardTitle className="flex items-center gap-2">
+          {isPatient ? (
+            <>
+              <FileText className="h-5 w-5 text-gray-600" />
+              Appointment Information
+            </>
+          ) : (
+            <>
+              <Activity className="h-5 w-5 text-blue-600" />
+              Clinical Documentation
+            </>
+          )}
+        </CardTitle>
+        {isPatient && (
+          <p className="text-sm text-gray-600 mt-1">
+            View your appointment details and billing information
+          </p>
+        )}
+        {isClinicalStaff && (
+          <p className="text-sm text-gray-600 mt-1">
+            Document clinical findings and manage patient records
+          </p>
+        )}
       </CardHeader>
       <CardContent className="flex flex-wrap gap-2">
-        <Link
-          href="?cat=charts"
-          className="px-4 py-2 rounded-lg bg-gray-100 text-gray-600"
-        >
-          Charts
-        </Link>
-        <Link
-          href="?cat=appointments"
-          className="px-4 py-2 rounded-lg bg-violet-100 text-violet-600"
-        >
-          Appointments
-        </Link>
+        {tabs.map((tab) => (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={`flex items-center gap-2 px-4 py-2 rounded-lg bg-${tab.color}-100 text-${tab.color}-600 hover:bg-${tab.color}-200 transition-colors font-medium text-sm`}
+          >
+            {tab.icon}
+            {tab.label}
+          </Link>
+        ))}
 
-        <Link
-          href="?cat=diagnosis"
-          className="px-4 py-2 rounded-lg bg-blue-100 text-blue-600"
-        >
-          Diagnosis
-        </Link>
-
-        <Link
-          href="?cat=billing"
-          className="px-4 py-2 rounded-lg bg-green-100 text-green-600"
-        >
-          Bills
-        </Link>
-
-        <Link
-          href="?cat=medical-history"
-          className="px-4 py-2 rounded-lg bg-red-100 text-red-600"
-        >
-          Medical History
-        </Link>
-
-        <Link
-          href="?cat=payments"
-          className="px-4 py-2 rounded-lg bg-purple-100 text-purple-600"
-        >
-          Payments
-        </Link>
-
-        <Link
-          href="?cat=lab-test"
-          className="px-4 py-2 rounded-lg bg-purple-100 text-purple-600"
-        >
-          Lab Test
-        </Link>
-
-        <Link
-          href="?cat=appointments#vital-signs"
-          className="px-4 py-2 rounded-lg bg-purple-100 text-purple-600"
-        >
-          Vital Signs
-        </Link>
-
-        {!isPatient && <ReviewForm staffId={staffId} />}
+        {isClinicalStaff && <ReviewForm staffId={staffId} />}
       </CardContent>
     </Card>
   );

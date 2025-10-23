@@ -65,6 +65,13 @@ export class ValidationService {
   }
 
   /**
+   * Helper to get day name from both camelCase (day) and snake_case (day_of_week) formats
+   */
+  private getDayName(day: any): string | undefined {
+    return day.day || day.day_of_week;
+  }
+
+  /**
    * Validate working days with comprehensive business rules
    */
   public async validateWorkingDays(
@@ -75,6 +82,13 @@ export class ValidationService {
     const errors: ScheduleServiceError[] = [];
 
     try {
+      console.log('🔍 Validating working days:', {
+        doctorId,
+        count: workingDays?.length,
+        days: workingDays?.map(d => d.day),
+        sample: workingDays?.[0],
+      });
+
       // Basic validation - check if we have working days
       if (!workingDays || workingDays.length === 0) {
         errors.push(createValidationError(
@@ -86,9 +100,18 @@ export class ValidationService {
       }
 
       // Check for duplicate days (should have exactly 7 days, one for each day of the week)
-      const days = workingDays.map(day => day.day);
+      // Handle both camelCase (day) and snake_case (day_of_week) formats
+      const days = workingDays.map(day => this.getDayName(day));
       const uniqueDays = new Set(days);
       const expectedDays: DayOfWeekType[] = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+      
+      console.log('🔍 Checking for duplicates:', {
+        daysLength: days.length,
+        uniqueDaysSize: uniqueDays.size,
+        days: days,
+        uniqueDaysArray: Array.from(uniqueDays),
+        hasDuplicates: days.length !== uniqueDays.size,
+      });
       
       if (days.length !== 7) {
         errors.push(createValidationError(
@@ -97,6 +120,11 @@ export class ValidationService {
           { doctorId, ...context }
         ));
       } else if (days.length !== uniqueDays.size) {
+        console.error('❌ DUPLICATES DETECTED:', {
+          days,
+          uniqueDays: Array.from(uniqueDays),
+          duplicates: days.filter((day, index) => days.indexOf(day) !== index),
+        });
         errors.push(createValidationError(
           'workingDays',
           'Duplicate days found in working schedule',
@@ -116,48 +144,54 @@ export class ValidationService {
 
       // Validate each working day
       workingDays.forEach((day, index) => {
-        if (day.isWorking) {
+        const dayName = this.getDayName(day);
+        const isWorking = (day as any).isWorking ?? (day as any).is_working;
+        const startTime = (day as any).startTime || (day as any).start_time;
+        const endTime = (day as any).endTime || (day as any).end_time;
+        const maxAppointments = (day as any).maxAppointments || (day as any).max_appointments;
+
+        if (isWorking) {
           // Basic time validation
-          if (!day.startTime || !day.endTime) {
+          if (!startTime || !endTime) {
             errors.push(createValidationError(
               `workingDays[${index}].time`,
-              `${day.day}: Start time and end time are required`,
+              `${dayName}: Start time and end time are required`,
               { doctorId, ...context }
             ));
           }
 
           // Time format validation
           const timeRegex = /^([01]?\d|2[0-3]):[0-5]\d$/;
-          if (day.startTime && !timeRegex.test(day.startTime)) {
+          if (startTime && !timeRegex.test(startTime)) {
             errors.push(createValidationError(
               `workingDays[${index}].startTime`,
-              `${day.day}: Invalid start time format`,
+              `${dayName}: Invalid start time format`,
               { doctorId, ...context }
             ));
           }
 
-          if (day.endTime && !timeRegex.test(day.endTime)) {
+          if (endTime && !timeRegex.test(endTime)) {
             errors.push(createValidationError(
               `workingDays[${index}].endTime`,
-              `${day.day}: Invalid end time format`,
+              `${dayName}: Invalid end time format`,
               { doctorId, ...context }
             ));
           }
 
           // Basic time logic validation
-          if (day.startTime && day.endTime && day.startTime >= day.endTime) {
+          if (startTime && endTime && startTime >= endTime) {
             errors.push(createValidationError(
               `workingDays[${index}].timeRange`,
-              `${day.day}: Start time must be before end time`,
+              `${dayName}: Start time must be before end time`,
               { doctorId, ...context }
             ));
           }
 
           // Appointment limits validation
-          if (day.maxAppointments < 1 || day.maxAppointments > 32) {
+          if (maxAppointments && (maxAppointments < 1 || maxAppointments > 32)) {
             errors.push(createValidationError(
               `workingDays[${index}].maxAppointments`,
-              `${day.day}: Max appointments must be between 1 and 32`,
+              `${dayName}: Max appointments must be between 1 and 32`,
               { doctorId, ...context }
             ));
           }
@@ -199,7 +233,7 @@ export class ValidationService {
     }
 
     // Check for duplicate days
-    const days = workingDays.map(day => day.day);
+    const days = workingDays.map(day => this.getDayName(day));
     const uniqueDays = new Set(days);
     if (days.length !== uniqueDays.size) {
       errors.push(createValidationError(
@@ -226,52 +260,64 @@ export class ValidationService {
     const fieldPrefix = `workingDays[${index}]`;
 
     // Validate day of week
+    const dayName = this.getDayName(day);
     try {
-      dayOfWeekSchema.parse(day.day);
+      dayOfWeekSchema.parse(dayName);
     } catch {
       errors.push(createValidationError(
         `${fieldPrefix}.day`,
-        `Invalid day of week: ${day.day}`,
+        `Invalid day of week: ${dayName}`,
         { operation: 'dayValidation' }
       ));
     }
 
+    // Get time fields (handle both formats)
+    const startTime = (day as any).startTime || (day as any).start_time;
+    const endTime = (day as any).endTime || (day as any).end_time;
+    const breakStart = (day as any).breakStart || (day as any).break_start_time;
+    const breakEnd = (day as any).breakEnd || (day as any).break_end_time;
+
     // Validate time format
-    if (!timeRegex.test(day.startTime)) {
+    if (startTime && !timeRegex.test(startTime)) {
       errors.push(createValidationError(
         `${fieldPrefix}.startTime`,
-        `Invalid start time format: ${day.startTime}. Expected HH:MM format.`,
+        `Invalid start time format: ${startTime}. Expected HH:MM format.`,
         { operation: 'timeFormat' }
       ));
     }
 
-    if (!timeRegex.test(day.endTime)) {
+    if (endTime && !timeRegex.test(endTime)) {
       errors.push(createValidationError(
         `${fieldPrefix}.endTime`,
-        `Invalid end time format: ${day.endTime}. Expected HH:MM format.`,
+        `Invalid end time format: ${endTime}. Expected HH:MM format.`,
         { operation: 'timeFormat' }
       ));
     }
 
     // Validate break times if provided
-    if (day.breakStart && !timeRegex.test(day.breakStart)) {
+    if (breakStart && !timeRegex.test(breakStart)) {
       errors.push(createValidationError(
         `${fieldPrefix}.breakStart`,
-        `Invalid break start time format: ${day.breakStart}. Expected HH:MM format.`,
+        `Invalid break start time format: ${breakStart}. Expected HH:MM format.`,
         { operation: 'timeFormat' }
       ));
     }
 
-    if (day.breakEnd && !timeRegex.test(day.breakEnd)) {
+    if (breakEnd && !timeRegex.test(breakEnd)) {
       errors.push(createValidationError(
         `${fieldPrefix}.breakEnd`,
-        `Invalid break end time format: ${day.breakEnd}. Expected HH:MM format.`,
+        `Invalid break end time format: ${breakEnd}. Expected HH:MM format.`,
         { operation: 'timeFormat' }
       ));
     }
 
+    // Get numeric fields (handle both formats)
+    const maxAppointments = (day as any).maxAppointments || (day as any).max_appointments || 0;
+    const appointmentDuration = (day as any).appointmentDuration || (day as any).appointment_duration || 30;
+    const bufferTime = (day as any).bufferTime || (day as any).buffer_time || 0;
+
     // Validate numeric fields
-    if (day.maxAppointments < 1 || day.maxAppointments > this.rules.maxAppointmentsPerDay) {
+    if (maxAppointments && (maxAppointments < 1 || maxAppointments > this.rules.maxAppointmentsPerDay)) {
       errors.push(createValidationError(
         `${fieldPrefix}.maxAppointments`,
         `Max appointments must be between 1 and ${this.rules.maxAppointmentsPerDay}`,
@@ -279,8 +325,8 @@ export class ValidationService {
       ));
     }
 
-    if (day.appointmentDuration < this.rules.minAppointmentDuration || 
-        day.appointmentDuration > this.rules.maxAppointmentDuration) {
+    if (appointmentDuration && (appointmentDuration < this.rules.minAppointmentDuration || 
+        appointmentDuration > this.rules.maxAppointmentDuration)) {
       errors.push(createValidationError(
         `${fieldPrefix}.appointmentDuration`,
         `Appointment duration must be between ${this.rules.minAppointmentDuration} and ${this.rules.maxAppointmentDuration} minutes`,
@@ -288,7 +334,7 @@ export class ValidationService {
       ));
     }
 
-    if (day.bufferTime < this.rules.minBufferTime || day.bufferTime > this.rules.maxBufferTime) {
+    if (bufferTime && (bufferTime < this.rules.minBufferTime || bufferTime > this.rules.maxBufferTime)) {
       errors.push(createValidationError(
         `${fieldPrefix}.bufferTime`,
         `Buffer time must be between ${this.rules.minBufferTime} and ${this.rules.maxBufferTime} minutes`,
@@ -296,11 +342,14 @@ export class ValidationService {
       ));
     }
 
+    // Get timezone (handle both formats)
+    const timezone = (day as any).timezone;
+    
     // Validate timezone
-    if (day.timezone && !this.rules.supportedTimezones.includes(day.timezone)) {
+    if (timezone && !this.rules.supportedTimezones.includes(timezone)) {
       errors.push(createValidationError(
         `${fieldPrefix}.timezone`,
-        `Unsupported timezone: ${day.timezone}. Supported timezones: ${this.rules.supportedTimezones.join(', ')}`,
+        `Unsupported timezone: ${timezone}. Supported timezones: ${this.rules.supportedTimezones.join(', ')}`,
         { operation: 'timezoneValidation' }
       ));
     }

@@ -11,6 +11,14 @@ import {
   SchedulingConflict
 } from '@/types/scheduling';
 import { AppointmentStatus } from '@prisma/client';
+import { SecurityMiddleware } from '@/lib/security/security-middleware';
+
+// Handle CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  const response = new NextResponse(null, { status: 204 });
+  return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
+}
 
 // Validation schemas
 const createAppointmentSchema = z.object({
@@ -238,8 +246,13 @@ function createAppointmentDetails(appointment: any): AppointmentDetails {
 // GET /api/scheduling/appointments - Get appointments
 export async function GET(request: NextRequest) {
   try {
-    // Verify authentication
-    const token = request.cookies.get('auth-token')?.value;
+    // Verify authentication - check cookies and Authorization header
+    const oldToken = request.cookies.get('auth-token')?.value;
+    const accessToken = request.cookies.get('access-token')?.value;
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const token = bearerToken || accessToken || oldToken;
+    
     if (!token) {
       return NextResponse.json(
         { success: false, message: 'Authentication required' },
@@ -348,27 +361,12 @@ export async function GET(request: NextRequest) {
       },
     });
     
-    return NextResponse.json({
+    const origin = request.headers.get('origin');
+    const response = NextResponse.json({
       success: true,
-      data: {
-        appointments: appointmentDetails,
-        pagination: {
-          page,
-          limit,
-          total,
-          totalPages: Math.ceil(total / limit),
-        },
-        filters: {
-          status,
-          dateRange: startDate && endDate ? {
-            start: new Date(startDate),
-            end: new Date(endDate),
-          } : undefined,
-          doctorId,
-          patientId,
-        },
-      },
-    } as SchedulingApiResponse);
+      data: appointmentDetails,
+    });
+    return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
     
   } catch (error) {
     console.error('Error fetching appointments:', error);

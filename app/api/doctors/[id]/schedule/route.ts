@@ -6,6 +6,14 @@ import { scheduleService } from '@/services/scheduling/schedule-service';
 import { errorHandler } from '@/services/scheduling/error-handler';
 import db from '@/lib/db';
 import { logAudit } from '@/lib/audit';
+import { SecurityMiddleware } from '@/lib/security/security-middleware';
+
+// Handle CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  const response = new NextResponse(null, { status: 204 });
+  return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
+}
 
 const workingDaySchema = z.object({
   day: z.enum(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']),
@@ -36,10 +44,12 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify authentication - check both token formats
+    // Verify authentication - check cookies and Authorization header for mobile compatibility
     const oldToken = request.cookies.get('auth-token')?.value;
     const accessToken = request.cookies.get('access-token')?.value;
-    const token = accessToken || oldToken;
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const token = bearerToken || accessToken || oldToken;
     
     if (!token) {
       return NextResponse.json(
@@ -68,7 +78,8 @@ export async function GET(
         { userId: user.id, doctorId, operation: 'getSchedule' }
       );
 
-      return NextResponse.json(
+      const origin = request.headers.get('origin');
+      const response = NextResponse.json(
         {
           success: false,
           message: error.userMessage,
@@ -76,15 +87,18 @@ export async function GET(
         },
         { status: 500 }
       );
+      return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
     }
 
-    const response: ApiResponse<ScheduleData> = {
+    const responseData: ApiResponse<ScheduleData> = {
       success: true,
       data: result.data!,
       message: 'Schedule retrieved successfully'
     };
 
-    return NextResponse.json(response);
+    const origin = request.headers.get('origin');
+    const response = NextResponse.json(responseData);
+    return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
 
   } catch (error) {
     const handledError = await errorHandler.handleError(
@@ -92,7 +106,8 @@ export async function GET(
       { operation: 'getSchedule' }
     );
 
-    return NextResponse.json(
+    const origin = request.headers.get('origin');
+    const response = NextResponse.json(
       {
         success: false,
         message: handledError.userMessage,
@@ -100,6 +115,7 @@ export async function GET(
       },
       { status: 500 }
     );
+    return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
   }
 }
 
@@ -109,29 +125,43 @@ export async function PUT(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    // Verify authentication - check both token formats
+    // Verify authentication - check cookies and Authorization header for mobile compatibility
     const oldToken = request.cookies.get('auth-token')?.value;
     const accessToken = request.cookies.get('access-token')?.value;
-    const token = accessToken || oldToken;
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const token = bearerToken || accessToken || oldToken;
     
     if (!token) {
-      return NextResponse.json(
+      const origin = request.headers.get('origin');
+      const response = NextResponse.json(
         { success: false, message: 'Authentication required' },
         { status: 401 }
       );
+      return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
     }
 
     const sessionResult = await HIPAAAuthService.verifySession(token);
     if (!sessionResult.valid || !sessionResult.user) {
-      return NextResponse.json(
+      const origin = request.headers.get('origin');
+      const response = NextResponse.json(
         { success: false, message: 'Invalid session' },
         { status: 401 }
       );
+      return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
     }
 
     const user = sessionResult.user;
     const { id: doctorId } = await params;
     const body = await request.json();
+    
+    console.log('🔍 Backend received PUT /schedule:', {
+      doctorId,
+      bodyKeys: Object.keys(body),
+      workingHoursCount: body.workingHours?.length,
+      days: body.workingHours?.map((d: any) => d.day),
+      uniqueDays: new Set(body.workingHours?.map((d: any) => d.day)).size,
+    });
     
     // Validate request
     const validatedData = updateScheduleSchema.parse(body);
@@ -174,10 +204,16 @@ export async function PUT(
       is_template: day.isTemplate || false
     }));
 
-    // Use enterprise service to update working days
+    console.log('✅ Transformed to DB format (snake_case):', {
+      count: workingDaysForDB.length,
+      days: workingDaysForDB.map(d => d.day_of_week),
+      sample: workingDaysForDB[0],
+    });
+
+    // Use enterprise service to update working days (validates internally with dual-format support)
     const result = await scheduleService.updateWorkingDays(
       doctorId,
-      workingDaysForDB as any, // Type assertion for now
+      workingDaysForDB as any,
       user.id
     );
 
@@ -247,7 +283,8 @@ export async function PUT(
     if (!result.success) {
       // If we have specific validation errors, return them directly
       if (result.errors && result.errors.length > 0) {
-        return NextResponse.json(
+        const origin = request.headers.get('origin');
+        const response = NextResponse.json(
           {
             success: false,
             message: 'Validation failed',
@@ -255,6 +292,7 @@ export async function PUT(
           },
           { status: 400 }
         );
+        return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
       }
 
       // Otherwise, handle as a general error
@@ -263,7 +301,8 @@ export async function PUT(
         { userId: user.id, doctorId, operation: 'updateSchedule' }
       );
 
-      return NextResponse.json(
+      const origin = request.headers.get('origin');
+      const response = NextResponse.json(
         {
           success: false,
           message: error.userMessage,
@@ -271,9 +310,10 @@ export async function PUT(
         },
         { status: 500 }
       );
+      return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
     }
 
-    const response: ApiResponse<{ doctorId: string; workingDaysCount: number; aiOptimization: boolean }> = {
+    const responseData: ApiResponse<{ doctorId: string; workingDaysCount: number; aiOptimization: boolean }> = {
       success: true,
       message: 'Schedule updated successfully',
       data: {
@@ -283,7 +323,9 @@ export async function PUT(
       }
     };
 
-    return NextResponse.json(response);
+    const origin = request.headers.get('origin');
+    const response = NextResponse.json(responseData);
+    return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
     
   } catch (error) {
     const handledError = await errorHandler.handleError(
@@ -291,15 +333,18 @@ export async function PUT(
       { operation: 'updateSchedule' }
     );
 
+    const origin = request.headers.get('origin');
+
     if (error instanceof z.ZodError) {
-      return NextResponse.json({
+      const response = NextResponse.json({
         success: false,
         message: 'Validation error',
         errors: error.errors.map(e => e.message),
       }, { status: 400 });
+      return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
     }
     
-    return NextResponse.json(
+    const response = NextResponse.json(
       {
         success: false,
         message: handledError.userMessage,
@@ -307,5 +352,6 @@ export async function PUT(
       },
       { status: 500 }
     );
+    return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
   }
 }

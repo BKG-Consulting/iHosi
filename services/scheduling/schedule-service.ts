@@ -252,20 +252,20 @@ export class ScheduleService {
             tx.workingDays.create({
               data: {
                 doctor_id: doctorId,
-                day_of_week: day.day,
-                is_working: day.isWorking,
-                start_time: day.startTime,
-                end_time: day.endTime,
-                break_start_time: day.breakStart || null,
-                break_end_time: day.breakEnd || null,
-                max_appointments: day.maxAppointments,
-                appointment_duration: day.appointmentDuration || 30,
-                buffer_time: day.bufferTime || 5,
-                timezone: day.timezone || 'UTC',
-                recurrence_type: day.recurrenceType || 'WEEKLY',
-                effective_from: day.effectiveFrom ? new Date(day.effectiveFrom) : null,
-                effective_until: day.effectiveUntil ? new Date(day.effectiveUntil) : null,
-                is_template: day.isTemplate || false
+                day_of_week: (day as any).day || (day as any).day_of_week,
+                is_working: (day as any).isWorking ?? (day as any).is_working,
+                start_time: (day as any).startTime || (day as any).start_time,
+                end_time: (day as any).endTime || (day as any).end_time,
+                break_start_time: (day as any).breakStart || (day as any).break_start_time || null,
+                break_end_time: (day as any).breakEnd || (day as any).break_end_time || null,
+                max_appointments: (day as any).maxAppointments || (day as any).max_appointments,
+                appointment_duration: (day as any).appointmentDuration || (day as any).appointment_duration || 30,
+                buffer_time: (day as any).bufferTime || (day as any).buffer_time || 5,
+                timezone: (day as any).timezone || 'UTC',
+                recurrence_type: (day as any).recurrenceType || (day as any).recurrence_type || 'WEEKLY',
+                effective_from: (day as any).effectiveFrom || (day as any).effective_from ? new Date((day as any).effectiveFrom || (day as any).effective_from) : null,
+                effective_until: (day as any).effectiveUntil || (day as any).effective_until ? new Date((day as any).effectiveUntil || (day as any).effective_until) : null,
+                is_template: (day as any).isTemplate ?? (day as any).is_template ?? false
               }
             })
           )

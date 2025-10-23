@@ -28,6 +28,7 @@ import {
   BarChart3,
   ChevronRight,
   Sparkles,
+  UserButton,
 } from "lucide-react";
 import Link from "next/link";
 import React from "react";
@@ -289,10 +290,10 @@ export const Sidebar = async () => {
 
   return (
     <div className="w-full h-full bg-gradient-to-b from-[#F5F7FA] to-[#D1F1F2] border-r border-[#D1F1F2] flex flex-col shadow-lg">
-      {/* Header */}
+      {/* Header with Logo and User Info */}
       <div className="p-6 border-b border-[#D1F1F2] bg-white/50 backdrop-blur-sm">
-        <div className="flex items-center gap-3">
-          <div className="relative w-10 h-10">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="relative w-12 h-12">
             <Image
               src="/logo.png"
               alt="Ihosi Logo"
@@ -301,7 +302,7 @@ export const Sidebar = async () => {
               priority
             />
           </div>
-          <div className="hidden lg:block">
+          <div className="flex-1">
             <Link
               href="/"
               className="text-xl font-bold text-[#3E4C4B] hover:text-[#046658] transition-colors"
@@ -311,6 +312,17 @@ export const Sidebar = async () => {
             <p className="text-xs text-[#5AC5C8] font-medium">
               Healthcare Management
             </p>
+          </div>
+        </div>
+        
+        {/* User Info Section */}
+        <div className="flex items-center gap-3 p-3 bg-gradient-to-r from-[#046658]/5 to-[#2EB6B0]/5 rounded-xl border border-[#D1F1F2]">
+          <div className="w-8 h-8 bg-gradient-to-br from-[#046658] to-[#2EB6B0] rounded-full flex items-center justify-center">
+            <User className="w-4 h-4 text-white" />
+          </div>
+          <div className="flex-1">
+            <p className="text-sm font-semibold text-[#3E4C4B] capitalize">{role}</p>
+            <p className="text-xs text-[#5AC5C8]">Dashboard</p>
           </div>
         </div>
       </div>

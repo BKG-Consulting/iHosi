@@ -1,10 +1,7 @@
-import { StatCard } from "@/components/stat-card";
-import { Button } from "@/components/ui/button";
 import { AvailableDoctorProps } from "@/types/data-types";
 import { getPatientDashboardStatistics } from "@/utils/services/patient";
-
 import { verifyAuth } from "@/lib/auth/auth-helper";
-import { Calendar, Clock, CheckCircle, XCircle, AlertCircle, User } from "lucide-react";
+import { Calendar, Clock, CheckCircle, XCircle } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import React, { Suspense } from "react";
@@ -12,17 +9,17 @@ import dynamic from "next/dynamic";
 import { SuccessTransition } from "@/components/success-transition";
 
 // Lazy load heavy components with better loading states
-const AvailableDoctors = dynamic(() => import("@/components/available-doctor").then(mod => ({ default: mod.AvailableDoctors })), {
+const AvailableDoctorsBooking = dynamic(() => import("@/components/patient/available-doctors-booking").then(mod => ({ default: mod.AvailableDoctorsBooking })), {
   loading: () => (
     <div className="space-y-4">
-      <div className="h-4 w-32 bg-gradient-to-r from-[#046658]/20 to-[#2EB6B0]/20 rounded animate-pulse" />
+      <div className="h-4 w-32 bg-slate-200 rounded animate-pulse" />
       <div className="space-y-3">
         {Array.from({ length: 2 }).map((_, i) => (
-          <div key={i} className="flex items-center space-x-3">
-            <div className="h-10 w-10 bg-gradient-to-br from-[#046658]/20 to-[#2EB6B0]/20 rounded-full animate-pulse" />
+          <div key={i} className="flex items-center space-x-3 p-4 bg-slate-50 rounded-xl">
+            <div className="h-14 w-14 bg-slate-200 rounded-full animate-pulse" />
             <div className="flex-1 space-y-2">
-              <div className="h-4 w-24 bg-gradient-to-r from-[#046658]/20 to-[#2EB6B0]/20 rounded animate-pulse" />
-              <div className="h-3 w-32 bg-gradient-to-r from-[#5AC5C8]/20 to-[#2EB6B0]/20 rounded animate-pulse" />
+              <div className="h-4 w-24 bg-slate-200 rounded animate-pulse" />
+              <div className="h-3 w-32 bg-slate-200 rounded animate-pulse" />
             </div>
           </div>
         ))}
@@ -39,18 +36,11 @@ const AppointmentChart = dynamic(() => import("@/components/charts/appointment-c
   )
 });
 
-const StatSummary = dynamic(() => import("@/components/charts/stat-summary").then(mod => ({ default: mod.StatSummary })), {
-  loading: () => (
-    <div className="h-32 bg-gradient-to-br from-[#046658]/5 to-[#2EB6B0]/10 rounded-lg animate-pulse flex items-center justify-center">
-      <div className="text-[#5AC5C8] text-sm">Loading summary...</div>
-    </div>
-  )
-});
 
-const PatientRatingContainer = dynamic(() => import("@/components/patient-rating-container").then(mod => ({ default: mod.PatientRatingContainer })), {
+const RecentVitalsWidget = dynamic(() => import("@/components/patient/recent-vitals-widget").then(mod => ({ default: mod.RecentVitalsWidget })), {
   loading: () => (
     <div className="h-32 bg-gradient-to-br from-[#046658]/5 to-[#2EB6B0]/10 rounded-lg animate-pulse flex items-center justify-center">
-      <div className="text-[#5AC5C8] text-sm">Loading ratings...</div>
+      <div className="text-[#5AC5C8] text-sm">Loading vitals...</div>
     </div>
   )
 });
@@ -98,25 +88,12 @@ const PatientDashboard = async ({ searchParams }: { searchParams?: Promise<{ suc
     );
   }
 
-  // Enhanced debugging for patient data retrieval
-  console.log("=== PATIENT DASHBOARD DEBUG ===");
-  console.log("About to call getPatientDashboardStatistics with user ID:", user.id);
-  console.log("User object:", user);
-  
+  // Fetch patient dashboard statistics
   let result;
   try {
     result = await getPatientDashboardStatistics(user.id);
-    console.log("getPatientDashboardStatistics completed successfully");
-    console.log("Full result from getPatientDashboardStatistics:", JSON.stringify(result, null, 2));
-    console.log("Result success:", result.success);
-    console.log("Result data:", result.data);
-    console.log("Result message:", (result as any).message);
-    console.log("Result status:", result.status);
   } catch (error) {
-    console.error("=== ERROR IN getPatientDashboardStatistics CALL ===");
-    console.error("Error:", error);
-    console.error("Error message:", error instanceof Error ? error.message : "Unknown error");
-    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace");
+    console.error("Error retrieving patient data:", error);
     
     // Return error result to prevent redirect loop
     result = {
@@ -133,17 +110,8 @@ const PatientDashboard = async ({ searchParams }: { searchParams?: Promise<{ suc
   }
 
   // Check if patient data exists
-  console.log("=== REDIRECT CHECK ===");
-  console.log("Result success:", result.success);
-  console.log("Result data exists:", !!result.data);
-  console.log("Result data:", result.data);
-  
   if (!result.success || !result.data) {
-    console.log("❌ REDIRECTING TO REGISTRATION - Patient data not found");
-    console.log("Result:", result);
     redirect("/patient/registration");
-  } else {
-    console.log("✅ NO REDIRECT - Patient data found, proceeding to dashboard");
   }
 
   const {
@@ -155,122 +123,115 @@ const PatientDashboard = async ({ searchParams }: { searchParams?: Promise<{ suc
     monthlyData = [],
   } = result as any;
 
-  const cardData = [
-    {
-      title: "Total Appointments",
-      value: totalAppointments || 0,
-      icon: Calendar,
-      className: "bg-gradient-to-br from-[#046658]/10 to-[#2EB6B0]/10 border-[#D1F1F2] shadow-lg hover:shadow-xl transition-all duration-300",
-      iconClassName: "bg-gradient-to-br from-[#046658] to-[#2EB6B0] text-white shadow-lg",
-      note: "All time appointments",
-      link: "/record/appointments",
-    },
-    {
-      title: "Cancelled",
-      value: appointmentCounts?.CANCELLED || 0,
-      icon: XCircle,
-      className: "bg-gradient-to-br from-red-50 to-red-100 border-red-200 shadow-lg hover:shadow-xl transition-all duration-300",
-      iconClassName: "bg-red-500 text-white shadow-lg",
-      note: "Cancelled appointments",
-      link: "/record/appointments",
-    },
-    {
-      title: "Pending",
-      value: (appointmentCounts?.PENDING || 0) + (appointmentCounts?.SCHEDULED || 0),
-      icon: AlertCircle,
-      className: "bg-gradient-to-br from-[#5AC5C8]/10 to-[#2EB6B0]/10 border-[#D1F1F2] shadow-lg hover:shadow-xl transition-all duration-300",
-      iconClassName: "bg-gradient-to-br from-[#5AC5C8] to-[#2EB6B0] text-white shadow-lg",
-      note: "Upcoming appointments",
-      link: "/record/appointments",
-    },
-    {
-      title: "Completed",
-      value: appointmentCounts?.COMPLETED || 0,
-      icon: CheckCircle,
-      className: "bg-gradient-to-br from-[#2EB6B0]/10 to-[#5AC5C8]/10 border-[#D1F1F2] shadow-lg hover:shadow-xl transition-all duration-300",
-      iconClassName: "bg-gradient-to-br from-[#2EB6B0] to-[#5AC5C8] text-white shadow-lg",
-      note: "Successful appointments",
-      link: "/record/appointments",
-    },
-  ];
-
-  console.log("=== RENDERING DASHBOARD ===");
-  console.log("About to render patient dashboard with data:", data);
+  // Get all doctors for the booking form
+  const { getDoctors } = await import('@/utils/services/doctor');
+  const { data: allDoctors } = await getDoctors(true);
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#F5F7FA] via-[#D1F1F2] to-[#F5F7FA] p-6">
+    <div className="min-h-screen p-8">
       {/* Header Section */}
       <div className="mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-3xl font-bold text-[#3E4C4B] mb-2">
-              Welcome back, {data?.first_name || user?.firstName}
-            </h1>
-            <p className="text-[#3E4C4B]/80 text-lg">
-              Here's what's happening with your health journey today
-            </p>
-          </div>
-          <div className="flex items-center gap-4">
-            
-          </div>
-        </div>
-        
-        {/* Current Year Badge */}
-        <div className="inline-flex items-center px-4 py-2 bg-white/80 backdrop-blur-sm rounded-full border border-[#D1F1F2] shadow-lg">
-          <Calendar className="w-4 h-4 text-[#5AC5C8] mr-2" />
-          <span className="text-sm font-medium text-[#3E4C4B]">{new Date().getFullYear()}</span>
-        </div>
-      </div>
+        <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">
+          Welcome back, {data?.first_name || user?.firstName}
+        </h1>
+        <p className="text-slate-600 text-lg mb-6">
+          Here's what's happening with your health journey today
+        </p>
 
-      {/* Stats Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        {cardData?.map((card, id) => (
-          <StatCard key={id} {...card} />
-        ))}
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-        {/* Main Content - Left Side */}
-        <div className="xl:col-span-2 space-y-8">
-          {/* Appointment Chart */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#D1F1F2] hover:shadow-xl transition-all duration-300">
-            <div className="mb-6">
-              <h2 className="text-xl font-semibold text-[#3E4C4B] mb-2">Appointment Trends</h2>
-              <p className="text-[#3E4C4B]/80">Your appointment activity over the past months</p>
+        {/* Balanced Stats Grid - 4 Equal Width Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Total Appointments */}
+          <Link href="/record/appointments" className="group">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 hover:border-blue-300 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <Calendar className="w-6 h-6 text-blue-600" />
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-slate-900 mb-1">{totalAppointments || 0}</p>
+              <p className="text-sm text-slate-500">Total Appointments</p>
             </div>
-            <Suspense fallback={<div className="h-[400px] bg-gradient-to-br from-[#046658]/5 to-[#2EB6B0]/10 rounded-lg animate-pulse flex items-center justify-center"><div className="text-[#5AC5C8] text-sm">Loading chart...</div></div>}>
-              <AppointmentChart data={monthlyData || []} />
-            </Suspense>
-          </div>
+          </Link>
 
-          {/* Recent Appointments */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#D1F1F2] hover:shadow-xl transition-all duration-300">
-            <Suspense fallback={<div className="h-32 bg-gradient-to-br from-[#046658]/5 to-[#2EB6B0]/10 rounded-lg animate-pulse flex items-center justify-center"><div className="text-[#5AC5C8] text-sm">Loading appointments...</div></div>}>
+          {/* Pending */}
+          <Link href="/record/appointments" className="group">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 hover:border-amber-300 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                  <Clock className="w-6 h-6 text-amber-600" />
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-slate-900 mb-1">{(appointmentCounts?.PENDING || 0) + (appointmentCounts?.SCHEDULED || 0)}</p>
+              <p className="text-sm text-slate-500">Upcoming</p>
+            </div>
+          </Link>
+
+          {/* Completed */}
+          <Link href="/record/appointments" className="group">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 hover:border-green-300 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-slate-900 mb-1">{appointmentCounts?.COMPLETED || 0}</p>
+              <p className="text-sm text-slate-500">Completed</p>
+            </div>
+          </Link>
+
+          {/* Cancelled */}
+          <Link href="/record/appointments" className="group">
+            <div className="bg-white rounded-xl border border-slate-200 shadow-sm hover:shadow-md transition-all duration-200 hover:border-red-300 p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
+                  <XCircle className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+              <p className="text-3xl font-bold text-slate-900 mb-1">{appointmentCounts?.CANCELLED || 0}</p>
+              <p className="text-sm text-slate-500">Cancelled</p>
+            </div>
+          </Link>
+        </div>
+      </div>
+
+      {/* Main Content Grid - Functional First */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+        {/* Primary Content - Takes 2/3 width */}
+        <div className="xl:col-span-2 space-y-6">
+          {/* Recent Appointments - Most Important */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+            <Suspense fallback={<div className="h-32 bg-slate-50 rounded-lg animate-pulse flex items-center justify-center"><div className="text-slate-500 text-sm">Loading appointments...</div></div>}>
               <RecentAppointments data={last5Records || []} />
             </Suspense>
           </div>
+
+          {/* Appointment Trends - Secondary */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+            <div className="mb-6">
+              <h2 className="text-xl font-semibold text-slate-900 mb-1">Appointment Trends</h2>
+              <p className="text-sm text-slate-600">Your appointment activity over time</p>
+            </div>
+            <Suspense fallback={<div className="h-[300px] bg-slate-50 rounded-lg animate-pulse flex items-center justify-center"><div className="text-slate-500 text-sm">Loading chart...</div></div>}>
+              <AppointmentChart data={monthlyData || []} />
+            </Suspense>
+          </div>
         </div>
 
-        {/* Sidebar - Right Side */}
-        <div className="space-y-8">
-          {/* Summary Chart */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#D1F1F2] hover:shadow-xl transition-all duration-300">
-            <Suspense fallback={<div className="h-32 bg-gradient-to-br from-[#046658]/5 to-[#2EB6B0]/10 rounded-lg animate-pulse flex items-center justify-center"><div className="text-[#5AC5C8] text-sm">Loading summary...</div></div>}>
-              <StatSummary data={appointmentCounts || {}} total={totalAppointments || 0} />
-            </Suspense>
-          </div>
+        {/* Sidebar - Actionable Items */}
+        <div className="space-y-6">
+          {/* Recent Vitals - Critical Health Data */}
+          <Suspense fallback={<div className="h-32 bg-slate-50 rounded-lg animate-pulse flex items-center justify-center"><div className="text-slate-500 text-sm">Loading vitals...</div></div>}>
+            <RecentVitalsWidget patientId={user.id} />
+          </Suspense>
 
-          {/* Available Doctors */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#D1F1F2] hover:shadow-xl transition-all duration-300">
-            <Suspense fallback={<div className="h-32 bg-gradient-to-br from-[#046658]/5 to-[#2EB6B0]/10 rounded-lg animate-pulse flex items-center justify-center"><div className="text-[#5AC5C8] text-sm">Loading doctors...</div></div>}>
-              <AvailableDoctors data={availableDoctor as AvailableDoctorProps} />
-            </Suspense>
-          </div>
-
-          {/* Patient Ratings */}
-          <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg border border-[#D1F1F2] hover:shadow-xl transition-all duration-300">
-            <Suspense fallback={<div className="h-32 bg-gradient-to-br from-[#046658]/5 to-[#2EB6B0]/10 rounded-lg animate-pulse flex items-center justify-center"><div className="text-[#5AC5C8] text-sm">Loading ratings...</div></div>}>
-              <PatientRatingContainer />
+          {/* Available Doctors with Integrated Booking */}
+          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-200">
+            <Suspense fallback={<div className="h-32 bg-slate-50 rounded-lg animate-pulse flex items-center justify-center"><div className="text-slate-500 text-sm">Loading doctors...</div></div>}>
+              <AvailableDoctorsBooking 
+                data={availableDoctor as AvailableDoctorProps} 
+                patientData={data!} 
+                allDoctors={allDoctors || []} 
+              />
             </Suspense>
           </div>
         </div>

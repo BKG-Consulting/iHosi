@@ -36,6 +36,8 @@ const AppointmentDetailsPage = async ({
               appointment_date={data?.appointment_date!}
               time={data?.time!}
               notes={data?.note!}
+              status={data?.status!}
+              doctor_id={data?.doctor_id!}
             />
 
             <VitalSigns

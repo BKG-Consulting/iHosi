@@ -94,19 +94,23 @@ export class SecurityMiddleware {
   /**
    * Apply security headers for API responses
    */
-  static applyAPISecurityHeaders(response: NextResponse): NextResponse {
+  static applyAPISecurityHeaders(response: NextResponse, origin?: string): NextResponse {
     // Basic security headers
     response.headers.set('X-Content-Type-Options', 'nosniff');
     response.headers.set('X-Frame-Options', 'DENY');
     response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
     
-    // API-specific headers
-    response.headers.set('Access-Control-Allow-Origin', process.env.NODE_ENV === 'production' 
-      ? 'https://yourdomain.com' 
-      : 'http://localhost:3000'
-    );
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token');
+    // API-specific headers - Allow multiple origins in development
+    const allowedOrigins = process.env.NODE_ENV === 'production' 
+      ? ['https://yourdomain.com']
+      : ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:8081', 'http://localhost:8082', 'http://localhost:8083'];
+    
+    const requestOrigin = origin || 'http://localhost:3000';
+    const allowOrigin = allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0];
+    
+    response.headers.set('Access-Control-Allow-Origin', allowOrigin);
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-CSRF-Token, Cookie');
     response.headers.set('Access-Control-Allow-Credentials', 'true');
     
     // Prevent caching of API responses

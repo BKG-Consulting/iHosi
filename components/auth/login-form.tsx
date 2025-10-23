@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@/components/providers/auth-provider';
 import { MFAVerification } from './mfa-verification';
 import { SecurityStatus } from './security-status';
+import { AuthErrorHandler } from '@/lib/auth/auth-error-handler';
 
 interface LoginFormProps {
   onSuccess?: (user: any) => void;
@@ -134,12 +135,26 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
           router.push(redirectPath);
         }
       } else {
-        setError(result.error || 'Login failed');
-        toast.error(result.error || 'Login failed');
+        const authError = AuthErrorHandler.parseError(result.error || result);
+        setError(authError.userMessage);
+        
+        // Show appropriate toast based on severity
+        const severity = AuthErrorHandler.getSeverity(result.error || result);
+        if (severity === 'critical' || severity === 'high') {
+          toast.error(authError.userMessage, {
+            duration: 10000,
+            description: authError.action
+          });
+        } else {
+          toast.error(authError.userMessage);
+        }
       }
     } catch (error) {
-      setError('Network error. Please try again.');
-      toast.error('Network error. Please try again.');
+      const authError = AuthErrorHandler.parseError(error);
+      setError(authError.userMessage);
+      toast.error(authError.userMessage, {
+        description: authError.action
+      });
     } finally {
       setLoading(false);
     }
@@ -184,12 +199,18 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
         
         router.push(redirectPath);
       } else {
-        setError(result.error || 'MFA verification failed');
-        toast.error(result.error || 'MFA verification failed');
+        const authError = AuthErrorHandler.parseError(result.error || result);
+        setError(authError.userMessage);
+        toast.error(authError.userMessage, {
+          description: authError.action
+        });
       }
     } catch (error) {
-      setError('Network error. Please try again.');
-      toast.error('Network error. Please try again.');
+      const authError = AuthErrorHandler.parseError(error);
+      setError(authError.userMessage);
+      toast.error(authError.userMessage, {
+        description: authError.action
+      });
     } finally {
       setLoading(false);
     }
@@ -210,48 +231,40 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
   }
 
   return (
-    <div className="space-y-8 relative">
-      {/* Loading Overlay */}
-      {loading && (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
-          <div className="flex items-center space-x-2 text-blue-600">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="font-medium">Signing in...</span>
-          </div>
-        </div>
-      )}
-      
+    <div className="w-full">
       {/* Header */}
-      <div className="text-center">
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">Welcome Back</h1>
-        <p className="text-slate-600">Sign in to your account</p>
+      <div className="px-8 pt-8 pb-6 text-center border-b border-slate-100">
+        <h1 className="text-2xl font-semibold text-slate-900 mb-1">Welcome Back</h1>
+        <p className="text-sm text-slate-500">
+          Sign in to your account
+        </p>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">
-              {error}
-            </AlertDescription>
-          </Alert>
-        )}
+      <div className="p-8">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                {error}
+              </AlertDescription>
+            </Alert>
+          )}
 
-        <div className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="email" className="text-sm font-medium text-slate-700">
               Email Address
             </Label>
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 id="email"
                 type="email"
                 placeholder="Enter your email"
                 value={formData.email}
                 onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="pl-10 h-12 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="pl-10 h-11 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
                 disabled={loading}
                 required
               />
@@ -263,74 +276,79 @@ export function LoginForm({ onSuccess, redirectTo }: LoginFormProps) {
               Password
             </Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 w-5 h-5" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
               <Input
                 id="password"
                 type={showPassword ? 'text' : 'password'}
                 placeholder="Enter your password"
                 value={formData.password}
                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="pl-10 pr-10 h-12 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="pl-10 pr-10 h-11 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
                 disabled={loading}
                 required
               />
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 onClick={() => setShowPassword(!showPassword)}
                 disabled={loading}
-                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="absolute right-0 top-1/2 -translate-y-1/2 h-full px-3 hover:bg-transparent"
               >
-                {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
-              </button>
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-slate-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-slate-400" />
+                )}
+              </Button>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="remember"
-              checked={formData.rememberMe}
-              onCheckedChange={(checked) => setFormData({ ...formData, rememberMe: !!checked })}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember"
+                checked={formData.rememberMe}
+                onCheckedChange={(checked) => setFormData({ ...formData, rememberMe: !!checked })}
+                disabled={loading}
+              />
+              <Label htmlFor="remember" className="text-sm text-slate-600 cursor-pointer">
+                Remember me
+              </Label>
+            </div>
+            <Button
+              variant="link"
+              className="px-0 text-sm text-blue-600 hover:text-blue-700"
+              type="button"
               disabled={loading}
-              className="border-slate-200 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            />
-            <Label htmlFor="remember" className="text-sm text-slate-600">
-              Remember me
-            </Label>
+            >
+              Forgot password?
+            </Button>
           </div>
-          <button
-            type="button"
+
+          <Button
+            type="submit"
             disabled={loading}
-            className="text-sm text-blue-600 hover:text-blue-700 font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
           >
-            Forgot password?
-          </button>
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Signing In...
+              </>
+            ) : (
+              'Sign In'
+            )}
+          </Button>
+        </form>
+
+        {/* Secure connection indicator */}
+        <div className="mt-6 pt-6 border-t border-slate-100">
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+            <Shield className="w-3.5 h-3.5 text-green-600" />
+            <span>Secure encrypted connection</span>
+          </div>
         </div>
-
-        <Button
-          type="submit"
-          disabled={loading}
-          className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] shadow-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Signing In...
-            </>
-          ) : (
-            'Sign In'
-          )}
-        </Button>
-      </form>
-
-      <div className="text-center">
-        <p className="text-sm text-slate-600">
-          Don't have an account?{' '}
-          <button className="text-blue-600 hover:text-blue-700 font-medium transition-colors">
-            Contact administrator
-          </button>
-        </p>
       </div>
     </div>
   );
@@ -355,72 +373,75 @@ function MFAForm({ userId, onVerify, loading, error }: MFAFormProps) {
   };
 
   return (
-    <div className="space-y-8 relative">
-      {/* Loading Overlay */}
-      {loading && (
-        <div className="absolute inset-0 bg-white/80 backdrop-blur-sm z-10 flex items-center justify-center rounded-xl">
-          <div className="flex items-center space-x-2 text-blue-600">
-            <Loader2 className="w-5 h-5 animate-spin" />
-            <span className="font-medium">Verifying...</span>
-          </div>
-        </div>
-      )}
-      
+    <div className="w-full">
       {/* Header */}
-      <div className="text-center">
-        <div className="w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-700 rounded-2xl flex items-center justify-center mx-auto mb-4">
-          <Lock className="w-8 h-8 text-white" />
+      <div className="px-8 pt-8 pb-6 text-center border-b border-slate-100">
+        <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+          <Lock className="w-6 h-6 text-white" />
         </div>
-        <h1 className="text-3xl font-bold text-slate-800 mb-2">MFA Verification</h1>
-        <p className="text-slate-600">Enter the 6-digit code from your authenticator app</p>
+        <h1 className="text-2xl font-semibold text-slate-900 mb-1">MFA Verification</h1>
+        <p className="text-sm text-slate-500">
+          Enter the 6-digit code from your authenticator app
+        </p>
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {error && (
-          <Alert className="border-red-200 bg-red-50">
-            <AlertCircle className="h-4 w-4 text-red-600" />
-            <AlertDescription className="text-red-800">
-              {error}
-            </AlertDescription>
-          </Alert>
-        )}
-
-        <div className="space-y-4">
-          <Label htmlFor="mfa-code" className="text-sm font-medium text-slate-700">
-            Verification Code
-          </Label>
-          <Input
-            id="mfa-code"
-            type="text"
-            placeholder="000000"
-            value={code}
-            onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            className="h-12 text-center text-2xl font-mono border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            disabled={loading}
-            maxLength={6}
-            required
-          />
-          <p className="text-xs text-slate-500 text-center">
-            Enter the 6-digit code from your authenticator app
-          </p>
-        </div>
-
-        <Button
-          type="submit"
-          disabled={code.length !== 6 || loading}
-          className="w-full h-12 bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white font-semibold rounded-xl transition-all duration-200 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none disabled:hover:scale-100 shadow-lg"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Verifying...
-            </>
-          ) : (
-            'Verify Code'
+      <div className="p-8">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {error && (
+            <Alert className="border-red-200 bg-red-50">
+              <AlertCircle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                {error}
+              </AlertDescription>
+            </Alert>
           )}
-        </Button>
-      </form>
+
+          <div className="space-y-2">
+            <Label htmlFor="mfa-code" className="text-sm font-medium text-slate-700">
+              Verification Code
+            </Label>
+            <Input
+              id="mfa-code"
+              type="text"
+              placeholder="000000"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+              className="h-12 text-center text-2xl font-mono tracking-widest border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+              disabled={loading}
+              maxLength={6}
+              required
+              autoFocus
+            />
+            <p className="text-xs text-slate-500 text-center mt-2">
+              Open your authenticator app to get the code
+            </p>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={code.length !== 6 || loading}
+            className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors"
+          >
+            {loading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Verifying...
+              </>
+            ) : (
+              'Verify Code'
+            )}
+          </Button>
+        </form>
+
+        {/* Secure connection indicator */}
+        <div className="mt-6 pt-6 border-t border-slate-100">
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+            <Shield className="w-3.5 h-3.5 text-green-600" />
+            <span>Secure encrypted connection</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

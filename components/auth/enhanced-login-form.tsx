@@ -240,198 +240,126 @@ export function EnhancedLoginForm({ onSuccess, redirectTo }: LoginFormProps) {
   }
 
   return (
-    <div className="w-full max-w-md mx-auto space-y-6">
-      {/* Security Features Badge */}
-      <div className="flex justify-center">
-        <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-full text-sm">
-          <Shield className="w-4 h-4 text-primary" />
-          <span className="text-primary font-medium">Enhanced Security</span>
-        </div>
+    <div className="w-full">
+      {/* Header */}
+      <div className="px-8 pt-8 pb-6 text-center border-b border-slate-100">
+        <h1 className="text-2xl font-semibold text-slate-900 mb-1">Welcome Back</h1>
+        <p className="text-sm text-slate-500">
+          Sign in to your healthcare account
+        </p>
       </div>
 
-      {/* Main Login Card */}
-      <Card>
-        <CardHeader className="text-center">
-          <CardTitle className="text-2xl">Welcome Back</CardTitle>
-          <CardDescription>
-            Sign in to your healthcare account
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {/* Security Indicators */}
-          <div className="grid grid-cols-2 gap-2 text-xs">
-            <div className="flex items-center gap-1 text-green-600">
-              <CheckCircle className="w-3 h-3" />
-              <span>CSRF Protected</span>
-            </div>
-            <div className="flex items-center gap-1 text-green-600">
-              <CheckCircle className="w-3 h-3" />
-              <span>Rate Limited</span>
-            </div>
-            <div className="flex items-center gap-1 text-green-600">
-              <CheckCircle className="w-3 h-3" />
-              <span>Encrypted</span>
-            </div>
-            <div className="flex items-center gap-1 text-green-600">
-              <CheckCircle className="w-3 h-3" />
-              <span>Audit Logged</span>
+      {/* Login Form */}
+      <div className="p-8">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="email" className="text-sm font-medium text-slate-700">
+              Email Address
+            </Label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                className="pl-10 h-11 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                required
+                disabled={loading}
+              />
             </div>
           </div>
 
-          <Separator />
-
-          {/* Login Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email Address</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  placeholder="Enter your password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="pl-10 pr-10"
-                  required
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </Button>
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="remember"
-                  checked={formData.rememberMe}
-                  onCheckedChange={(checked) => 
-                    setFormData({ ...formData, rememberMe: checked as boolean })
-                  }
-                />
-                <Label htmlFor="remember" className="text-sm">
-                  Remember me
-                </Label>
-              </div>
-              <Button variant="link" className="px-0 text-sm">
-                Forgot password?
+          <div className="space-y-2">
+            <Label htmlFor="password" className="text-sm font-medium text-slate-700">
+              Password
+            </Label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+              <Input
+                id="password"
+                type={showPassword ? 'text' : 'password'}
+                placeholder="Enter your password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                className="pl-10 pr-10 h-11 border-slate-300 focus:border-blue-500 focus:ring-blue-500"
+                required
+                disabled={loading}
+              />
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="absolute right-0 top-1/2 -translate-y-1/2 h-full px-3 hover:bg-transparent"
+                onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
+              >
+                {showPassword ? (
+                  <EyeOff className="h-4 w-4 text-slate-400" />
+                ) : (
+                  <Eye className="h-4 w-4 text-slate-400" />
+                )}
               </Button>
             </div>
+          </div>
 
-            {error && (
-              <AuthErrorDisplay
-                error={error}
-                onRetry={handleRetry}
-                onDismiss={() => setError(null)}
-                showDetails={true}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="remember"
+                checked={formData.rememberMe}
+                onCheckedChange={(checked) => 
+                  setFormData({ ...formData, rememberMe: checked as boolean })
+                }
+                disabled={loading}
               />
-            )}
-
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={loading || !csrfToken}
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                <>
-                  <Shield className="mr-2 h-4 w-4" />
-                  Sign In Securely
-                </>
-              )}
-            </Button>
-          </form>
-
-          <Separator />
-
-          {/* Security Status Toggle */}
-          <div className="text-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowSecurityStatus(!showSecurityStatus)}
-              className="text-muted-foreground"
-            >
-              <Info className="w-4 h-4 mr-1" />
-              {showSecurityStatus ? 'Hide' : 'Show'} Security Status
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      {/* Security Status */}
-      {showSecurityStatus && (
-        <SecurityStatus
-          userId={formData.email}
-          onMFASetup={() => {
-            // This would open MFA setup modal
-            toast.info('MFA setup would be initiated here');
-          }}
-        />
-      )}
-
-      {/* Security Features Info */}
-      <Card className="bg-muted/50">
-        <CardContent className="pt-6">
-          <div className="space-y-3">
-            <h4 className="font-medium text-sm flex items-center gap-2">
-              <Shield className="w-4 h-4 text-primary" />
-              Security Features Active
-            </h4>
-            <div className="grid grid-cols-1 gap-2 text-xs text-muted-foreground">
-              <div className="flex items-center justify-between">
-                <span>Multi-Factor Authentication</span>
-                <Badge variant={securityFeatures.mfaEnabled ? "default" : "secondary"}>
-                  {securityFeatures.mfaEnabled ? 'Enabled' : 'Optional'}
-                </Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Rate Limiting</span>
-                <Badge variant="default">Active</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>CSRF Protection</span>
-                <Badge variant="default">Active</Badge>
-              </div>
-              <div className="flex items-center justify-between">
-                <span>Session Security</span>
-                <Badge variant="default">Active</Badge>
-              </div>
+              <Label htmlFor="remember" className="text-sm text-slate-600 cursor-pointer">
+                Remember me
+              </Label>
             </div>
+            <Button 
+              variant="link" 
+              className="px-0 text-sm text-blue-600 hover:text-blue-700"
+              type="button"
+            >
+              Forgot password?
+            </Button>
           </div>
-        </CardContent>
-      </Card>
+
+          {error && (
+            <AuthErrorDisplay
+              error={error}
+              onRetry={handleRetry}
+              onDismiss={() => setError(null)}
+              showDetails={true}
+            />
+          )}
+
+          <Button 
+            type="submit" 
+            className="w-full h-11 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors" 
+            disabled={loading || !csrfToken}
+          >
+            {loading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Signing in...
+              </>
+            ) : (
+              'Sign In'
+            )}
+          </Button>
+        </form>
+
+        {/* Secure connection indicator */}
+        <div className="mt-6 pt-6 border-t border-slate-100">
+          <div className="flex items-center justify-center gap-2 text-xs text-slate-500">
+            <Shield className="w-3.5 h-3.5 text-green-600" />
+            <span>Secure encrypted connection</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

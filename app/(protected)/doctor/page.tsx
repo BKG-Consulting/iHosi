@@ -1,4 +1,4 @@
-import { ComprehensiveDoctorDashboard } from "@/components/doctor/comprehensive-doctor-dashboard";
+import { ModularDoctorDashboard } from "@/components/doctor/dashboard";
 import { getDoctorDashboardStats } from "@/utils/services/doctor";
 import { redirect } from "next/navigation";
 import React from "react";
@@ -110,7 +110,7 @@ const DoctorDashboard = async () => {
   };
 
     return (
-      <ComprehensiveDoctorDashboard
+      <ModularDoctorDashboard
         doctor={dashboardData.doctor}
         appointments={dashboardData.appointments}
         patients={dashboardData.patients}

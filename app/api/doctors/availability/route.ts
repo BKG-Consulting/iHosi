@@ -3,19 +3,29 @@ import { z } from 'zod';
 import db from '@/lib/db';
 import { HIPAAAuthService } from '@/lib/auth/hipaa-auth';
 import { logAudit } from '@/lib/audit';
+import { SecurityMiddleware } from '@/lib/security/security-middleware';
 
 const updateAvailabilitySchema = z.object({
   doctorId: z.string().min(1, 'Doctor ID is required'),
   availability_status: z.enum(['AVAILABLE', 'BUSY', 'UNAVAILABLE']),
 });
 
+// Handle CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  const response = new NextResponse(null, { status: 204 });
+  return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
+}
+
 // PATCH /api/doctors/availability - Update doctor availability status
 export async function PATCH(request: NextRequest) {
   try {
-    // Verify authentication - check both token formats
+    // Verify authentication - check cookies and Authorization header for mobile compatibility
     const oldToken = request.cookies.get('auth-token')?.value;
     const accessToken = request.cookies.get('access-token')?.value;
-    const token = accessToken || oldToken;
+    const authHeader = request.headers.get('authorization');
+    const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.substring(7) : null;
+    const token = bearerToken || accessToken || oldToken;
     
     if (!token) {
       return NextResponse.json(
@@ -73,7 +83,8 @@ export async function PATCH(request: NextRequest) {
       userAgent: request.headers.get('user-agent') || 'unknown'
     });
     
-    return NextResponse.json({
+    const origin = request.headers.get('origin');
+    const response = NextResponse.json({
       success: true,
       message: 'Availability status updated successfully',
       data: {
@@ -81,19 +92,22 @@ export async function PATCH(request: NextRequest) {
         availability_status: updatedDoctor.availability_status
       }
     });
+    return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
     
   } catch (error) {
     console.error('Error updating doctor availability:', error);
+    const origin = request.headers.get('origin');
     
     if (error instanceof z.ZodError) {
-      return NextResponse.json({
+      const errorResponse = NextResponse.json({
         success: false,
         message: 'Validation error',
         errors: error.errors.map(e => e.message),
       }, { status: 400 });
+      return SecurityMiddleware.applyAPISecurityHeaders(errorResponse, origin || undefined);
     }
     
-    return NextResponse.json(
+    const errorResponse = NextResponse.json(
       { 
         success: false, 
         message: 'Failed to update availability status',
@@ -101,6 +115,7 @@ export async function PATCH(request: NextRequest) {
       },
       { status: 500 }
     );
+    return SecurityMiddleware.applyAPISecurityHeaders(errorResponse, origin || undefined);
   }
 }
 

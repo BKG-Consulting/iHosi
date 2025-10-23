@@ -1,6 +1,9 @@
 import { format } from "date-fns";
 import { SmallCard } from "../small-card";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
+import { ConsultationControls } from "./consultation-controls";
+import { checkRole } from "@/utils/roles";
+import { AppointmentStatusIndicator } from "../appointment-status-indicator";
 
 interface AppointmentDetailsProps {
   id: number | string;
@@ -8,19 +11,32 @@ interface AppointmentDetailsProps {
   appointment_date: Date;
   time: string;
   notes?: string;
+  status?: string;
+  doctor_id?: string;
 }
-export const AppointmentDetails = ({
+export const AppointmentDetails = async ({
   id,
   patient_id,
   appointment_date,
   time,
   notes,
+  status,
+  doctor_id,
 }: AppointmentDetailsProps) => {
+  // Check user role
+  const isPatient = await checkRole("PATIENT");
+  const isDoctor = await checkRole("DOCTOR");
+  const isNurse = await checkRole("NURSE");
+
   return (
-    <Card className="shadow-lg bg-white/80 backdrop-blur-sm border-0 rounded-2xl overflow-hidden">
-      <CardHeader className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white p-6">
-        <CardTitle className="text-xl font-bold text-white">Appointment Information</CardTitle>
-      </CardHeader>
+    <div className="space-y-4">
+      <Card className="shadow-lg bg-white/80 backdrop-blur-sm border-0 rounded-2xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-[#046658] to-[#2EB6B0] text-white p-6">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-xl font-bold text-white">Appointment Information</CardTitle>
+            {status && <AppointmentStatusIndicator status={status as any} />}
+          </div>
+        </CardHeader>
 
       <CardContent className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -44,5 +60,18 @@ export const AppointmentDetails = ({
         </div>
       </CardContent>
     </Card>
+
+    {/* Consultation Status Controls */}
+    {status && doctor_id && (
+      <ConsultationControls
+        appointmentId={Number(id)}
+        doctorId={doctor_id}
+        status={status}
+        isPatient={isPatient}
+        isDoctor={isDoctor}
+        isNurse={isNurse}
+      />
+    )}
+  </div>
   );
 };

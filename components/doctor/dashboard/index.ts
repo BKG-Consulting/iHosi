@@ -1,11 +1,17 @@
-// Main Dashboard Components
-export { DoctorDashboardContainer } from './DoctorDashboardContainer';
+// Main dashboard export
+export { ModularDoctorDashboard } from './modular-doctor-dashboard';
 
-// UI Components
-export { StatCard } from './StatCard';
-export { UrgentAlerts } from './UrgentAlerts';
-export { TodaySchedule } from './TodaySchedule';
-export { NextAppointment } from './NextAppointment';
+// Component exports
+export { DashboardHeader } from './dashboard-header';
+export { StatCard } from './stat-card';
+export { StatusBadge } from './status-badge';
+export { AppointmentCard } from './appointment-card';
+export { PatientCard } from './patient-card';
+export { QuickActions } from './quick-actions';
 
-// Tab Components
-export { OverviewTab } from './tabs/OverviewTab';
+// Tab exports
+export { OverviewTab } from './tabs/overview-tab';
+export { AppointmentsTab } from './tabs/appointments-tab';
+export { PatientsTab } from './tabs/patients-tab';
+export { ClinicalTab } from './tabs/clinical-tab';
+export { AnalyticsTab } from './tabs/analytics-tab';

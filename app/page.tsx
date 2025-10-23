@@ -179,54 +179,67 @@ export default async function Home() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
       {/* Navigation */}
-      <nav className="border-b bg-white/80 backdrop-blur-md sticky top-0 z-50 shadow-sm">
+      <nav className="bg-gradient-to-br from-slate-50 via-white to-slate-100 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-3">
-              <div className="relative w-10 h-10">
+          <div className="flex justify-between items-center py-6">
+            {/* Logo Section - Larger and more balanced */}
+            <Link href="/" className="flex items-center space-x-4 group">
+              <div className="relative w-14 h-14 transition-transform duration-200 group-hover:scale-105">
                 <Image 
                   src="/logo.png" 
                   alt="iHosi Logo" 
-                  width={40} 
-                  height={40} 
-                  className="w-10 h-10 rounded-xl"
+                  width={56} 
+                  height={56} 
+                  className="w-14 h-14 rounded-2xl shadow-md"
                 />
               </div>
               <div>
-                <span className="text-2xl font-bold text-slate-800">iHosi</span>
-                <p className="text-xs text-slate-500 font-medium">Healthcare Management</p>
+                <span className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                  iHosi
+                </span>
+                <p className="text-sm text-slate-600 font-medium">Healthcare Management</p>
               </div>
-            </div>
+            </Link>
             
+            {/* Navigation Links */}
             <div className="hidden md:flex items-center space-x-8">
-              <Link href="#features" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
+              <Link href="#features" className="text-slate-700 hover:text-blue-600 transition-colors font-medium text-base">
                 Features
               </Link>
-              <Link href="#solutions" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
+              <Link href="#solutions" className="text-slate-700 hover:text-blue-600 transition-colors font-medium text-base">
                 Solutions
               </Link>
-              <Link href="#about" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
+              <Link href="#about" className="text-slate-700 hover:text-blue-600 transition-colors font-medium text-base">
                 About
               </Link>
-              <Link href="#contact" className="text-slate-600 hover:text-slate-900 transition-colors font-medium">
+              <Link href="#contact" className="text-slate-700 hover:text-blue-600 transition-colors font-medium text-base">
                 Contact
               </Link>
             </div>
 
-            <div className="flex items-center space-x-4">
+            {/* CTA Buttons */}
+            <div className="flex items-center space-x-3">
               {userId ? (
                 <Link href={`/${role}`}>
-                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-lg">
+                  <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium px-6">
                     <UserCheck className="h-4 w-4 mr-2" />
                     Dashboard
                   </Button>
                 </Link>
               ) : (
-                <Link href="/sign-in">
-                  <Button className="bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-700 hover:to-indigo-800 text-white shadow-lg">
-                    Sign In
-                  </Button>
-                </Link>
+                <>
+                  <Link href="/sign-in">
+                    <Button variant="ghost" className="text-slate-700 hover:text-blue-600 font-medium">
+                      Sign In
+                    </Button>
+                  </Link>
+                  <Link href="/sign-up">
+                    <Button className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200 font-medium px-6">
+                      Get Started
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </>
               )}
             </div>
           </div>

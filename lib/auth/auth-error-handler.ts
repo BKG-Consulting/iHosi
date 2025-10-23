@@ -10,6 +10,7 @@ export interface AuthError {
   severity: 'low' | 'medium' | 'high' | 'critical';
   action?: string;
   retryable: boolean;
+  retryAfter?: number; // seconds until retry is allowed
 }
 
 export class AuthErrorHandler {
@@ -156,6 +157,17 @@ export class AuthErrorHandler {
   ]);
 
   /**
+   * Format time duration in a user-friendly way
+   */
+  private static formatRetryTime(seconds: number): string {
+    if (seconds < 60) {
+      return `${seconds} second${seconds !== 1 ? 's' : ''}`;
+    }
+    const minutes = Math.ceil(seconds / 60);
+    return `${minutes} minute${minutes !== 1 ? 's' : ''}`;
+  }
+
+  /**
    * Parse error from various sources and return standardized AuthError
    */
   static parseError(error: any): AuthError {
@@ -213,14 +225,38 @@ export class AuthErrorHandler {
     if (error && typeof error === 'object') {
       if (error.error) {
         const mappedError = this.errorMap.get(error.error);
-        if (mappedError) return mappedError;
+        if (mappedError) {
+          // Enhance rate limit errors with retry time
+          if (error.error === 'RATE_LIMIT_EXCEEDED' && error.retryAfter) {
+            const retryTime = this.formatRetryTime(error.retryAfter);
+            return {
+              ...mappedError,
+              userMessage: `Too many login attempts. Please wait ${retryTime} before trying again.`,
+              action: `Please wait ${retryTime} before attempting to log in again.`,
+              retryAfter: error.retryAfter
+            };
+          }
+          return mappedError;
+        }
       }
       
       if (error.message) {
         const errorCode = this.extractErrorCode(error.message);
         if (errorCode) {
           const mappedError = this.errorMap.get(errorCode);
-          if (mappedError) return mappedError;
+          if (mappedError) {
+            // Enhance rate limit errors with retry time if available
+            if (errorCode === 'RATE_LIMIT_EXCEEDED' && error.retryAfter) {
+              const retryTime = this.formatRetryTime(error.retryAfter);
+              return {
+                ...mappedError,
+                userMessage: `Too many login attempts. Please wait ${retryTime} before trying again.`,
+                action: `Please wait ${retryTime} before attempting to log in again.`,
+                retryAfter: error.retryAfter
+              };
+            }
+            return mappedError;
+          }
         }
       }
     }

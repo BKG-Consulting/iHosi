@@ -79,6 +79,7 @@ export class HIPAAAuthService {
     accessToken?: string;
     refreshToken?: string;
     error?: string;
+    retryAfter?: number;
   }> {
     try {
       // Apply rate limiting
@@ -87,7 +88,8 @@ export class HIPAAAuthService {
         if (!rateLimitResult.allowed) {
           return {
             success: false,
-            error: 'RATE_LIMIT_EXCEEDED'
+            error: 'RATE_LIMIT_EXCEEDED',
+            retryAfter: rateLimitResult.retryAfter
           };
         }
       }

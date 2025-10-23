@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HIPAAAuthService } from '@/lib/auth/hipaa-auth';
 import { cookies } from 'next/headers';
+import { SecurityMiddleware } from '@/lib/security/security-middleware';
+
+// Handle CORS preflight
+export async function OPTIONS(request: NextRequest) {
+  const origin = request.headers.get('origin');
+  const response = new NextResponse(null, { status: 204 });
+  return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -21,10 +29,18 @@ export async function POST(request: NextRequest) {
     const result = await HIPAAAuthService.authenticate(email, password, ipAddress, userAgent, request);
 
     if (!result.success) {
-      return NextResponse.json(
-        { error: result.error },
-        { status: 401 }
-      );
+      // Include error code and retry information if available
+      const errorResponse: any = { 
+        success: false,
+        error: result.error 
+      };
+      
+      // Add retry information for rate limit errors
+      if (result.error === 'RATE_LIMIT_EXCEEDED' && result.retryAfter) {
+        errorResponse.retryAfter = result.retryAfter;
+      }
+      
+      return NextResponse.json(errorResponse, { status: 401 });
     }
 
     // If MFA is required, return MFA challenge
@@ -82,13 +98,17 @@ export async function POST(request: NextRequest) {
       accessTokenExpiry: result.accessToken ? new Date((result.accessToken.split('.')[1] ? JSON.parse(atob(result.accessToken.split('.')[1])).exp * 1000 : 0)).toISOString() : 'undefined'
     });
 
+    // Return tokens in JSON body for mobile app compatibility
     const response = NextResponse.json({
       success: true,
       user: result.user,
+      accessToken: result.accessToken,      // ← ADDED for mobile
+      refreshToken: result.refreshToken,    // ← ADDED for mobile
+      token: result.accessToken,            // ← ADDED for backward compatibility
       message: 'Login successful'
     });
 
-    // Also set cookies in response headers as backup
+    // Also set cookies in response headers for web browsers
     if (result.accessToken) {
       response.cookies.set('access-token', result.accessToken, {
         httpOnly: true,
@@ -118,13 +138,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return response;
+    // Apply CORS headers
+    const origin = request.headers.get('origin');
+    return SecurityMiddleware.applyAPISecurityHeaders(response, origin || undefined);
 
   } catch (error) {
     console.error('Login error:', error);
-    return NextResponse.json(
+    const origin = request.headers.get('origin');
+    const errorResponse = NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
     );
+    return SecurityMiddleware.applyAPISecurityHeaders(errorResponse, origin || undefined);
   }
 }
